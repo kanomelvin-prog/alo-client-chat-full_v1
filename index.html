@@ -339,47 +339,66 @@
         console.error('❌ Start Fresh button not found!');
       }
       
-      // Mobile keyboard handling - force reflow when viewport resizes
-      let isKeyboardOpen = false;
+      // Force initial layout on page load
+      function forceLayout() {
+        if (window.visualViewport) {
+          document.body.style.height = `${window.visualViewport.height}px`;
+          console.log('📐 Forced layout:', window.visualViewport.height);
+        }
+      }
+      
+      // Initial force on load
+      setTimeout(forceLayout, 100);
+      setTimeout(forceLayout, 500);
+      setTimeout(forceLayout, 1000);
+      
+      // Mobile keyboard handling - more aggressive
+      let lastHeight = window.visualViewport?.height || window.innerHeight;
       
       // Detect viewport resize (keyboard appearing/disappearing)
-      window.visualViewport?.addEventListener('resize', () => {
-        const viewportHeight = window.visualViewport.height;
-        const windowHeight = window.innerHeight;
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => {
+          const currentHeight = window.visualViewport.height;
+          console.log('📏 Viewport resize:', currentHeight);
+          
+          // Force body to match viewport immediately
+          document.body.style.height = `${currentHeight}px`;
+          
+          // Detect if keyboard opened (viewport got smaller)
+          if (currentHeight < lastHeight - 100) {
+            console.log('⌨️ Keyboard opened');
+            // Force reflow with small delay
+            setTimeout(() => {
+              document.body.style.height = `${window.visualViewport.height}px`;
+              // Trigger reflow
+              void document.body.offsetHeight;
+            }, 50);
+          } else if (currentHeight > lastHeight + 100) {
+            console.log('⌨️ Keyboard closed');
+          }
+          
+          lastHeight = currentHeight;
+        });
         
-        // If viewport is significantly smaller than window, keyboard is probably open
-        const keyboardOpen = (windowHeight - viewportHeight) > 150;
-        
-        if (keyboardOpen && !isKeyboardOpen) {
-          // Keyboard just opened
-          isKeyboardOpen = true;
-          console.log('⌨️ Keyboard opened');
-          
-          // Force layout reflow by adjusting body height
-          document.body.style.height = `${window.visualViewport.height}px`;
-          
-          // Small delay to let browser finish layout
-          setTimeout(() => {
-            // Scroll to ensure input is visible
-            window.scrollTo(0, document.body.scrollHeight);
-          }, 100);
-          
-        } else if (!keyboardOpen && isKeyboardOpen) {
-          // Keyboard just closed
-          isKeyboardOpen = false;
-          console.log('⌨️ Keyboard closed');
-          
-          // Reset body height
-          document.body.style.height = '';
-        }
+        // Also listen to scroll (iOS Safari sometimes needs this)
+        window.visualViewport.addEventListener('scroll', () => {
+          if (window.visualViewport.height !== lastHeight) {
+            document.body.style.height = `${window.visualViewport.height}px`;
+          }
+        });
+      }
+      
+      // Fallback for older browsers without visualViewport
+      window.addEventListener('resize', () => {
+        console.log('📐 Window resize');
+        forceLayout();
       });
       
-      // Also listen for window resize as fallback
-      window.addEventListener('resize', () => {
-        if (window.visualViewport) {
-          const viewportHeight = window.visualViewport.height;
-          document.body.style.height = `${viewportHeight}px`;
-        }
+      // Listen for focus events on the window (when user taps input)
+      window.addEventListener('focusin', () => {
+        console.log('🎯 Focus in - forcing layout');
+        setTimeout(forceLayout, 100);
+        setTimeout(forceLayout, 300);
       });
     });
   </script>
