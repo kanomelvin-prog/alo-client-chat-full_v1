@@ -305,6 +305,7 @@
 
   <script>
     // "Start Fresh" with undo functionality
+    // Uses random userId parameter to force Botpress to start completely new session
     let previousFrameSrc = null;
     let undoTimeout = null;
     
@@ -320,10 +321,12 @@
       const currentUrl = new URL(frame.src);
       const configUrl = currentUrl.searchParams.get('configUrl');
       
-      // Reset conversation with fresh timestamp
+      // Generate new random user ID to force fresh Botpress session
+      const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Reset conversation with new userId (forces Botpress to start fresh)
       const baseUrl = currentUrl.origin + currentUrl.pathname;
-      const cacheBuster = 't=' + Date.now();
-      frame.src = `${baseUrl}?configUrl=${configUrl}&${cacheBuster}`;
+      frame.src = `${baseUrl}?configUrl=${configUrl}&userId=${newUserId}`;
       
       // Show undo toast
       toast.style.display = 'block';
