@@ -118,6 +118,7 @@
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
     }
     
     main {
@@ -319,71 +320,89 @@
     Conversation cleared. <button id="undoBtn">Undo</button>
   </div>
 
-  <!-- Botpress Webchat - EXACT code from Deploy Settings -->
-  <script src="https://cdn.botpress.cloud/webchat/v1.5/inject.js"></script>
-  <script src="https://files.bpcontent.cloud/2026/01/25/16/20260125165735-PRAVX5G.js" defer></script>
-  
+  <!-- Script loader utility -->
   <script>
-    // Wait for both scripts to load before enabling Start Fresh
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        const startBtn = document.getElementById('startFresh');
-        const toast = document.getElementById('undoToast');
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        s.onload = () => {
+          console.log('✅ Loaded:', src);
+          resolve();
+        };
+        s.onerror = () => {
+          console.error('❌ Failed to load:', src);
+          reject(new Error("Failed to load: " + src));
+        };
+        document.head.appendChild(s);
+      });
+    }
+  </script>
+
+  <!-- Load Botpress scripts with explicit error handling -->
+  <script>
+    (async () => {
+      try {
+        console.log('🔄 Loading Botpress scripts...');
         
-        // Check what Botpress object is available
-        console.log('window.botpress:', window.botpress);
-        console.log('window.botpressWebChat:', window.botpressWebChat);
-        console.log('window.BotpressWebChat:', window.BotpressWebChat);
+        // Load v3.5 inject.js
+        await loadScript("https://cdn.botpress.cloud/webchat/v3.5/inject.js");
         
-        // Enable Start Fresh button
-        startBtn.disabled = false;
+        // Load your config
+        await loadScript("https://files.bpcontent.cloud/2026/01/25/16/20260125165735-PRAVX5G.js");
         
-        // Start Fresh click handler
-        startBtn.addEventListener('click', async () => {
-          startBtn.disabled = true;
+        console.log('✅ Botpress scripts loaded successfully');
+        console.log('window.botpress =', window.botpress);
+        
+        // Wait a moment for Botpress to fully initialize
+        setTimeout(() => {
+          const startBtn = document.getElementById('startFresh');
           
-          try {
-            // Try multiple possible APIs
-            if (window.botpress && window.botpress.restartConversation) {
-              // v3.x API
-              console.log('Using window.botpress.restartConversation()');
-              await window.botpress.restartConversation();
-            } else if (window.botpressWebChat && window.botpressWebChat.sendEvent) {
-              // v2.x API
-              console.log('Using window.botpressWebChat.sendEvent()');
-              window.botpressWebChat.sendEvent({ type: 'reset' });
-            } else if (window.BotpressWebChat) {
-              // v1.x might use different global
-              console.log('Found BotpressWebChat, trying reset');
-              // Attempt reset or just reload
-              window.location.reload();
-              return;
-            } else {
-              // No API found, reload page
-              console.log('No Botpress API found, reloading page');
-              window.location.reload();
-              return;
-            }
-            
-            // Show undo toast
-            toast.style.display = 'block';
+          if (window.botpress) {
+            console.log('✅ Botpress initialized successfully');
             startBtn.disabled = false;
             
-            // Auto-hide
-            setTimeout(() => {
-              toast.style.display = 'none';
-            }, 5000);
+            // Wire up Start Fresh button with v3.5 API
+            startBtn.addEventListener('click', async () => {
+              startBtn.disabled = true;
+              
+              try {
+                if (window.botpress && window.botpress.restartConversation) {
+                  console.log('🔄 Calling restartConversation()...');
+                  await window.botpress.restartConversation();
+                  console.log('✅ Conversation restarted');
+                } else {
+                  console.log('⚠️ restartConversation not available, reloading page');
+                  window.location.reload();
+                  return;
+                }
+                
+                startBtn.disabled = false;
+                
+              } catch (error) {
+                console.error('❌ Error restarting:', error);
+                window.location.reload();
+              }
+            });
             
-          } catch (error) {
-            console.error('Start Fresh error:', error);
-            // Fallback: reload page
-            window.location.reload();
+          } else {
+            console.error('❌ window.botpress not found after loading scripts');
+            startBtn.textContent = 'Reload Page';
+            startBtn.disabled = false;
+            startBtn.addEventListener('click', () => window.location.reload());
           }
-        });
-      }, 1500); // Wait 1.5 seconds for Botpress to fully initialize
-    });
-    
-    // Undo button
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Script loading failed:', error);
+        alert('Failed to load chat. Please refresh the page.');
+      }
+    })();
+  </script>
+
+  <!-- Undo button (limited functionality for now) -->
+  <script>
     document.getElementById('undoBtn').addEventListener('click', () => {
       document.getElementById('undoToast').style.display = 'none';
     });
