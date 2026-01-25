@@ -281,10 +281,20 @@
   </footer>
 
   <script>
-    // "Start Fresh" via page reload (nuclear option - always works)
-    document.getElementById('startFresh').addEventListener('click', () => {
-      // Just reload the page - simplest and most reliable
-      window.location.reload();
+    // Wait for DOM to be ready before attaching event listener
+    document.addEventListener('DOMContentLoaded', () => {
+      const startFreshBtn = document.getElementById('startFresh');
+      
+      if (startFreshBtn) {
+        console.log('✅ Start Fresh button found, attaching click handler');
+        
+        startFreshBtn.addEventListener('click', () => {
+          console.log('🔄 Start Fresh clicked - reloading page...');
+          window.location.reload();
+        });
+      } else {
+        console.error('❌ Start Fresh button not found!');
+      }
     });
   </script>
 </body>
