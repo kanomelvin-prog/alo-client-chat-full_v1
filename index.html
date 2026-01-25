@@ -271,6 +271,7 @@
       id="aloFrame"
       src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json"
       allow="clipboard-read; clipboard-write"
+      sandbox="allow-scripts allow-forms allow-popups allow-modals"
       referrerpolicy="no-referrer"
       title="Alo Chat Interface"
     ></iframe>
@@ -281,34 +282,37 @@
   </footer>
 
   <script>
-    // Wait for DOM to be ready before attaching event listener
+    // ChatGPT's Option A: Sandbox iframe + recreate on Start Fresh
     document.addEventListener('DOMContentLoaded', () => {
       const startFreshBtn = document.getElementById('startFresh');
+      const main = document.querySelector('main');
       
       if (startFreshBtn) {
-        console.log('✅ Start Fresh button found, attaching click handler');
+        console.log('✅ Start Fresh button found');
         
         startFreshBtn.addEventListener('click', () => {
-          console.log('🔄 Start Fresh clicked');
-          console.log('🗑️ Clearing browser storage...');
+          console.log('🔄 Start Fresh clicked - recreating sandboxed iframe');
           
-          // Clear ALL storage to force fresh Botpress session
-          try {
-            localStorage.clear();
-            console.log('✅ localStorage cleared');
-          } catch (e) {
-            console.log('⚠️ Could not clear localStorage:', e);
+          // Remove old iframe completely
+          const oldFrame = document.getElementById('aloFrame');
+          if (oldFrame) {
+            oldFrame.remove();
+            console.log('🗑️ Old iframe removed');
           }
           
-          try {
-            sessionStorage.clear();
-            console.log('✅ sessionStorage cleared');
-          } catch (e) {
-            console.log('⚠️ Could not clear sessionStorage:', e);
-          }
+          // Create completely fresh sandboxed iframe
+          const freshFrame = document.createElement('iframe');
+          freshFrame.id = 'aloFrame';
+          freshFrame.src = 'https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json';
+          freshFrame.allow = 'clipboard-read; clipboard-write';
+          freshFrame.referrerPolicy = 'no-referrer';
+          freshFrame.title = 'Alo Chat Interface';
+          freshFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
+          freshFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
           
-          console.log('🔄 Reloading page...');
-          window.location.reload();
+          // Add fresh iframe
+          main.appendChild(freshFrame);
+          console.log('✅ Fresh sandboxed iframe created');
         });
       } else {
         console.error('❌ Start Fresh button not found!');
