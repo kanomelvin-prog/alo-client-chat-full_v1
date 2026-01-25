@@ -252,7 +252,7 @@
   <header>
     <div class="brand">
       <strong>Alo</strong>
-      <span>An emotional support companion</span>
+      <span>A companion for emotional clarity</span>
     </div>
     
     <div class="actions">
@@ -264,45 +264,93 @@
     <iframe
       id="aloFrame"
       src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json"
-      allow="microphone; clipboard-read; clipboard-write"
+      allow="clipboard-read; clipboard-write"
       referrerpolicy="no-referrer"
       title="Alo Chat Interface"
     ></iframe>
   </main>
 
-  <footer>
+  <footer id="footer">
     In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
   </footer>
 
+  <!-- Undo toast (hidden by default) -->
+  <div id="undoToast" style="
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f1f1f;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  ">
+    Conversation cleared. <button id="undoBtn" style="
+      background: none;
+      border: none;
+      color: #fff;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 0;
+      margin-left: 8px;
+    ">Undo</button>
+  </div>
+
   <script>
-    // "Start Fresh" functionality with confirmation
+    // "Start Fresh" with undo functionality
+    let previousFrameSrc = null;
+    let undoTimeout = null;
+    
     document.getElementById('startFresh').addEventListener('click', () => {
-      const userConfirmed = confirm(
-        'Start a fresh conversation?\n\nYour current chat will be cleared and cannot be recovered.'
-      );
+      const frame = document.getElementById('aloFrame');
+      const toast = document.getElementById('undoToast');
+      const undoBtn = document.getElementById('undoBtn');
       
-      if (userConfirmed) {
-        const frame = document.getElementById('aloFrame');
-        // Extract base URL and add cache-buster timestamp
-        const baseUrl = frame.src.split('?')[0];
-        const configParam = 'configUrl=https://files.bpcontent.cloud/2026/01/24/15/20260124155502-0GKWH7P7.json';
-        const cacheBuster = 't=' + Date.now();
-        
-        // Reload with fresh timestamp to force new session
-        frame.src = `${baseUrl}?${configParam}&${cacheBuster}`;
-      }
+      // Save current state for undo
+      previousFrameSrc = frame.src;
+      
+      // Extract current configUrl dynamically from iframe src
+      const currentUrl = new URL(frame.src);
+      const configUrl = currentUrl.searchParams.get('configUrl');
+      
+      // Reset conversation with fresh timestamp
+      const baseUrl = currentUrl.origin + currentUrl.pathname;
+      const cacheBuster = 't=' + Date.now();
+      frame.src = `${baseUrl}?configUrl=${configUrl}&${cacheBuster}`;
+      
+      // Show undo toast
+      toast.style.display = 'block';
+      
+      // Auto-hide after 8 seconds
+      clearTimeout(undoTimeout);
+      undoTimeout = setTimeout(() => {
+        toast.style.display = 'none';
+        previousFrameSrc = null;
+      }, 8000);
     });
     
-    // Optional: Prevent accidental page close during conversation
-    // Uncomment if you want this safety feature
-    /*
-    window.addEventListener('beforeunload', (e) => {
-      // Only warn if there's potentially an active conversation
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
+    // Undo button handler
+    document.getElementById('undoBtn').addEventListener('click', () => {
+      const frame = document.getElementById('aloFrame');
+      const toast = document.getElementById('undoToast');
+      
+      if (previousFrameSrc) {
+        // Restore previous conversation
+        frame.src = previousFrameSrc;
+        previousFrameSrc = null;
+      }
+      
+      // Hide toast
+      clearTimeout(undoTimeout);
+      toast.style.display = 'none';
     });
-    */
   </script>
 </body>
 </html>
