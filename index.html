@@ -330,30 +330,40 @@
   </div>
 
   <script>
-    // "Start Fresh" via iframe replacement (the correct solution)
+    // "Start Fresh" via iframe replacement with cache-busting
     let previousFrameSrc = null;
     let undoTimeout = null;
     
     document.getElementById('startFresh').addEventListener('click', () => {
+      console.log('🔄 Start Fresh clicked');
+      
       const container = document.querySelector('main');
       const oldFrame = document.getElementById('aloFrame');
       const toast = document.getElementById('undoToast');
       
       // Save current iframe src for undo
       previousFrameSrc = oldFrame.src;
+      console.log('💾 Saved previous src:', previousFrameSrc);
       
       // Get the base config URL
       const currentUrl = new URL(oldFrame.src);
       const configUrl = currentUrl.searchParams.get('configUrl');
       const baseUrl = currentUrl.origin + currentUrl.pathname;
       
+      // Add cache-busting timestamp to force fresh load
+      const timestamp = Date.now();
+      const freshSrc = `${baseUrl}?configUrl=${configUrl}&t=${timestamp}`;
+      
+      console.log('🆕 Creating fresh iframe with:', freshSrc);
+      
       // Remove old iframe (destroys Botpress session)
       oldFrame.remove();
+      console.log('🗑️ Old iframe removed');
       
-      // Create completely fresh iframe
+      // Create completely fresh iframe with cache-buster
       const newFrame = document.createElement('iframe');
       newFrame.id = 'aloFrame';
-      newFrame.src = `${baseUrl}?configUrl=${configUrl}`;
+      newFrame.src = freshSrc;
       newFrame.allow = 'clipboard-read; clipboard-write';
       newFrame.referrerpolicy = 'no-referrer';
       newFrame.title = 'Alo Chat Interface';
@@ -361,6 +371,7 @@
       
       // Add new iframe
       container.appendChild(newFrame);
+      console.log('✅ New iframe added');
       
       // Show undo toast
       toast.style.display = 'block';
@@ -376,6 +387,8 @@
     // Undo button - restores previous iframe
     document.getElementById('undoBtn').addEventListener('click', () => {
       if (!previousFrameSrc) return;
+      
+      console.log('↩️ Undo clicked, restoring:', previousFrameSrc);
       
       const container = document.querySelector('main');
       const currentFrame = document.getElementById('aloFrame');
@@ -399,6 +412,8 @@
       clearTimeout(undoTimeout);
       toast.style.display = 'none';
       previousFrameSrc = null;
+      
+      console.log('✅ Previous iframe restored');
     });
   </script>
 </body>
