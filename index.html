@@ -289,7 +289,25 @@
         console.log('✅ Start Fresh button found, attaching click handler');
         
         startFreshBtn.addEventListener('click', () => {
-          console.log('🔄 Start Fresh clicked - reloading page...');
+          console.log('🔄 Start Fresh clicked');
+          console.log('🗑️ Clearing browser storage...');
+          
+          // Clear ALL storage to force fresh Botpress session
+          try {
+            localStorage.clear();
+            console.log('✅ localStorage cleared');
+          } catch (e) {
+            console.log('⚠️ Could not clear localStorage:', e);
+          }
+          
+          try {
+            sessionStorage.clear();
+            console.log('✅ sessionStorage cleared');
+          } catch (e) {
+            console.log('⚠️ Could not clear sessionStorage:', e);
+          }
+          
+          console.log('🔄 Reloading page...');
           window.location.reload();
         });
       } else {
