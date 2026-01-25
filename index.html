@@ -42,7 +42,11 @@
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: var(--warm-bg-gradient);
       color: var(--text-primary);
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
     
     header {
@@ -55,11 +59,12 @@
       padding-top: max(16px, var(--safe-area-top));
       padding-left: max(20px, var(--safe-area-left));
       padding-right: max(20px, var(--safe-area-right));
-      background: rgba(246, 243, 238, 0.95);
+      background: rgba(246, 243, 238, 0.98);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-subtle);
-      z-index: 100;
+      z-index: 1000;
+      flex-shrink: 0;
     }
     
     .brand {
@@ -122,12 +127,14 @@
     }
     
     main {
-      height: calc(100vh - 140px);
+      flex: 1;
+      min-height: 0;
       padding: 0;
       display: flex;
-      align-items: center;
+      align-items: stretch;
       justify-content: center;
       position: relative;
+      overflow: hidden;
     }
     
     iframe {
@@ -140,22 +147,15 @@
     }
     
     footer {
-      position: fixed;
-      bottom: 50px;
-      bottom: max(50px, calc(var(--safe-area-bottom) + 40px));
-      left: 50%;
-      transform: translateX(-50%);
+      padding: 12px 20px;
+      padding-left: max(20px, var(--safe-area-left));
+      padding-right: max(20px, var(--safe-area-right));
       font-size: 13px;
       color: var(--text-secondary);
-      background: rgba(246, 243, 238, 0.95);
-      padding: 8px 16px;
-      border-radius: 999px;
-      border: 1px solid var(--border-subtle);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 100;
-      max-width: 90%;
+      background: rgba(246, 243, 238, 0.98);
+      border-bottom: 1px solid var(--border-subtle);
       text-align: center;
+      flex-shrink: 0;
     }
     
     footer a {
@@ -194,14 +194,7 @@
       
       footer {
         font-size: 11px;
-        padding: 6px 12px;
-        bottom: 40px;
-        bottom: max(40px, calc(var(--safe-area-bottom) + 30px));
-      }
-      
-      main {
-        height: calc(100vh - 120px);
-        height: calc(100vh - 120px - var(--safe-area-top) - var(--safe-area-bottom));
+        padding: 10px 16px;
       }
     }
     
@@ -243,12 +236,7 @@
       
       footer {
         font-size: 10px;
-        padding: 4px 10px;
-        bottom: 30px;
-      }
-      
-      main {
-        height: calc(100vh - 80px);
+        padding: 6px 10px;
       }
     }
   </style>
@@ -266,6 +254,10 @@
     </div>
   </header>
 
+  <footer>
+    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
+  </footer>
+
   <main>
     <iframe
       id="aloFrame"
@@ -276,10 +268,6 @@
       title="Alo Chat Interface"
     ></iframe>
   </main>
-
-  <footer>
-    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
-  </footer>
 
   <script>
     // ChatGPT's Option A: Sandbox iframe + recreate on Start Fresh
