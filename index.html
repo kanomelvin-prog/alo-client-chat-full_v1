@@ -338,6 +338,49 @@
       } else {
         console.error('❌ Start Fresh button not found!');
       }
+      
+      // Mobile keyboard handling - force reflow when viewport resizes
+      let isKeyboardOpen = false;
+      
+      // Detect viewport resize (keyboard appearing/disappearing)
+      window.visualViewport?.addEventListener('resize', () => {
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        
+        // If viewport is significantly smaller than window, keyboard is probably open
+        const keyboardOpen = (windowHeight - viewportHeight) > 150;
+        
+        if (keyboardOpen && !isKeyboardOpen) {
+          // Keyboard just opened
+          isKeyboardOpen = true;
+          console.log('⌨️ Keyboard opened');
+          
+          // Force layout reflow by adjusting body height
+          document.body.style.height = `${window.visualViewport.height}px`;
+          
+          // Small delay to let browser finish layout
+          setTimeout(() => {
+            // Scroll to ensure input is visible
+            window.scrollTo(0, document.body.scrollHeight);
+          }, 100);
+          
+        } else if (!keyboardOpen && isKeyboardOpen) {
+          // Keyboard just closed
+          isKeyboardOpen = false;
+          console.log('⌨️ Keyboard closed');
+          
+          // Reset body height
+          document.body.style.height = '';
+        }
+      });
+      
+      // Also listen for window resize as fallback
+      window.addEventListener('resize', () => {
+        if (window.visualViewport) {
+          const viewportHeight = window.visualViewport.height;
+          document.body.style.height = `${viewportHeight}px`;
+        }
+      });
     });
   </script>
 </body>
