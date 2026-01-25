@@ -169,42 +169,6 @@
       opacity: 0.7;
     }
     
-    /* Undo toast */
-    #undoToast {
-      position: fixed;
-      bottom: 110px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1f1f1f;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      display: none;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    
-    #undoBtn {
-      background: none;
-      border: none;
-      color: #fff;
-      text-decoration: underline;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 0;
-      margin-left: 8px;
-      min-height: auto;
-    }
-    
-    #undoBtn:hover {
-      background: none;
-      transform: none;
-      opacity: 0.8;
-    }
-    
     /* Mobile responsive */
     @media (max-width: 640px) {
       header {
@@ -238,10 +202,6 @@
       main {
         height: calc(100vh - 120px);
         height: calc(100vh - 120px - var(--safe-area-top) - var(--safe-area-bottom));
-      }
-      
-      #undoToast {
-        bottom: 90px;
       }
     }
     
@@ -290,10 +250,6 @@
       main {
         height: calc(100vh - 80px);
       }
-      
-      #undoToast {
-        bottom: 70px;
-      }
     }
   </style>
 </head>
@@ -324,96 +280,11 @@
     In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
   </footer>
 
-  <!-- Undo toast -->
-  <div id="undoToast">
-    Conversation cleared. <button id="undoBtn">Undo</button>
-  </div>
-
   <script>
-    // "Start Fresh" via iframe replacement with cache-busting
-    let previousFrameSrc = null;
-    let undoTimeout = null;
-    
+    // "Start Fresh" via page reload (nuclear option - always works)
     document.getElementById('startFresh').addEventListener('click', () => {
-      console.log('🔄 Start Fresh clicked');
-      
-      const container = document.querySelector('main');
-      const oldFrame = document.getElementById('aloFrame');
-      const toast = document.getElementById('undoToast');
-      
-      // Save current iframe src for undo
-      previousFrameSrc = oldFrame.src;
-      console.log('💾 Saved previous src:', previousFrameSrc);
-      
-      // Get the base config URL
-      const currentUrl = new URL(oldFrame.src);
-      const configUrl = currentUrl.searchParams.get('configUrl');
-      const baseUrl = currentUrl.origin + currentUrl.pathname;
-      
-      // Add cache-busting timestamp to force fresh load
-      const timestamp = Date.now();
-      const freshSrc = `${baseUrl}?configUrl=${configUrl}&t=${timestamp}`;
-      
-      console.log('🆕 Creating fresh iframe with:', freshSrc);
-      
-      // Remove old iframe (destroys Botpress session)
-      oldFrame.remove();
-      console.log('🗑️ Old iframe removed');
-      
-      // Create completely fresh iframe with cache-buster
-      const newFrame = document.createElement('iframe');
-      newFrame.id = 'aloFrame';
-      newFrame.src = freshSrc;
-      newFrame.allow = 'clipboard-read; clipboard-write';
-      newFrame.referrerpolicy = 'no-referrer';
-      newFrame.title = 'Alo Chat Interface';
-      newFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
-      
-      // Add new iframe
-      container.appendChild(newFrame);
-      console.log('✅ New iframe added');
-      
-      // Show undo toast
-      toast.style.display = 'block';
-      
-      // Auto-hide after 8 seconds
-      clearTimeout(undoTimeout);
-      undoTimeout = setTimeout(() => {
-        toast.style.display = 'none';
-        previousFrameSrc = null;
-      }, 8000);
-    });
-    
-    // Undo button - restores previous iframe
-    document.getElementById('undoBtn').addEventListener('click', () => {
-      if (!previousFrameSrc) return;
-      
-      console.log('↩️ Undo clicked, restoring:', previousFrameSrc);
-      
-      const container = document.querySelector('main');
-      const currentFrame = document.getElementById('aloFrame');
-      const toast = document.getElementById('undoToast');
-      
-      // Remove current frame
-      currentFrame.remove();
-      
-      // Restore previous frame
-      const restoredFrame = document.createElement('iframe');
-      restoredFrame.id = 'aloFrame';
-      restoredFrame.src = previousFrameSrc;
-      restoredFrame.allow = 'clipboard-read; clipboard-write';
-      restoredFrame.referrerpolicy = 'no-referrer';
-      restoredFrame.title = 'Alo Chat Interface';
-      restoredFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
-      
-      container.appendChild(restoredFrame);
-      
-      // Hide toast
-      clearTimeout(undoTimeout);
-      toast.style.display = 'none';
-      previousFrameSrc = null;
-      
-      console.log('✅ Previous iframe restored');
+      // Just reload the page - simplest and most reliable
+      window.location.reload();
     });
   </script>
 </body>
