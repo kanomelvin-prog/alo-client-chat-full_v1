@@ -130,13 +130,10 @@
       position: relative;
     }
     
-    iframe {
+    #webchat-container {
       width: 100%;
       height: 100%;
-      border: 0;
-      display: block;
-      background: #fff;
-      box-shadow: var(--shadow-soft);
+      position: relative;
     }
     
     footer {
@@ -167,42 +164,6 @@
     
     footer a:hover {
       opacity: 0.7;
-    }
-    
-    /* Undo toast */
-    #undoToast {
-      position: fixed;
-      bottom: 110px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1f1f1f;
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      display: none;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    
-    #undoBtn {
-      background: none;
-      border: none;
-      color: #fff;
-      text-decoration: underline;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      padding: 0;
-      margin-left: 8px;
-      min-height: auto;
-    }
-    
-    #undoBtn:hover {
-      background: none;
-      transform: none;
-      opacity: 0.8;
     }
     
     /* Mobile responsive */
@@ -238,10 +199,6 @@
       main {
         height: calc(100vh - 120px);
         height: calc(100vh - 120px - var(--safe-area-top) - var(--safe-area-bottom));
-      }
-      
-      #undoToast {
-        bottom: 90px;
       }
     }
     
@@ -290,10 +247,6 @@
       main {
         height: calc(100vh - 80px);
       }
-      
-      #undoToast {
-        bottom: 70px;
-      }
     }
   </style>
 </head>
@@ -306,99 +259,73 @@
     </div>
     
     <div class="actions">
-      <button id="startFresh" title="Start a fresh conversation">Start Fresh</button>
+      <button id="startFresh" title="Start a fresh conversation" disabled>Start Fresh</button>
     </div>
   </header>
 
   <main>
-    <iframe
-      id="aloFrame"
-      src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json"
-      allow="clipboard-read; clipboard-write"
-      referrerpolicy="no-referrer"
-      title="Alo Chat Interface"
-    ></iframe>
+    <div id="webchat-container"></div>
   </main>
 
   <footer>
     In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
   </footer>
 
-  <!-- Undo toast -->
-  <div id="undoToast">
-    Conversation cleared. <button id="undoBtn">Undo</button>
-  </div>
-
+  <!-- Botpress Webchat - CORRECT inject code from Deploy Settings -->
+  <script src="https://cdn.botpress.cloud/webchat/v3.5/inject.js"></script>
+  <script src="https://files.bpcontent.cloud/2026/01/25/16/20260125165735-F78XVSGD.js" defer></script>
+  
   <script>
-    // "Start Fresh" via iframe replacement (the correct solution)
-    let previousFrameSrc = null;
-    let undoTimeout = null;
-    
-    document.getElementById('startFresh').addEventListener('click', () => {
-      const container = document.querySelector('main');
-      const oldFrame = document.getElementById('aloFrame');
-      const toast = document.getElementById('undoToast');
-      
-      // Save current iframe src for undo
-      previousFrameSrc = oldFrame.src;
-      
-      // Get the base config URL
-      const currentUrl = new URL(oldFrame.src);
-      const configUrl = currentUrl.searchParams.get('configUrl');
-      const baseUrl = currentUrl.origin + currentUrl.pathname;
-      
-      // Remove old iframe (destroys Botpress session)
-      oldFrame.remove();
-      
-      // Create completely fresh iframe
-      const newFrame = document.createElement('iframe');
-      newFrame.id = 'aloFrame';
-      newFrame.src = `${baseUrl}?configUrl=${configUrl}`;
-      newFrame.allow = 'clipboard-read; clipboard-write';
-      newFrame.referrerpolicy = 'no-referrer';
-      newFrame.title = 'Alo Chat Interface';
-      newFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
-      
-      // Add new iframe
-      container.appendChild(newFrame);
-      
-      // Show undo toast
-      toast.style.display = 'block';
-      
-      // Auto-hide after 8 seconds
-      clearTimeout(undoTimeout);
-      undoTimeout = setTimeout(() => {
-        toast.style.display = 'none';
-        previousFrameSrc = null;
-      }, 8000);
-    });
-    
-    // Undo button - restores previous iframe
-    document.getElementById('undoBtn').addEventListener('click', () => {
-      if (!previousFrameSrc) return;
-      
-      const container = document.querySelector('main');
-      const currentFrame = document.getElementById('aloFrame');
-      const toast = document.getElementById('undoToast');
-      
-      // Remove current frame
-      currentFrame.remove();
-      
-      // Restore previous frame
-      const restoredFrame = document.createElement('iframe');
-      restoredFrame.id = 'aloFrame';
-      restoredFrame.src = previousFrameSrc;
-      restoredFrame.allow = 'clipboard-read; clipboard-write';
-      restoredFrame.referrerpolicy = 'no-referrer';
-      restoredFrame.title = 'Alo Chat Interface';
-      restoredFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
-      
-      container.appendChild(restoredFrame);
-      
-      // Hide toast
-      clearTimeout(undoTimeout);
-      toast.style.display = 'none';
-      previousFrameSrc = null;
+    // Wait for Botpress to fully load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const startBtn = document.getElementById('startFresh');
+        
+        // Check what's available
+        console.log('window.botpress:', window.botpress);
+        console.log('window.botpressWebChat:', window.botpressWebChat);
+        
+        if (window.botpress || window.botpressWebChat) {
+          console.log('✅ Botpress loaded successfully!');
+          startBtn.disabled = false;
+          
+          // Wire up Start Fresh
+          startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            
+            try {
+              // Try v3.5 API first
+              if (window.botpress && window.botpress.restartConversation) {
+                await window.botpress.restartConversation();
+                console.log('✅ Conversation restarted via botpress.restartConversation()');
+              } 
+              // Try v2.x API
+              else if (window.botpressWebChat && window.botpressWebChat.sendEvent) {
+                window.botpressWebChat.sendEvent({ type: 'reset' });
+                console.log('✅ Conversation reset via sendEvent');
+              }
+              // Fallback to page reload
+              else {
+                console.log('⚠️ No restart API found, reloading page');
+                window.location.reload();
+                return;
+              }
+              
+              startBtn.disabled = false;
+              
+            } catch (error) {
+              console.error('❌ Error:', error);
+              window.location.reload();
+            }
+          });
+          
+        } else {
+          console.error('❌ Botpress not loaded');
+          startBtn.textContent = 'Reload Page';
+          startBtn.disabled = false;
+          startBtn.addEventListener('click', () => window.location.reload());
+        }
+      }, 2000); // Wait 2 seconds for full initialization
     });
   </script>
 </body>
