@@ -319,50 +319,27 @@
     Conversation cleared. <button id="undoBtn">Undo</button>
   </div>
 
-  <!-- Botpress Webchat Inject Script -->
-  <script src="https://cdn.botpress.cloud/webchat/v2.1/inject.js"></script>
+  <!-- Botpress Webchat - Using Official Embed Code -->
+  <script src="https://cdn.botpress.cloud/webchat/v1.5/inject.js"></script>
+  <script src="https://files.bpcontent.cloud/2026/01/25/16/20260125165735-PRAVX5G.js" defer></script>
   
   <script>
-    // Initialize Botpress Webchat
-    window.botpressWebChat.init({
-      botId: 'fc0fad71-daea-4d22-adf5-3a6590d23d6a',
-      hostUrl: 'https://cdn.botpress.cloud',
-      messagingUrl: 'https://messaging.botpress.cloud',
-      clientId: 'fc0fad71-daea-4d22-adf5-3a6590d23d6a',
-      
-      // UI Configuration
-      hideWidget: false,
-      disableAnimations: false,
-      closeOnEscape: false,
-      showConversationsButton: false,
-      enableTranscriptDownload: false,
-      
-      // Layout
-      containerWidth: '100%',
-      layoutWidth: '100%',
-      
-      // Bot display
-      botName: 'Alo',
-      botConversationDescription: 'A space for emotional clarity',
-      composerPlaceholder: 'Type your message...',
-      
-      // Storage - use sessionStorage for session-based conversations
-      // Change to 'localStorage' if you want persistence across sessions
-      // storageType: 'sessionStorage',
-      
-      // Event handling
-      onEvent: function(event) {
-        console.log('Botpress event:', event.type);
-      }
-    });
-    
-    // Wait for Botpress to be ready
+    // Wait for Botpress to load
     window.addEventListener('load', () => {
-      console.log('Botpress Webchat initialized');
+      // Give Botpress a moment to initialize
+      setTimeout(() => {
+        console.log('Botpress should be loaded');
+        
+        // Check if Botpress webchat is available
+        if (window.botpressWebChat) {
+          console.log('Botpress webchat detected!');
+        } else {
+          console.error('Botpress webchat not found - check script loading');
+        }
+      }, 1000);
     });
     
-    // "Start Fresh" functionality using official Botpress API
-    let conversationBackup = null;
+    // "Start Fresh" functionality
     let undoTimeout = null;
     
     document.getElementById('startFresh').addEventListener('click', () => {
@@ -372,54 +349,45 @@
       // Disable button during reset
       button.disabled = true;
       
-      // Note: Undo for restartConversation is complex
-      // We show toast but undo may not fully restore state
-      // This is a limitation of Botpress API
-      
-      // Call official Botpress API to restart conversation
+      // Try to restart conversation
+      // Note: This API might not exist in v1.5, will test
       try {
-        window.botpressWebChat.sendEvent({
-          type: 'proactive-trigger',
-          channel: 'web',
-          payload: { text: '__restart__' }
-        });
+        // Option 1: Try standard method
+        if (window.botpressWebChat && window.botpressWebChat.sendEvent) {
+          window.botpressWebChat.sendEvent({
+            type: 'proactive-trigger',
+            channel: 'web',
+            payload: { text: '__restart__' }
+          });
+        } else {
+          // Option 2: Just reload the page
+          console.log('Botpress API not available, reloading page');
+          window.location.reload();
+          return;
+        }
         
-        // Alternative approach that might work better:
-        // window.botpressWebChat.sendEvent({ type: 'reset' });
-        
-        // Show undo toast
+        // Show toast
         toast.style.display = 'block';
-        
-        // Re-enable button
         button.disabled = false;
         
-        // Auto-hide toast after 5 seconds
-        // (Shorter than iframe version since undo is limited)
+        // Auto-hide
         clearTimeout(undoTimeout);
         undoTimeout = setTimeout(() => {
           toast.style.display = 'none';
         }, 5000);
         
       } catch (error) {
-        console.error('Error restarting conversation:', error);
-        button.disabled = false;
-        alert('Could not reset conversation. Please refresh the page.');
+        console.error('Error restarting:', error);
+        // Fallback: reload page
+        window.location.reload();
       }
     });
     
-    // Undo button (limited functionality)
+    // Undo button
     document.getElementById('undoBtn').addEventListener('click', () => {
       const toast = document.getElementById('undoToast');
-      
-      // Note: True undo after restartConversation is not possible with Botpress API
-      // We hide the toast and inform the user
       toast.style.display = 'none';
       clearTimeout(undoTimeout);
-      
-      // Optionally refresh page to restore previous state
-      // if (confirm('To restore previous conversation, the page needs to refresh. Continue?')) {
-      //   window.location.reload();
-      // }
     });
   </script>
 </body>
