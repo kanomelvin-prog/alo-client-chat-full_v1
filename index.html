@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  
+  <!-- Mobile-optimized viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  
+  <!-- PWA / Home Screen support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Alo" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  
+  <!-- Theme color for mobile browsers -->
+  <meta name="theme-color" content="#f6f3ee" />
+  
+  <title>Alo — Emotional Support Companion</title>
+  <style>
+    :root { 
+      color-scheme: light;
+      --warm-bg: #f6f3ee;
+      --warm-bg-gradient: linear-gradient(135deg, #f6f3ee 0%, #ede8e0 100%);
+      --text-primary: #1f1f1f;
+      --text-secondary: rgba(31, 31, 31, 0.7);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05);
+      
+      /* iOS safe area insets */
+      --safe-area-top: env(safe-area-inset-top);
+      --safe-area-bottom: env(safe-area-inset-bottom);
+      --safe-area-left: env(safe-area-inset-left);
+      --safe-area-right: env(safe-area-inset-right);
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--warm-bg-gradient);
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+    
+    header {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      padding-top: max(16px, var(--safe-area-top));
+      padding-left: max(20px, var(--safe-area-left));
+      padding-right: max(20px, var(--safe-area-right));
+      background: rgba(246, 243, 238, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 100;
+    }
+    
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    
+    .brand strong {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: var(--text-primary);
+    }
+    
+    .brand span {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    button {
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      background: #fff;
+      padding: 9px 16px;
+      min-height: 44px; /* iOS minimum touch target */
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      color: var(--text-primary);
+      -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+      touch-action: manipulation; /* Prevent double-tap zoom */
+    }
+    
+    button:hover {
+      background: #fafafa;
+      border-color: rgba(0, 0, 0, 0.25);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+    
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+      background: #f0f0f0;
+    }
+    
+    main {
+      height: calc(100vh - 90px);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #fff;
+      box-shadow: var(--shadow-soft);
+    }
+    
+    footer {
+      position: fixed;
+      bottom: 12px;
+      bottom: max(12px, var(--safe-area-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: rgba(246, 243, 238, 0.95);
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 100;
+      max-width: 90%;
+      text-align: center;
+    }
+    
+    footer a {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid currentColor;
+    }
+    
+    footer a:hover {
+      opacity: 0.7;
+    }
+    
+    /* Mobile responsive */
+    @media (max-width: 640px) {
+      header {
+        padding: 12px 16px;
+        padding-top: max(12px, var(--safe-area-top));
+        padding-left: max(16px, var(--safe-area-left));
+        padding-right: max(16px, var(--safe-area-right));
+      }
+      
+      .brand strong {
+        font-size: 14px;
+      }
+      
+      .brand span {
+        font-size: 12px;
+      }
+      
+      button {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-height: 44px;
+      }
+      
+      footer {
+        font-size: 11px;
+        padding: 6px 12px;
+        bottom: 8px;
+        bottom: max(8px, var(--safe-area-bottom));
+      }
+      
+      main {
+        height: calc(100vh - 80px);
+        /* Account for iOS safe areas */
+        height: calc(100vh - 80px - var(--safe-area-top) - var(--safe-area-bottom));
+      }
+    }
+    
+    /* Very small screens */
+    @media (max-width: 400px) {
+      .brand span {
+        display: none;
+      }
+      
+      .actions {
+        gap: 8px;
+      }
+      
+      button {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+    }
+    
+    /* Landscape mode optimization (phones) */
+    @media (max-height: 500px) and (orientation: landscape) {
+      header {
+        padding: 8px 16px;
+      }
+      
+      .brand strong {
+        font-size: 13px;
+      }
+      
+      .brand span {
+        display: none;
+      }
+      
+      button {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-height: 36px;
+      }
+      
+      footer {
+        font-size: 10px;
+        padding: 4px 10px;
+        bottom: 6px;
+      }
+      
+      main {
+        height: calc(100vh - 60px);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <strong>Alo</strong>
+      <span>An emotional support companion</span>
+    </div>
+    
+    <div class="actions">
+      <button id="startFresh" title="Start a fresh conversation">Start Fresh</button>
+    </div>
+  </header>
+
+  <main>
+    <iframe
+      id="aloFrame"
+      src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/24/15/20260124155502-0GKWH7P7.json"
+      allow="microphone; clipboard-read; clipboard-write"
+      referrerpolicy="no-referrer"
+      title="Alo Chat Interface"
+    ></iframe>
+  </main>
+
+  <footer>
+    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
+  </footer>
+
+  <script>
+    // "Start Fresh" functionality with confirmation
+    document.getElementById('startFresh').addEventListener('click', () => {
+      const userConfirmed = confirm(
+        'Start a fresh conversation?\n\nYour current chat will be cleared and cannot be recovered.'
+      );
+      
+      if (userConfirmed) {
+        const frame = document.getElementById('aloFrame');
+        // Extract base URL and add cache-buster timestamp
+        const baseUrl = frame.src.split('?')[0];
+        const configParam = 'configUrl=https://files.bpcontent.cloud/2026/01/24/15/20260124155502-0GKWH7P7.json';
+        const cacheBuster = 't=' + Date.now();
+        
+        // Reload with fresh timestamp to force new session
+        frame.src = `${baseUrl}?${configParam}&${cacheBuster}`;
+      }
+    });
+    
+    // Optional: Prevent accidental page close during conversation
+    // Uncomment if you want this safety feature
+    /*
+    window.addEventListener('beforeunload', (e) => {
+      // Only warn if there's potentially an active conversation
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
+    });
+    */
+  </script>
+</body>
+</html>
