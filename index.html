@@ -2,17 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  
-  <!-- Mobile-optimized viewport with proper keyboard handling -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   
-  <!-- PWA / Home Screen support -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Alo" />
   <meta name="mobile-web-app-capable" content="yes" />
-  
-  <!-- Theme color for mobile browsers -->
   <meta name="theme-color" content="#f6f3ee" />
   
   <title>Alo — Companion for Emotional Clarity</title>
@@ -20,17 +15,9 @@
     :root { 
       color-scheme: light;
       --warm-bg: #f6f3ee;
-      --warm-bg-gradient: linear-gradient(135deg, #f6f3ee 0%, #ede8e0 100%);
       --text-primary: #1f1f1f;
       --text-secondary: rgba(31, 31, 31, 0.7);
       --border-subtle: rgba(0, 0, 0, 0.08);
-      --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05);
-      
-      /* iOS safe area insets */
-      --safe-area-top: env(safe-area-inset-top);
-      --safe-area-left: env(safe-area-inset-left);
-      --safe-area-right: env(safe-area-inset-right);
-      --safe-area-bottom: env(safe-area-inset-bottom);
     }
     
     * {
@@ -44,55 +31,39 @@
     
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: var(--warm-bg-gradient);
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--warm-bg);
       color: var(--text-primary);
+      height: 100%;
       overflow: hidden;
-      /* Use dvh (dynamic viewport height) to account for browser UI */
-      height: 100dvh;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
     
     header {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 16px 20px;
-      padding-top: max(16px, var(--safe-area-top));
-      padding-left: max(20px, var(--safe-area-left));
-      padding-right: max(20px, var(--safe-area-right));
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
       background: rgba(246, 243, 238, 0.98);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-subtle);
-      flex-shrink: 0;
-    }
-    
-    .brand {
-      display: flex;
-      flex-direction: column;
-      line-height: 1.2;
     }
     
     .brand strong {
       font-size: 16px;
       font-weight: 600;
-      letter-spacing: 0.3px;
       color: var(--text-primary);
     }
     
     .brand span {
       font-size: 13px;
       color: var(--text-secondary);
+      display: block;
       margin-top: 2px;
-    }
-    
-    .actions {
-      display: flex;
-      gap: 12px;
-      align-items: center;
     }
     
     button {
@@ -101,42 +72,15 @@
       padding: 9px 16px;
       min-height: 44px;
       border-radius: 10px;
-      cursor: pointer;
       font-size: 14px;
       font-weight: 500;
-      transition: all 0.2s ease;
       color: var(--text-primary);
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-    
-    button:hover {
-      background: #fafafa;
-      border-color: rgba(0, 0, 0, 0.25);
-      transform: translateY(-1px);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-    }
-    
-    button:active {
-      transform: translateY(0);
-      box-shadow: none;
-      background: #f0f0f0;
-    }
-    
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
+      cursor: pointer;
     }
     
     main {
       flex: 1;
       min-height: 0;
-      padding: 0;
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      position: relative;
       overflow: hidden;
     }
     
@@ -146,20 +90,19 @@
       border: 0;
       display: block;
       background: #fff;
-      box-shadow: var(--shadow-soft);
     }
     
     footer {
+      flex-shrink: 0;
       padding: 12px 20px;
-      padding-left: max(20px, var(--safe-area-left));
-      padding-right: max(20px, var(--safe-area-right));
-      padding-bottom: max(12px, var(--safe-area-bottom));
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       font-size: 13px;
       color: var(--text-secondary);
       background: rgba(246, 243, 238, 0.98);
       border-top: 1px solid var(--border-subtle);
       text-align: center;
-      flex-shrink: 0;
     }
     
     footer a {
@@ -169,110 +112,31 @@
       border-bottom: 1px solid currentColor;
     }
     
-    footer a:hover {
-      opacity: 0.7;
-    }
-    
-    /* Mobile responsive */
+    /* Mobile adjustments */
     @media (max-width: 640px) {
       header {
         padding: 12px 16px;
-        padding-top: max(12px, var(--safe-area-top));
-        padding-left: max(16px, var(--safe-area-left));
-        padding-right: max(16px, var(--safe-area-right));
+        padding-top: max(12px, env(safe-area-inset-top));
       }
       
-      .brand strong {
-        font-size: 14px;
-      }
-      
-      .brand span {
-        font-size: 12px;
-      }
+      .brand strong { font-size: 14px; }
+      .brand span { font-size: 12px; }
       
       button {
         padding: 8px 12px;
         font-size: 13px;
-        min-height: 44px;
       }
       
       footer {
         font-size: 11px;
         padding: 10px 16px;
-        padding-bottom: max(10px, var(--safe-area-bottom));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
       }
     }
     
-    /* Very small screens */
     @media (max-width: 400px) {
-      .brand span {
-        display: none;
-      }
-      
-      .actions {
-        gap: 8px;
-      }
-      
-      button {
-        padding: 8px 10px;
-        font-size: 12px;
-      }
-    }
-    
-    /* Landscape mode optimization */
-    @media (max-height: 500px) and (orientation: landscape) {
-      header {
-        padding: 8px 16px;
-      }
-      
-      .brand strong {
-        font-size: 13px;
-      }
-      
-      .brand span {
-        display: none;
-      }
-      
-      button {
-        padding: 6px 10px;
-        font-size: 12px;
-        min-height: 36px;
-      }
-      
-      footer {
-        font-size: 10px;
-        padding: 6px 10px;
-      }
-    }
-    
-    /* Mobile keyboard handling */
-    @media (max-width: 640px) {
-      body {
-        /* Adjust for mobile browser chrome and keyboard */
-        height: 100dvh;
-        max-height: -webkit-fill-available;
-      }
-      
-      main {
-        /* Account for keyboard and browser UI */
-        min-height: 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-      }
-      
-      iframe {
-        /* Ensure iframe doesn't extend below viewport */
-        height: 100%;
-        max-height: 100%;
-      }
-    }
-    
-    /* Specific fix for when keyboard is open */
-    @media (max-width: 640px) and (max-height: 500px) {
-      main {
-        /* When keyboard is visible (viewport gets shorter) */
-        flex: 1;
-        min-height: 0;
-      }
+      .brand span { display: none; }
+      button { padding: 8px 10px; font-size: 12px; }
     }
   </style>
 </head>
@@ -283,10 +147,7 @@
       <strong>Alo</strong>
       <span>A companion for emotional clarity</span>
     </div>
-    
-    <div class="actions">
-      <button id="startFresh" title="Start a fresh conversation">Start Fresh</button>
-    </div>
+    <button id="startFresh">Start Fresh</button>
   </header>
 
   <main>
@@ -305,103 +166,24 @@
   </footer>
 
   <script>
-    // ChatGPT's Option A: Sandbox iframe + recreate on Start Fresh
-    document.addEventListener('DOMContentLoaded', () => {
-      const startFreshBtn = document.getElementById('startFresh');
+    document.getElementById('startFresh').addEventListener('click', function() {
       const main = document.querySelector('main');
+      const oldFrame = document.getElementById('aloFrame');
       
-      if (startFreshBtn) {
-        console.log('✅ Start Fresh button found');
-        
-        startFreshBtn.addEventListener('click', () => {
-          console.log('🔄 Start Fresh clicked - recreating sandboxed iframe');
-          
-          // Remove old iframe completely
-          const oldFrame = document.getElementById('aloFrame');
-          if (oldFrame) {
-            oldFrame.remove();
-            console.log('🗑️ Old iframe removed');
-          }
-          
-          // Create completely fresh sandboxed iframe
-          const freshFrame = document.createElement('iframe');
-          freshFrame.id = 'aloFrame';
-          freshFrame.src = 'https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json';
-          freshFrame.allow = 'clipboard-read; clipboard-write';
-          freshFrame.referrerPolicy = 'no-referrer';
-          freshFrame.title = 'Alo Chat Interface';
-          freshFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
-          freshFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
-          
-          // Add fresh iframe
-          main.appendChild(freshFrame);
-          console.log('✅ Fresh sandboxed iframe created');
-        });
-      } else {
-        console.error('❌ Start Fresh button not found!');
+      if (oldFrame) {
+        oldFrame.remove();
       }
       
-      // Force initial layout on page load
-      function forceLayout() {
-        if (window.visualViewport) {
-          document.body.style.height = `${window.visualViewport.height}px`;
-          console.log('📐 Forced layout:', window.visualViewport.height);
-        }
-      }
+      const newFrame = document.createElement('iframe');
+      newFrame.id = 'aloFrame';
+      newFrame.src = 'https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json';
+      newFrame.allow = 'clipboard-read; clipboard-write';
+      newFrame.referrerPolicy = 'no-referrer';
+      newFrame.title = 'Alo Chat Interface';
+      newFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
+      newFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff;';
       
-      // Initial force on load
-      setTimeout(forceLayout, 100);
-      setTimeout(forceLayout, 500);
-      setTimeout(forceLayout, 1000);
-      
-      // Mobile keyboard handling - more aggressive
-      let lastHeight = window.visualViewport?.height || window.innerHeight;
-      
-      // Detect viewport resize (keyboard appearing/disappearing)
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          const currentHeight = window.visualViewport.height;
-          console.log('📏 Viewport resize:', currentHeight);
-          
-          // Force body to match viewport immediately
-          document.body.style.height = `${currentHeight}px`;
-          
-          // Detect if keyboard opened (viewport got smaller)
-          if (currentHeight < lastHeight - 100) {
-            console.log('⌨️ Keyboard opened');
-            // Force reflow with small delay
-            setTimeout(() => {
-              document.body.style.height = `${window.visualViewport.height}px`;
-              // Trigger reflow
-              void document.body.offsetHeight;
-            }, 50);
-          } else if (currentHeight > lastHeight + 100) {
-            console.log('⌨️ Keyboard closed');
-          }
-          
-          lastHeight = currentHeight;
-        });
-        
-        // Also listen to scroll (iOS Safari sometimes needs this)
-        window.visualViewport.addEventListener('scroll', () => {
-          if (window.visualViewport.height !== lastHeight) {
-            document.body.style.height = `${window.visualViewport.height}px`;
-          }
-        });
-      }
-      
-      // Fallback for older browsers without visualViewport
-      window.addEventListener('resize', () => {
-        console.log('📐 Window resize');
-        forceLayout();
-      });
-      
-      // Listen for focus events on the window (when user taps input)
-      window.addEventListener('focusin', () => {
-        console.log('🎯 Focus in - forcing layout');
-        setTimeout(forceLayout, 100);
-        setTimeout(forceLayout, 300);
-      });
+      main.appendChild(newFrame);
     });
   </script>
 </body>
