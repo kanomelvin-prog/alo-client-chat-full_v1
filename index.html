@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   
-  <!-- Mobile-optimized viewport with proper keyboard handling -->
+  <!-- Mobile-optimized viewport -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
   
   <!-- PWA / Home Screen support -->
@@ -24,17 +24,21 @@
       --text-primary: #1f1f1f;
       --text-secondary: rgba(31, 31, 31, 0.7);
       --border-subtle: rgba(0, 0, 0, 0.08);
-      --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.05);
       
       /* iOS safe area insets */
       --safe-area-top: env(safe-area-inset-top);
-      --safe-area-bottom: env(safe-area-inset-bottom);
       --safe-area-left: env(safe-area-inset-left);
       --safe-area-right: env(safe-area-inset-right);
+      --safe-area-bottom: env(safe-area-inset-bottom);
     }
     
     * {
       box-sizing: border-box;
+    }
+    
+    html {
+      height: 100%;
+      overflow: hidden;
     }
     
     body {
@@ -42,18 +46,13 @@
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       background: var(--warm-bg-gradient);
       color: var(--text-primary);
-      overflow-x: hidden;
-      overflow-y: auto;
-      /* Use dvh (dynamic viewport height) to account for browser UI */
-      height: 100dvh;
-      min-height: 100vh;
+      height: 100%;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
     
     header {
-      position: sticky;
-      top: 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -65,7 +64,6 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-subtle);
-      z-index: 1000;
       flex-shrink: 0;
     }
     
@@ -131,31 +129,27 @@
     main {
       flex: 1;
       min-height: 0;
-      padding: 0;
       display: flex;
-      align-items: stretch;
-      justify-content: center;
-      position: relative;
+      flex-direction: column;
       overflow: hidden;
     }
     
     iframe {
+      flex: 1;
       width: 100%;
-      height: 100%;
       border: 0;
-      display: block;
       background: #fff;
-      box-shadow: var(--shadow-soft);
     }
     
     footer {
       padding: 12px 20px;
       padding-left: max(20px, var(--safe-area-left));
       padding-right: max(20px, var(--safe-area-right));
+      padding-bottom: max(12px, var(--safe-area-bottom));
       font-size: 13px;
       color: var(--text-secondary);
       background: rgba(246, 243, 238, 0.98);
-      border-bottom: 1px solid var(--border-subtle);
+      border-top: 1px solid var(--border-subtle);
       text-align: center;
       flex-shrink: 0;
     }
@@ -197,6 +191,7 @@
       footer {
         font-size: 11px;
         padding: 10px 16px;
+        padding-bottom: max(10px, var(--safe-area-bottom));
       }
     }
     
@@ -241,37 +236,6 @@
         padding: 6px 10px;
       }
     }
-    
-    /* Hide Botpress toolbar that overlaps on mobile */
-    /* We can't directly style iframe content due to cross-origin, but we can adjust container */
-    @media (max-width: 640px) {
-      body {
-        /* Adjust for mobile browser chrome and keyboard */
-        height: 100dvh;
-        max-height: -webkit-fill-available;
-      }
-      
-      main {
-        /* Account for keyboard and browser UI */
-        min-height: 0;
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-      }
-      
-      iframe {
-        /* Ensure iframe doesn't extend below viewport */
-        height: 100%;
-        max-height: 100%;
-      }
-    }
-    
-    /* Specific fix for when keyboard is open */
-    @media (max-width: 640px) and (max-height: 500px) {
-      main {
-        /* When keyboard is visible (viewport gets shorter) */
-        flex: 1;
-        min-height: 0;
-      }
-    }
   </style>
 </head>
 
@@ -287,120 +251,48 @@
     </div>
   </header>
 
-  <footer>
-    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
-  </footer>
-
   <main>
     <iframe
       id="aloFrame"
       src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json"
       allow="clipboard-read; clipboard-write"
-      sandbox="allow-scripts allow-forms allow-popups allow-modals"
+      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
       referrerpolicy="no-referrer"
       title="Alo Chat Interface"
     ></iframe>
   </main>
 
+  <footer>
+    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
+  </footer>
+
   <script>
-    // ChatGPT's Option A: Sandbox iframe + recreate on Start Fresh
-    document.addEventListener('DOMContentLoaded', () => {
-      const startFreshBtn = document.getElementById('startFresh');
-      const main = document.querySelector('main');
+    (function() {
+      'use strict';
       
-      if (startFreshBtn) {
-        console.log('✅ Start Fresh button found');
-        
-        startFreshBtn.addEventListener('click', () => {
-          console.log('🔄 Start Fresh clicked - recreating sandboxed iframe');
-          
-          // Remove old iframe completely
+      const main = document.querySelector('main');
+      const startFreshBtn = document.getElementById('startFresh');
+      
+      // Start Fresh functionality - recreate iframe to reset Botpress state
+      if (startFreshBtn && main) {
+        startFreshBtn.addEventListener('click', function() {
           const oldFrame = document.getElementById('aloFrame');
           if (oldFrame) {
             oldFrame.remove();
-            console.log('🗑️ Old iframe removed');
           }
           
-          // Create completely fresh sandboxed iframe
           const freshFrame = document.createElement('iframe');
           freshFrame.id = 'aloFrame';
           freshFrame.src = 'https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/01/25/16/20260125165735-0HM04XH9.json';
           freshFrame.allow = 'clipboard-read; clipboard-write';
           freshFrame.referrerPolicy = 'no-referrer';
           freshFrame.title = 'Alo Chat Interface';
-          freshFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
-          freshFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);';
+          freshFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals allow-same-origin');
           
-          // Add fresh iframe
           main.appendChild(freshFrame);
-          console.log('✅ Fresh sandboxed iframe created');
-        });
-      } else {
-        console.error('❌ Start Fresh button not found!');
-      }
-      
-      // Force initial layout on page load
-      function forceLayout() {
-        if (window.visualViewport) {
-          document.body.style.height = `${window.visualViewport.height}px`;
-          console.log('📐 Forced layout:', window.visualViewport.height);
-        }
-      }
-      
-      // Initial force on load
-      setTimeout(forceLayout, 100);
-      setTimeout(forceLayout, 500);
-      setTimeout(forceLayout, 1000);
-      
-      // Mobile keyboard handling - more aggressive
-      let lastHeight = window.visualViewport?.height || window.innerHeight;
-      
-      // Detect viewport resize (keyboard appearing/disappearing)
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          const currentHeight = window.visualViewport.height;
-          console.log('📏 Viewport resize:', currentHeight);
-          
-          // Force body to match viewport immediately
-          document.body.style.height = `${currentHeight}px`;
-          
-          // Detect if keyboard opened (viewport got smaller)
-          if (currentHeight < lastHeight - 100) {
-            console.log('⌨️ Keyboard opened');
-            // Force reflow with small delay
-            setTimeout(() => {
-              document.body.style.height = `${window.visualViewport.height}px`;
-              // Trigger reflow
-              void document.body.offsetHeight;
-            }, 50);
-          } else if (currentHeight > lastHeight + 100) {
-            console.log('⌨️ Keyboard closed');
-          }
-          
-          lastHeight = currentHeight;
-        });
-        
-        // Also listen to scroll (iOS Safari sometimes needs this)
-        window.visualViewport.addEventListener('scroll', () => {
-          if (window.visualViewport.height !== lastHeight) {
-            document.body.style.height = `${window.visualViewport.height}px`;
-          }
         });
       }
-      
-      // Fallback for older browsers without visualViewport
-      window.addEventListener('resize', () => {
-        console.log('📐 Window resize');
-        forceLayout();
-      });
-      
-      // Listen for focus events on the window (when user taps input)
-      window.addEventListener('focusin', () => {
-        console.log('🎯 Focus in - forcing layout');
-        setTimeout(forceLayout, 100);
-        setTimeout(forceLayout, 300);
-      });
-    });
+    })();
   </script>
 </body>
 </html>
