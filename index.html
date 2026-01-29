@@ -229,7 +229,7 @@
       
       // Single gentle reflow after a delay
       setTimeout(function() {
-        // Temporarily adjust padding to trigger layout recalc
+        // Temporarily adjust padding to trigger recalc
         const currentPadding = window.getComputedStyle(main).paddingBottom;
         main.style.paddingBottom = parseInt(currentPadding) + 1 + 'px';
         
