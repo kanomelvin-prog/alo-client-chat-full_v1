@@ -197,7 +197,7 @@
       <span>A companion for emotional clarity</span>
     </div>
     <div style="display: flex; gap: 8px;">
-      <button id="copyChat">Copy Chat</button>
+      <button id="shareChat">Share</button>
       <button id="startFresh">Start Fresh</button>
     </div>
   </header>
@@ -218,38 +218,94 @@
   </footer>
 
   <script>
-    // Copy Chat - extract conversation and copy to clipboard
-    document.getElementById('copyChat').addEventListener('click', function() {
-      const frame = document.getElementById('aloFrame');
+    // Share Chat - mobile-friendly solution
+    document.getElementById('shareChat').addEventListener('click', async function() {
+      const btn = this;
+      const originalText = btn.textContent;
       
-      try {
-        // Try to access iframe content (won't work due to cross-origin, but we'll handle it)
-        const frameDoc = frame.contentDocument || frame.contentWindow.document;
-        const messages = frameDoc.querySelectorAll('.message'); // Adjust selector based on Botpress structure
-        
-        let conversation = 'Alo Conversation\n\n';
-        messages.forEach(msg => {
-          conversation += msg.innerText + '\n\n';
-        });
-        
-        // Copy to clipboard
-        navigator.clipboard.writeText(conversation).then(() => {
-          // Visual feedback
-          const btn = document.getElementById('copyChat');
-          const originalText = btn.textContent;
-          btn.textContent = 'Copied!';
-          btn.style.background = '#e8f5e9';
-          
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.background = '#fff';
-          }, 2000);
-        });
-        
-      } catch (e) {
-        // Cross-origin iframe - show instructions instead
-        alert('To copy your conversation:\n\n1. Click anywhere in the chat\n2. Press Ctrl+A (or Cmd+A on Mac) to select all\n3. Press Ctrl+C (or Cmd+C) to copy\n\nOr share the chat using the menu inside the chat window.');
+      // Step 1: Try native mobile share (best for mobile)
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'My Alo Conversation',
+            text: 'To share your conversation:\n\n1. Take a screenshot of the chat\n2. Or select all text (long-press → Select All → Copy)\n3. Then paste into email, notes, or message',
+          });
+          return;
+        } catch (err) {
+          // User cancelled or error - continue to fallback
+        }
       }
+      
+      // Step 2: Fallback - show mobile-optimized instructions
+      const instructions = `
+📱 To share your conversation:
+
+1️⃣ Screenshot Method (Easiest):
+   • Take screenshot of this page
+   • Share screenshot via Messages, Email, etc.
+
+2️⃣ Copy Text Method:
+   • Tap and hold in the chat area
+   • Tap "Select All"
+   • Tap "Copy"
+   • Paste into Messages, Email, Notes, etc.
+
+3️⃣ Email to yourself:
+   • Screenshot the chat
+   • Email screenshot to yourself
+   • Or copy text and email that
+
+Tap anywhere to close this message.
+      `.trim();
+      
+      // Create mobile-friendly modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+        backdrop-filter: blur(4px);
+      `;
+      
+      const messageBox = document.createElement('div');
+      messageBox.style.cssText = `
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 400px;
+        width: 100%;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        font-size: 15px;
+        line-height: 1.6;
+        white-space: pre-line;
+        max-height: 80vh;
+        overflow-y: auto;
+      `;
+      messageBox.textContent = instructions;
+      
+      modal.appendChild(messageBox);
+      document.body.appendChild(modal);
+      
+      // Close on tap anywhere
+      modal.addEventListener('click', () => {
+        modal.remove();
+      });
+      
+      // Visual feedback on button
+      btn.textContent = 'Instructions Shown';
+      btn.style.background = '#e3f2fd';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '#fff';
+      }, 2000);
     });
     
     // Start Fresh - recreate iframe
