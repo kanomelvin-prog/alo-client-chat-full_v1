@@ -163,7 +163,21 @@
     
     @media (max-width: 400px) {
       .brand span { display: none; }
-      button { padding: 8px 10px; font-size: 12px; }
+      button { 
+        padding: 8px 10px; 
+        font-size: 12px;
+      }
+      
+      /* Stack buttons vertically on very small screens */
+      header > div:last-child {
+        flex-direction: column;
+        gap: 6px !important;
+      }
+      
+      button {
+        width: 100%;
+        min-width: 80px;
+      }
     }
     
     /* When keyboard appears (viewport gets shorter) */
@@ -182,7 +196,10 @@
       <strong>Alo</strong>
       <span>A companion for emotional clarity</span>
     </div>
-    <button id="startFresh">Start Fresh</button>
+    <div style="display: flex; gap: 8px;">
+      <button id="copyChat">Copy Chat</button>
+      <button id="startFresh">Start Fresh</button>
+    </div>
   </header>
 
   <main id="chatMain">
@@ -201,6 +218,40 @@
   </footer>
 
   <script>
+    // Copy Chat - extract conversation and copy to clipboard
+    document.getElementById('copyChat').addEventListener('click', function() {
+      const frame = document.getElementById('aloFrame');
+      
+      try {
+        // Try to access iframe content (won't work due to cross-origin, but we'll handle it)
+        const frameDoc = frame.contentDocument || frame.contentWindow.document;
+        const messages = frameDoc.querySelectorAll('.message'); // Adjust selector based on Botpress structure
+        
+        let conversation = 'Alo Conversation\n\n';
+        messages.forEach(msg => {
+          conversation += msg.innerText + '\n\n';
+        });
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(conversation).then(() => {
+          // Visual feedback
+          const btn = document.getElementById('copyChat');
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.style.background = '#e8f5e9';
+          
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '#fff';
+          }, 2000);
+        });
+        
+      } catch (e) {
+        // Cross-origin iframe - show instructions instead
+        alert('To copy your conversation:\n\n1. Click anywhere in the chat\n2. Press Ctrl+A (or Cmd+A on Mac) to select all\n3. Press Ctrl+C (or Cmd+C) to copy\n\nOr share the chat using the menu inside the chat window.');
+      }
+    });
+    
     // Start Fresh - recreate iframe
     document.getElementById('startFresh').addEventListener('click', function() {
       const main = document.getElementById('chatMain');
