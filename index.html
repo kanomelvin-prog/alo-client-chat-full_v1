@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
+  <!-- FIXED: Removed user-scalable=no and maximum-scale for accessibility -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -16,17 +17,18 @@
       color-scheme: light;
       --warm-bg: #f6f3ee;
       --text-primary: #1f1f1f;
-      --text-secondary: rgba(31, 31, 31, 0.7);
+      --text-secondary: #595959; /* FIXED: Was rgba(31,31,31,0.7) - now meets WCAG 4.5:1 */
       --border-subtle: rgba(0, 0, 0, 0.08);
+      --border-visible: rgba(0, 0, 0, 0.4); /* FIXED: Increased from 0.2 for better affordance */
     }
     
     * {
       box-sizing: border-box;
     }
     
+    /* FIXED: Removed height: 100% from html, using 100dvh approach */
     html {
-      height: 100%;
-      overflow: hidden;
+      height: 100dvh; /* Dynamic viewport height for mobile */
     }
     
     body {
@@ -34,24 +36,22 @@
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       background: var(--warm-bg);
       color: var(--text-primary);
-      height: 100%;
+      height: 100dvh; /* FIXED: Dynamic viewport height */
       overflow: hidden;
       display: flex;
       flex-direction: column;
-      /* Force initial reflow with animation */
-      animation: forceReflow 0.1s ease-in-out;
+      /* REMOVED: forceReflow animation - was causing jank */
     }
     
-    /* Animation that forces browser to recalculate layout */
-    @keyframes forceReflow {
-      0% {
-        transform: translateZ(0);
-      }
-      50% {
-        transform: translateZ(0.1px);
-      }
-      100% {
-        transform: translateZ(0);
+    /* ADDED: Reduced motion support for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
       }
     }
     
@@ -66,6 +66,8 @@
       padding-right: max(20px, env(safe-area-inset-right));
       background: rgba(246, 243, 238, 0.98);
       border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      z-index: 10;
     }
     
     .brand strong {
@@ -82,7 +84,7 @@
     }
     
     button {
-      border: 1px solid rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-visible); /* FIXED: More visible border */
       background: #fff;
       padding: 9px 16px;
       min-height: 44px;
@@ -91,17 +93,81 @@
       font-weight: 500;
       color: var(--text-primary);
       cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* ADDED: Better affordance */
+    }
+    
+    button:hover {
+      background: #f8f8f8;
+    }
+    
+    button:active {
+      transform: scale(0.98);
+      background: #f0f0f0;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     
     main {
       flex: 1;
-      min-height: 0;
+      min-height: 0; /* FIXED: Important for flex children with overflow */
       overflow: hidden;
-      /* Extra bottom padding to accommodate browser UI */
-      padding-bottom: 80px;
-      /* Force GPU acceleration */
-      transform: translateZ(0);
-      will-change: transform;
+      position: relative;
+      /* REMOVED: All padding-bottom hacks (was 80px/120px/150px) */
+      /* REMOVED: transform: translateZ(0) - was causing blur */
+      /* REMOVED: will-change: transform */
+    }
+    
+    /* ADDED: Loading overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--warm-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+    
+    .loading-message {
+      text-align: center;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: var(--text-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .spinner {
+        animation: none;
+        border-top-color: transparent;
+        border-right-color: var(--text-primary);
+      }
+    }
+    
+    .error-message {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .error-message button {
+      margin-top: 16px;
     }
     
     iframe {
@@ -110,8 +176,7 @@
       border: 0;
       display: block;
       background: #fff;
-      /* Force GPU acceleration on iframe */
-      transform: translateZ(0);
+      /* REMOVED: transform: translateZ(0) - was causing issues */
     }
     
     footer {
@@ -120,11 +185,14 @@
       padding-left: max(20px, env(safe-area-inset-left));
       padding-right: max(20px, env(safe-area-inset-right));
       padding-bottom: max(12px, env(safe-area-inset-bottom));
-      font-size: 13px;
+      font-size: 11px;
       color: var(--text-secondary);
       background: rgba(246, 243, 238, 0.98);
       border-top: 1px solid var(--border-subtle);
       text-align: center;
+      position: relative;
+      z-index: 10;
+      opacity: 0.7; /* FIXED: Quieter, less anxiety-inducing */
     }
     
     footer a {
@@ -134,7 +202,157 @@
       border-bottom: 1px solid currentColor;
     }
     
-    /* Mobile adjustments */
+    /* Modal styles - FIXED: Added accessibility attributes */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+      position: relative;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-content h3 {
+      margin-top: 0;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    
+    .modal-content p {
+      margin: 12px 0;
+      line-height: 1.6;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+    
+    .modal-content ol,
+    .modal-content ul {
+      margin: 16px 0;
+      padding-left: 24px;
+    }
+    
+    .modal-content li {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      line-height: 1;
+      padding: 4px 8px;
+      min-height: 32px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      box-shadow: none;
+    }
+    
+    .modal-close:hover {
+      color: var(--text-primary);
+      background: rgba(0, 0, 0, 0.05);
+    }
+    
+    /* ADDED: Copy box for Share Summary */
+    .copy-box {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+    }
+    
+    .copy-box textarea {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    
+    .copy-box button {
+      width: 100%;
+    }
+    
+    .privacy-note {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--text-primary);
+      margin: 16px 0;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    .button-group button {
+      flex: 1;
+    }
+    
+    .btn-primary {
+      background: #0176ff;
+      color: white;
+      border-color: #0176ff;
+    }
+    
+    .btn-primary:hover {
+      background: #0156cc;
+    }
+    
+    .btn-primary:active {
+      background: #0146aa;
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+    }
+    
+    /* Mobile adjustments - REMOVED: padding hacks */
     @media (max-width: 640px) {
       header {
         padding: 12px 16px;
@@ -155,10 +373,7 @@
         padding-bottom: max(10px, env(safe-area-inset-bottom));
       }
       
-      /* More bottom padding on mobile for browser autofill toolbar */
-      main {
-        padding-bottom: 120px;
-      }
+      /* REMOVED: main padding-bottom hacks */
     }
     
     @media (max-width: 400px) {
@@ -168,7 +383,6 @@
         font-size: 12px;
       }
       
-      /* Stack buttons vertically on very small screens */
       header > div:last-child {
         flex-direction: column;
         gap: 6px !important;
@@ -180,13 +394,7 @@
       }
     }
     
-    /* When keyboard appears (viewport gets shorter) */
-    @media (max-width: 640px) and (max-height: 600px) {
-      main {
-        /* Even more space when keyboard is open */
-        padding-bottom: 150px;
-      }
-    }
+    /* REMOVED: Keyboard detection media query - was causing issues */
   </style>
 </head>
 
@@ -203,153 +411,335 @@
   </header>
 
   <main id="chatMain">
+    <!-- ADDED: Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-message">
+        <div class="spinner"></div>
+        <p>Loading Alo...</p>
+      </div>
+    </div>
+    
     <iframe
       id="aloFrame"
       src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/04/21/20260204212451-JLWZS8SU.json"
       allow="clipboard-read; clipboard-write"
-      sandbox="allow-scripts allow-forms allow-popups allow-modals"
+      sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
       referrerpolicy="no-referrer"
       title="Alo Chat Interface"
-    ></iframe>
+      aria-label="Chatbot Conversation Window"
+    >
+      <!-- ADDED: Fallback content if iframe fails -->
+      <div style="padding: 20px; text-align: center;">
+        <p>Unable to load chat interface.</p>
+        <p>If you are in crisis, please call <a href="tel:988">988</a> (US).</p>
+      </div>
+    </iframe>
   </main>
 
   <footer>
-    In crisis? Call or text <a href="tel:988">988</a> (US) or your local emergency service
+    Need support? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
   </footer>
 
   <script>
-    // Share Chat - mobile-friendly solution
+    // ADDED: Loading state management
+    const iframe = document.getElementById('aloFrame');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    let loadTimeout;
+    
+    // Hide loading on successful load
+    iframe.addEventListener('load', function() {
+      loadingOverlay.style.display = 'none';
+      clearTimeout(loadTimeout);
+    });
+    
+    // Show error if timeout (10 seconds)
+    loadTimeout = setTimeout(function() {
+      loadingOverlay.innerHTML = `
+        <div class="error-message">
+          <p><strong>Having trouble loading Alo</strong></p>
+          <p>Please check your connection and try again.</p>
+          <button onclick="location.reload()">Retry</button>
+          <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
+            If you're in crisis, call <a href="tel:988" style="color: var(--text-primary);">988</a>
+          </p>
+        </div>
+      `;
+    }, 10000);
+    
+    // Utility: Close modal and return focus
+    function closeModal(modal, returnFocusTo) {
+      if (modal && modal.parentNode) {
+        modal.remove();
+      }
+      if (returnFocusTo) {
+        returnFocusTo.focus();
+      }
+    }
+    
+    // Utility: Copy to clipboard
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+      }
+    }
+    
+    // ADDED: Safety Resources modal
+    function showSafetyResources(event) {
+      if (event) event.preventDefault();
+      
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-label', 'Safety Resources');
+      modal.setAttribute('tabindex', '-1');
+      
+      const content = document.createElement('div');
+      content.className = 'modal-content';
+      content.innerHTML = `
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <h3>Safety Resources</h3>
+        
+        <p><strong>If you're in immediate danger:</strong></p>
+        <ul>
+          <li><strong>United States:</strong> Call or text <a href="tel:988">988</a> (Suicide & Crisis Lifeline)</li>
+          <li><strong>United Kingdom:</strong> Call 116 123 (Samaritans)</li>
+          <li><strong>Canada:</strong> Call 1-833-456-4566 (Talk Suicide Canada)</li>
+          <li><strong>Australia:</strong> Call 13 11 14 (Lifeline)</li>
+          <li><strong>International:</strong> Visit <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a></li>
+        </ul>
+        
+        <div class="privacy-note">
+          <strong>About Alo:</strong> Alo is a support tool to help you process emotions between therapy sessions. 
+          It is not a therapist, crisis service, or medical provider. If you're experiencing a mental health 
+          emergency, please use the resources above.
+        </div>
+        
+        <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+      `;
+      
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      // FIXED: Focus management for accessibility
+      modal.focus();
+      
+      // Close on overlay click (but not content click)
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeModal(modal);
+        }
+      });
+      
+      // Close on ESC key
+      modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal(modal);
+        }
+      });
+      
+      // Close button handler
+      content.querySelector('.modal-close').addEventListener('click', function() {
+        closeModal(modal);
+      });
+    }
+    
+    // REDESIGNED: Share with "Share Summary" approach
     document.getElementById('shareChat').addEventListener('click', async function() {
       const btn = this;
       const originalText = btn.textContent;
       
-      // Step 1: Try native mobile share (best for mobile)
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: 'My Alo Conversation',
-            text: 'To share your conversation:\n\n1. Take a screenshot of the chat\n2. Or select all text (long-press → Select All → Copy)\n3. Then paste into email, notes, or message',
-          });
-          return;
-        } catch (err) {
-          // User cancelled or error - continue to fallback
-        }
-      }
+      // Disable button during operation
+      btn.disabled = true;
+      btn.textContent = 'Opening...';
       
-      // Step 2: Fallback - show mobile-optimized instructions
-      const instructions = `
-📱 To share your conversation:
-
-1️⃣ Screenshot Method (Easiest):
-   • Take screenshot of this page
-   • Share screenshot via Messages, Email, etc.
-
-2️⃣ Copy Text Method:
-   • Tap and hold in the chat area
-   • Tap "Select All"
-   • Tap "Copy"
-   • Paste into Messages, Email, Notes, etc.
-
-3️⃣ Email to yourself:
-   • Screenshot the chat
-   • Email screenshot to yourself
-   • Or copy text and email that
-
-Tap anywhere to close this message.
-      `.trim();
-      
-      // Create mobile-friendly modal
-      const modal = document.createElement('div');
-      modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.85);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-        padding: 20px;
-        backdrop-filter: blur(4px);
-      `;
-      
-      const messageBox = document.createElement('div');
-      messageBox.style.cssText = `
-        background: white;
-        border-radius: 16px;
-        padding: 24px;
-        max-width: 400px;
-        width: 100%;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        font-size: 15px;
-        line-height: 1.6;
-        white-space: pre-line;
-        max-height: 80vh;
-        overflow-y: auto;
-      `;
-      messageBox.textContent = instructions;
-      
-      modal.appendChild(messageBox);
-      document.body.appendChild(modal);
-      
-      // Close on tap anywhere
-      modal.addEventListener('click', () => {
-        modal.remove();
-      });
-      
-      // Visual feedback on button
-      btn.textContent = 'Instructions Shown';
-      btn.style.background = '#e3f2fd';
-      setTimeout(() => {
+      // Small delay for button feedback
+      setTimeout(function() {
         btn.textContent = originalText;
-        btn.style.background = '#fff';
-      }, 2000);
+        btn.disabled = false;
+        showShareOptions(btn);
+      }, 200);
     });
     
-    // Start Fresh - recreate iframe
+    function showShareOptions(triggerButton) {
+      const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
+      
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-label', 'Share Your Conversation');
+      modal.setAttribute('tabindex', '-1');
+      
+      const content = document.createElement('div');
+      content.className = 'modal-content';
+      content.innerHTML = `
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <h3>Share Your Conversation</h3>
+        
+        <p><strong>Recommended: Share a Summary</strong></p>
+        <p>Create a concise summary to share with your therapist or someone you trust:</p>
+        
+        <ol>
+          <li>Copy the prompt below</li>
+          <li>Paste it into the chat with Alo</li>
+          <li>Alo will generate a summary</li>
+          <li>Copy and share that summary</li>
+        </ol>
+        
+        <div class="copy-box">
+          <textarea readonly id="summaryPromptText">${summaryPrompt}</textarea>
+          <button id="copyPromptBtn" class="btn-primary">Copy Prompt</button>
+        </div>
+        
+        <div class="privacy-note">
+          <strong>Privacy:</strong> Your full conversation stays private in this browser session. 
+          Only share the summary Alo creates for you.
+        </div>
+        
+        <details style="margin-top: 16px;">
+          <summary style="cursor: pointer; font-weight: 500; color: var(--text-secondary);">
+            Other sharing options
+          </summary>
+          <div style="margin-top: 12px; padding-left: 8px; font-size: 14px;">
+            <p><strong>Screenshot Method:</strong></p>
+            <ul style="font-size: 13px;">
+              <li>Take a screenshot of this page</li>
+              <li>Share via Messages, Email, etc.</li>
+            </ul>
+            <p style="margin-top: 12px;"><strong>Copy Text Method:</strong></p>
+            <ul style="font-size: 13px;">
+              <li>Long-press in the chat area</li>
+              <li>Select the text you want</li>
+              <li>Tap "Copy" and paste elsewhere</li>
+            </ul>
+          </div>
+        </details>
+        
+        <div class="button-group" style="margin-top: 20px;">
+          <button onclick="closeModal(this.closest('.modal-overlay'), document.getElementById('shareChat'))">
+            Close
+          </button>
+        </div>
+      `;
+      
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      // FIXED: Focus management for accessibility
+      modal.focus();
+      
+      // Copy button handler
+      const copyBtn = content.querySelector('#copyPromptBtn');
+      const promptText = content.querySelector('#summaryPromptText');
+      
+      copyBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(summaryPrompt);
+        if (success) {
+          copyBtn.textContent = '✓ Copied!';
+          copyBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copyBtn.textContent = 'Copy Prompt';
+            copyBtn.style.background = '';
+          }, 2000);
+        } else {
+          copyBtn.textContent = 'Copy Failed';
+          setTimeout(function() {
+            copyBtn.textContent = 'Copy Prompt';
+          }, 2000);
+        }
+      });
+      
+      // Close on overlay click (but not content click)
+      modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+          closeModal(modal, triggerButton);
+        }
+      });
+      
+      // Close on ESC key
+      modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal(modal, triggerButton);
+        }
+      });
+      
+      // Close button handler
+      content.querySelector('.modal-close').addEventListener('click', function() {
+        closeModal(modal, triggerButton);
+      });
+    }
+    
+    // FIXED: Start Fresh with confirmation
     document.getElementById('startFresh').addEventListener('click', function() {
+      // ADDED: Confirmation dialog with gentle copy
+      const message = 
+        'Start a new conversation?\n\n' +
+        'This will clear your current chat in this browser. ' +
+        'If you want to keep anything, share a summary first.';
+      
+      const confirmed = confirm(message);
+      
+      if (!confirmed) {
+        return; // User cancelled
+      }
+      
+      // Proceed with iframe recreation
       const main = document.getElementById('chatMain');
       const oldFrame = document.getElementById('aloFrame');
+      const oldLoading = document.getElementById('loadingOverlay');
       
       if (oldFrame) {
         oldFrame.remove();
       }
+      if (oldLoading) {
+        oldLoading.remove();
+      }
       
+      // Recreate loading overlay
+      const newLoading = document.createElement('div');
+      newLoading.id = 'loadingOverlay';
+      newLoading.className = 'loading-overlay';
+      newLoading.innerHTML = `
+        <div class="loading-message">
+          <div class="spinner"></div>
+          <p>Starting fresh...</p>
+        </div>
+      `;
+      main.appendChild(newLoading);
+      
+      // Create new iframe
       const newFrame = document.createElement('iframe');
       newFrame.id = 'aloFrame';
       newFrame.src = 'https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/04/21/20260204212451-JLWZS8SU.json';
       newFrame.allow = 'clipboard-read; clipboard-write';
       newFrame.referrerPolicy = 'no-referrer';
       newFrame.title = 'Alo Chat Interface';
-      newFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals');
-      newFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff; transform: translateZ(0);';
+      newFrame.setAttribute('aria-label', 'Chatbot Conversation Window');
+      newFrame.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-modals allow-same-origin');
+      newFrame.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: #fff;';
+      
+      // Add load handler for new iframe
+      newFrame.addEventListener('load', function() {
+        newLoading.style.display = 'none';
+      });
       
       main.appendChild(newFrame);
     });
     
-    // Minimal reflow trigger on page load
-    // This simulates the "exit and return" behavior
-    window.addEventListener('load', function() {
-      const main = document.getElementById('chatMain');
-      
-      // Single gentle reflow after a delay
-      setTimeout(function() {
-        // Temporarily adjust padding to trigger recalc
-        const currentPadding = window.getComputedStyle(main).paddingBottom;
-        main.style.paddingBottom = parseInt(currentPadding) + 1 + 'px';
-        
-        // Force browser to acknowledge the change
-        void main.offsetHeight;
-        
-        // Reset to original
-        setTimeout(function() {
-          main.style.paddingBottom = '';
-          void main.offsetHeight;
-        }, 50);
-      }, 500);
-    });
+    // REMOVED: Manual reflow animation on page load - was causing jank
   </script>
 </body>
 </html>
