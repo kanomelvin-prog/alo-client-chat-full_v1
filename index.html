@@ -772,7 +772,7 @@
       });
     }
     
-    // FIXED: Start Fresh with confirmation
+    // FIXED: Start Fresh - trigger Botpress's internal conversation reset
     document.getElementById('startFresh').addEventListener('click', function() {
       // ADDED: Confirmation dialog with gentle copy
       const message = 
@@ -786,24 +786,38 @@
         return; // User cancelled
       }
       
-      // Clear Botpress storage to force fresh session
+      // Try to send message to Botpress iframe to reset conversation
+      const iframe = document.getElementById('aloFrame');
+      if (iframe && iframe.contentWindow) {
+        try {
+          // Attempt to communicate with Botpress to reset
+          iframe.contentWindow.postMessage({ type: 'reset-conversation' }, '*');
+          console.log('✅ Sent reset message to Botpress');
+        } catch (e) {
+          console.log('⚠️ Could not send message to iframe:', e);
+        }
+      }
+      
+      // Clear Botpress localStorage keys as backup
       try {
-        localStorage.clear();
-        console.log('✅ localStorage cleared');
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.toLowerCase().includes('botpress') || 
+              key.toLowerCase().includes('bp') || 
+              key.toLowerCase().includes('webchat')) {
+            localStorage.removeItem(key);
+            console.log('✅ Cleared:', key);
+          }
+        });
       } catch (e) {
         console.log('⚠️ Could not clear localStorage:', e);
       }
       
-      try {
-        sessionStorage.clear();
-        console.log('✅ sessionStorage cleared');
-      } catch (e) {
-        console.log('⚠️ Could not clear sessionStorage:', e);
-      }
-      
-      // Reload page to start fresh
-      console.log('🔄 Reloading page...');
-      window.location.reload();
+      // Reload page to ensure clean state
+      setTimeout(function() {
+        console.log('🔄 Reloading page...');
+        window.location.reload();
+      }, 100);
     });
     
     // REMOVED: Manual reflow animation on page load - was causing jank
