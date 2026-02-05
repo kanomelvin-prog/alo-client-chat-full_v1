@@ -116,7 +116,7 @@
       min-height: 0; /* FIXED: Important for flex children with overflow */
       overflow: hidden;
       position: relative;
-      padding-bottom: env(safe-area-inset-bottom, 20px); /* ADDED: Safe bottom space for keyboard */
+      /* REMOVED: padding-bottom - let natural flex handle keyboard */
       /* REMOVED: All padding-bottom hacks (was 80px/120px/150px) */
       /* REMOVED: transform: translateZ(0) - was causing blur */
       /* REMOVED: will-change: transform */
@@ -374,12 +374,7 @@
         padding-bottom: max(10px, env(safe-area-inset-bottom));
       }
       
-      /* ADDED: Extra bottom space on mobile for keyboard */
-      main {
-        padding-bottom: max(60px, env(safe-area-inset-bottom));
-      }
-      
-      /* REMOVED: main padding-bottom hacks */
+      /* REMOVED: Extra bottom padding on main - was creating white space */
     }
     
     @media (max-width: 400px) {
