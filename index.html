@@ -451,6 +451,26 @@
     iframe.addEventListener('load', function() {
       loadingOverlay.style.display = 'none';
       clearTimeout(loadTimeout);
+      
+      // ADDED: iOS Safari viewport fix
+      // Issue: On initial load, iOS doesn't calculate viewport correctly
+      // Symptom: Footer gets cut off, everything stacks poorly
+      // Fix: When user taps out then back in, iOS recalculates and fixes it
+      // Solution: Trigger the same recalculation automatically on load
+      setTimeout(function() {
+        // Force iOS to recalculate viewport by triggering resize events
+        window.dispatchEvent(new Event('resize'));
+        
+        // Small padding nudge to trigger reflow (mimics keyboard appearing/disappearing)
+        const main = document.getElementById('chatMain');
+        const originalHeight = main.style.height;
+        main.style.height = 'calc(100% - 1px)';
+        
+        setTimeout(function() {
+          main.style.height = originalHeight;
+          window.dispatchEvent(new Event('resize'));
+        }, 50);
+      }, 200);
     });
     
     // Show error if timeout (10 seconds)
