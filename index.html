@@ -422,7 +422,7 @@
     
     <iframe
       id="aloFrame"
-      src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
+      src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/04/21/20260204212451-JLWZS8SU.json"
       allow="clipboard-read; clipboard-write"
       sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
       referrerpolicy="no-referrer"
@@ -611,85 +611,90 @@
         <button class="modal-close" aria-label="Close">&times;</button>
         <h3>Share Your Conversation</h3>
         
-        <p><strong>✨ Recommended: Share a Summary</strong></p>
-        <p style="font-size: 14px;">The easiest way to share your conversation:</p>
-        
-        <ol style="font-size: 14px; line-height: 1.6;">
-          <li><strong>Copy</strong> the message below</li>
-          <li><strong>Paste</strong> it into the chat with Alo</li>
-          <li><strong>Alo will create</strong> a clean summary for you</li>
-          <li><strong>Long-press</strong> Alo's summary to copy and share it</li>
-        </ol>
-        
-        <div class="copy-box">
-          <textarea readonly id="summaryPromptText" style="min-height: 100px; font-size: 13px; line-height: 1.5;">${summaryPrompt}</textarea>
-          <button id="copyPromptBtn" class="btn-primary">📋 Copy This Message</button>
+        <!-- 3 Quick Options at Top -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
+          <button id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: #f0f9ff; border-color: #0ea5e9;">
+            <span style="font-size: 24px;">📝</span>
+            <span style="font-size: 13px; font-weight: 600;">Summary</span>
+          </button>
+          <button id="optionFull" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">📄</span>
+            <span style="font-size: 13px; font-weight: 600;">Full</span>
+          </button>
+          <button id="optionRange" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">🎯</span>
+            <span style="font-size: 13px; font-weight: 600;">Range</span>
+          </button>
         </div>
         
-        <div class="privacy-note" style="font-size: 12px;">
-          <strong>💡 Tip:</strong> To copy Alo's summary response, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
-        </div>
-        
-        <details style="margin-top: 20px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-          <summary style="cursor: pointer; font-weight: 600; color: var(--text-primary); font-size: 15px;">
-            Advanced Options
-          </summary>
-          <div style="margin-top: 16px; padding-left: 8px;">
-            
-            <!-- Full Conversation Option -->
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 8px 0;"><strong>📄 Share Full Conversation</strong></p>
-              <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 12px 0;">
-                Get a complete transcript of everything discussed.
-              </p>
-              <div class="copy-box">
-                <textarea readonly id="fullPromptText" style="min-height: 80px; font-size: 13px; line-height: 1.5;">${fullPrompt}</textarea>
-                <button id="copyFullBtn" style="background: #6366f1; border-color: #6366f1; color: white;">
-                  📋 Copy This Message
-                </button>
-              </div>
-              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                <strong>💡 Tip:</strong> After Alo creates the transcript, long-press on it to copy. Full transcripts are long—summary is usually better for sharing.
-              </p>
+        <!-- Instructions Area (changes based on selection) -->
+        <div id="instructionsArea">
+          <!-- Summary Instructions (default) -->
+          <div id="summaryInstructions">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a 5-bullet summary perfect for sharing with your therapist
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates a summary</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div class="copy-box">
+              <textarea readonly id="summaryPromptText" style="min-height: 80px; font-size: 13px;">${summaryPrompt}</textarea>
+              <button id="copySummaryBtn" class="btn-primary">📋 Copy Message</button>
             </div>
-            
-            <!-- Range Selection Option -->
-            <div style="margin-bottom: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
-              <p style="margin: 8px 0;"><strong>🎯 Share Specific Range</strong></p>
-              <p style="font-size: 13px; color: var(--text-secondary); margin: 4px 0 12px 0;">
-                Share only specific parts of the conversation (example: turns 3-8).
-              </p>
-              <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-                <div style="flex: 1;">
-                  <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start turn:</label>
-                  <input type="number" id="rangeStart" min="1" value="1" 
-                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
-                </div>
-                <div style="flex: 1;">
-                  <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End turn:</label>
-                  <input type="number" id="rangeEnd" min="1" value="10" 
-                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
-                </div>
-              </div>
-              <button id="copyRangeBtn" style="width: 100%; background: #8b5cf6; border-color: #8b5cf6; color: white;">
-                📋 Copy Range Message
-              </button>
-              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-                <strong>💡 Tip:</strong> Count the message bubbles to find turn numbers. Then long-press on Alo's range response to copy it.
-              </p>
-            </div>
-            
-            <!-- Manual Methods -->
-            <div style="padding-top: 16px; border-top: 1px solid var(--border-subtle);">
-              <p style="margin: 8px 0;"><strong>📱 Manual Methods</strong></p>
-              <div style="font-size: 13px; color: var(--text-secondary); padding-left: 8px;">
-                <p style="margin: 8px 0;"><strong>Screenshot:</strong> Take a screenshot and share the image</p>
-                <p style="margin: 8px 0;"><strong>Copy Text:</strong> Long-press in chat → Select → Copy → Paste</p>
-              </div>
-            </div>
-            
           </div>
-        </details>
+          
+          <!-- Full Conversation Instructions (hidden) -->
+          <div id="fullInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a complete transcript of everything discussed
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates full transcript</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div class="copy-box">
+              <textarea readonly id="fullPromptText" style="min-height: 80px; font-size: 13px;">${fullPrompt}</textarea>
+              <button id="copyFullBtn" class="btn-primary" style="background: #6366f1; border-color: #6366f1;">📋 Copy Message</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Full transcripts are long—summary is usually better for sharing
+            </p>
+          </div>
+          
+          <!-- Range Instructions (hidden) -->
+          <div id="rangeInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Share specific parts (example: turns 3-8)
+            </p>
+            <div style="display: flex; gap: 12px; margin: 16px 0;">
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start:</label>
+                <input type="number" id="rangeStart" min="1" value="1" 
+                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+              </div>
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End:</label>
+                <input type="number" id="rangeEnd" min="1" value="10" 
+                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+              </div>
+            </div>
+            <button id="copyRangeBtn" class="btn-primary" style="width: 100%; background: #8b5cf6; border-color: #8b5cf6;">
+              📋 Copy Range Message
+            </button>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Count message bubbles to find turn numbers
+            </p>
+          </div>
+        </div>
+        
+        <div class="privacy-note" style="font-size: 12px; margin-top: 16px;">
+          <strong>How to share:</strong> After Alo creates your summary/transcript, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
+        </div>
         
         <div class="button-group" style="margin-top: 20px;">
           <button onclick="closeModal(this.closest('.modal-overlay'), document.getElementById('shareChat'))">
@@ -704,51 +709,93 @@
       // FIXED: Focus management for accessibility
       modal.focus();
       
+      // Tab switching logic
+      const optionSummary = content.querySelector('#optionSummary');
+      const optionFull = content.querySelector('#optionFull');
+      const optionRange = content.querySelector('#optionRange');
+      
+      const summaryInstructions = content.querySelector('#summaryInstructions');
+      const fullInstructions = content.querySelector('#fullInstructions');
+      const rangeInstructions = content.querySelector('#rangeInstructions');
+      
+      function switchTab(tab) {
+        // Reset all buttons
+        [optionSummary, optionFull, optionRange].forEach(btn => {
+          btn.style.background = '#fff';
+          btn.style.borderColor = 'var(--border-visible)';
+        });
+        
+        // Hide all instructions
+        summaryInstructions.style.display = 'none';
+        fullInstructions.style.display = 'none';
+        rangeInstructions.style.display = 'none';
+        
+        // Show selected tab
+        if (tab === 'summary') {
+          optionSummary.style.background = '#f0f9ff';
+          optionSummary.style.borderColor = '#0ea5e9';
+          summaryInstructions.style.display = 'block';
+        } else if (tab === 'full') {
+          optionFull.style.background = '#f0f9ff';
+          optionFull.style.borderColor = '#0ea5e9';
+          fullInstructions.style.display = 'block';
+        } else if (tab === 'range') {
+          optionRange.style.background = '#f0f9ff';
+          optionRange.style.borderColor = '#0ea5e9';
+          rangeInstructions.style.display = 'block';
+        }
+      }
+      
+      // Tab click handlers
+      optionSummary.addEventListener('click', () => switchTab('summary'));
+      optionFull.addEventListener('click', () => switchTab('full'));
+      optionRange.addEventListener('click', () => switchTab('range'));
+      
       // Copy button handlers
-      const copyBtn = content.querySelector('#copyPromptBtn');
+      const copySummaryBtn = content.querySelector('#copySummaryBtn');
       const copyFullBtn = content.querySelector('#copyFullBtn');
       const copyRangeBtn = content.querySelector('#copyRangeBtn');
       
-      // Summary prompt copy
-      copyBtn.addEventListener('click', async function() {
+      // Summary copy
+      copySummaryBtn.addEventListener('click', async function() {
         const success = await copyToClipboard(summaryPrompt);
         if (success) {
-          copyBtn.textContent = '✓ Copied!';
-          copyBtn.style.background = '#10b981';
+          copySummaryBtn.textContent = '✓ Copied!';
+          copySummaryBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyBtn.textContent = 'Copy Summary Prompt';
-            copyBtn.style.background = '';
+            copySummaryBtn.textContent = '📋 Copy Message';
+            copySummaryBtn.style.background = '';
           }, 2000);
         } else {
-          copyBtn.textContent = 'Copy Failed';
+          copySummaryBtn.textContent = 'Copy Failed';
           setTimeout(function() {
-            copyBtn.textContent = 'Copy Summary Prompt';
+            copySummaryBtn.textContent = '📋 Copy Message';
           }, 2000);
         }
       });
       
-      // Full conversation copy
+      // Full copy
       copyFullBtn.addEventListener('click', async function() {
         const success = await copyToClipboard(fullPrompt);
         if (success) {
           copyFullBtn.textContent = '✓ Copied!';
           copyFullBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyFullBtn.textContent = 'Copy Full Transcript Prompt';
+            copyFullBtn.textContent = '📋 Copy Message';
             copyFullBtn.style.background = '#6366f1';
           }, 2000);
         } else {
           copyFullBtn.textContent = 'Copy Failed';
           setTimeout(function() {
-            copyFullBtn.textContent = 'Copy Full Transcript Prompt';
+            copyFullBtn.textContent = '📋 Copy Message';
           }, 2000);
         }
       });
       
-      // Range selection copy
+      // Range copy
       copyRangeBtn.addEventListener('click', async function() {
-        const startTurn = document.getElementById('rangeStart').value;
-        const endTurn = document.getElementById('rangeEnd').value;
+        const startTurn = content.querySelector('#rangeStart').value;
+        const endTurn = content.querySelector('#rangeEnd').value;
         const rangePrompt = `Alo, please provide turns ${startTurn} through ${endTurn} of our conversation in a clean, readable format that I can share.`;
         
         const success = await copyToClipboard(rangePrompt);
@@ -756,13 +803,13 @@
           copyRangeBtn.textContent = '✓ Copied!';
           copyRangeBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyRangeBtn.textContent = 'Copy Range Prompt';
+            copyRangeBtn.textContent = '📋 Copy Range Message';
             copyRangeBtn.style.background = '#8b5cf6';
           }, 2000);
         } else {
           copyRangeBtn.textContent = 'Copy Failed';
           setTimeout(function() {
-            copyRangeBtn.textContent = 'Copy Range Prompt';
+            copyRangeBtn.textContent = '📋 Copy Range Message';
           }, 2000);
         }
       });
@@ -787,7 +834,7 @@
       });
     }
     
-    // FIXED: Start Fresh - trigger Botpress's internal conversation reset
+    // FIXED: Start Fresh - Force new conversation with cache-busting
     document.getElementById('startFresh').addEventListener('click', function() {
       // ADDED: Confirmation dialog with gentle copy
       const message = 
@@ -801,19 +848,7 @@
         return; // User cancelled
       }
       
-      // Try to send message to Botpress iframe to reset conversation
-      const iframe = document.getElementById('aloFrame');
-      if (iframe && iframe.contentWindow) {
-        try {
-          // Attempt to communicate with Botpress to reset
-          iframe.contentWindow.postMessage({ type: 'reset-conversation' }, '*');
-          console.log('✅ Sent reset message to Botpress');
-        } catch (e) {
-          console.log('⚠️ Could not send message to iframe:', e);
-        }
-      }
-      
-      // Clear Botpress localStorage keys as backup
+      // Clear all Botpress data
       try {
         const keys = Object.keys(localStorage);
         keys.forEach(key => {
@@ -821,18 +856,16 @@
               key.toLowerCase().includes('bp') || 
               key.toLowerCase().includes('webchat')) {
             localStorage.removeItem(key);
-            console.log('✅ Cleared:', key);
           }
         });
+        sessionStorage.clear();
       } catch (e) {
-        console.log('⚠️ Could not clear localStorage:', e);
+        console.log('⚠️ Could not clear storage:', e);
       }
       
-      // Reload page to ensure clean state
-      setTimeout(function() {
-        console.log('🔄 Reloading page...');
-        window.location.reload();
-      }, 100);
+      // Force reload with cache-busting parameter to ensure fresh start
+      const timestamp = new Date().getTime();
+      window.location.href = window.location.pathname + '?refresh=' + timestamp;
     });
     
     // REMOVED: Manual reflow animation on page load - was causing jank
