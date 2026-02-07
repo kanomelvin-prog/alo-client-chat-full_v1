@@ -28,5 +28,1461 @@
     
     html { height: 100dvh; }
     
-   
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: var(--warm-bg);
+      color: var(--text-primary);
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+    
+    header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      background: rgba(246, 243, 238, 0.98);
+      border-bottom: 1px solid var(--border-subtle);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .brand strong {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .brand span {
+      font-size: 13px;
+      color: var(--text-secondary);
+      display: block;
+      margin-top: 2px;
+    }
+    
+    .trust-badge {
+      font-size: 11px;
+      color: var(--sage);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    
+    .trust-badge svg {
+      width: 12px;
+      height: 12px;
+    }
+    
+    button {
+      border: 1px solid var(--border-visible);
+      background: #fff;
+      padding: 9px 16px;
+      min-height: 44px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    button:hover { background: #f8f8f8; }
+    button:active { transform: scale(0.98); background: #f0f0f0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn-primary {
+      background: var(--sage);
+      color: white;
+      border-color: var(--sage);
+    }
+    
+    .btn-primary:hover { background: var(--sage-hover); }
+    
+    .btn-link {
+      background: transparent;
+      border: none;
+      color: var(--sage);
+      padding: 4px 8px;
+      min-height: auto;
+      text-decoration: underline;
+      box-shadow: none;
+      font-size: 13px;
+    }
+    
+    main {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* Homework card above chat */
+    .homework-container {
+      flex-shrink: 0;
+      padding: 12px 20px;
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      background: var(--warm-bg);
+      border-bottom: 1px solid var(--border-subtle);
+      display: none;
+    }
+    
+    .homework-container.show { display: block; }
+    
+    .homework-card {
+      background: white;
+      border: 1px solid var(--border-visible);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    
+    .homework-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .homework-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .homework-collapse {
+      background: transparent;
+      border: none;
+      padding: 4px;
+      min-height: auto;
+      box-shadow: none;
+      color: var(--text-secondary);
+      font-size: 20px;
+      line-height: 1;
+    }
+    
+    .homework-body {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-primary);
+    }
+    
+    .homework-body.collapsed { display: none; }
+    
+    .homework-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    
+    .homework-actions button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    
+    /* Chat iframe */
+    .chat-container {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: #fff;
+    }
+    
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--warm-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+    
+    .loading-message { text-align: center; }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-top-color: var(--text-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .spinner {
+        animation: none;
+        border-top-color: transparent;
+        border-right-color: var(--text-primary);
+      }
+    }
+    
+    .error-message {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .error-message button { margin-top: 16px; }
+    
+    footer {
+      flex-shrink: 0;
+      padding: 12px 20px;
+      padding-left: max(20px, env(safe-area-inset-left));
+      padding-right: max(20px, env(safe-area-inset-right));
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: rgba(246, 243, 238, 0.98);
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      position: relative;
+      z-index: 10;
+      opacity: 0.7;
+    }
+    
+    footer a {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid currentColor;
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .modal-overlay.show { display: flex; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+      position: relative;
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-content h3 {
+      margin-top: 0;
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+    
+    .modal-content p {
+      margin: 12px 0;
+      line-height: 1.6;
+      font-size: 15px;
+      color: var(--text-primary);
+    }
+    
+    .modal-content ol,
+    .modal-content ul {
+      margin: 16px 0;
+      padding-left: 24px;
+    }
+    
+    .modal-content li {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: transparent;
+      border: none;
+      font-size: 24px;
+      line-height: 1;
+      padding: 4px 8px;
+      min-height: 32px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      box-shadow: none;
+    }
+    
+    .modal-close:hover {
+      color: var(--text-primary);
+      background: rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-visible);
+      border-radius: 8px;
+      font-size: 15px;
+      font-family: inherit;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--sage);
+    }
+    
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    
+    .form-hint {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    .error-text {
+      color: #dc2626;
+      font-size: 14px;
+      margin: 12px 0;
+      padding: 8px 12px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      display: none;
+    }
+    
+    .error-text.show { display: block; }
+    
+    .privacy-note {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--text-primary);
+      margin: 16px 0;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    
+    .button-group button { flex: 1; }
+    
+    .copy-box {
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 16px 0;
+    }
+    
+    .copy-box textarea {
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    
+    .copy-box button { width: 100%; }
+    
+    .message-item {
+      background: #f9f9f9;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+    }
+    
+    .message-content {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .message-date {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+    
+    .message-text {
+      font-size: 14px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .message-delete {
+      flex-shrink: 0;
+      padding: 4px 8px;
+      font-size: 12px;
+      min-height: auto;
+    }
+    
+    @media (max-width: 640px) {
+      header {
+        padding: 12px 16px;
+        padding-top: max(12px, env(safe-area-inset-top));
+      }
+      
+      .brand strong { font-size: 14px; }
+      .brand span { font-size: 12px; }
+      
+      button {
+        padding: 8px 12px;
+        font-size: 13px;
+      }
+      
+      footer {
+        font-size: 11px;
+        padding: 10px 16px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+      }
+    }
+    
+    @media (max-width: 400px) {
+      .brand span { display: none; }
+      button { 
+        padding: 8px 10px; 
+        font-size: 12px;
+      }
+      
+      header > div:last-child {
+        flex-direction: column;
+        gap: 6px !important;
+      }
+      
+      button {
+        width: 100%;
+        min-width: 80px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <strong>Alo</strong>
+      <span>A companion for emotional clarity</span>
+      <div id="trustBadge" class="trust-badge" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <span id="trustBadgeText"></span>
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button id="connectBtn" style="display: none;">Connect</button>
+      <button id="privacyBtn" style="display: none;">Privacy</button>
+      <button id="messageBtn" style="display: none;">Message</button>
+      <button id="shareChat">Share</button>
+      <button id="startFresh">Start Fresh</button>
+    </div>
+  </header>
+
+  <main id="chatMain">
+    <!-- Homework card (hidden unless client has active homework) -->
+    <div id="homeworkContainer" class="homework-container">
+      <div class="homework-card">
+        <div class="homework-header">
+          <div class="homework-title" id="homeworkTitle">From your therapist</div>
+          <button class="homework-collapse" id="homeworkCollapseBtn" aria-label="Toggle homework">−</button>
+        </div>
+        <div class="homework-body" id="homeworkBody">
+          <p id="homeworkGoal"></p>
+          <div class="homework-actions">
+            <button class="btn-link" id="homeworkHideBtn">Hide for now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat iframe -->
+    <div class="chat-container">
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-message">
+          <div class="spinner"></div>
+          <p>Loading Alo...</p>
+        </div>
+      </div>
+      
+      <iframe
+        id="aloFrame"
+        src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
+        allow="clipboard-read; clipboard-write"
+        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
+        referrerpolicy="no-referrer"
+        title="Alo Chat Interface"
+        aria-label="Chatbot Conversation Window"
+      >
+        <div style="padding: 20px; text-align: center;">
+          <p>Unable to load chat interface.</p>
+          <p>If you are in crisis, please call <a href="tel:988">988</a> (US).</p>
+        </div>
+      </iframe>
+    </div>
+  </main>
+
+  <footer>
+    Need support? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
+  </footer>
+
+  <script>
+    // =====================================================
+    // CONFIG
+    // =====================================================
+    const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MDk1NDUsImV4cCI6MjA3OTE4NTU0NX0.mm1POxfEEoRXyTF08NsUZOau6qA_UdZJnoUH_5bkQas';
+
+    let clientSession = null;
+    let clientId = null;
+    let therapistLink = null;
+    let chatSettings = null;
+    let activeHomework = null;
+
+    // =====================================================
+    // SUPABASE API HELPER
+    // =====================================================
+    async function api(endpoint, options = {}) {
+      const token = clientSession?.access_token || SUPABASE_ANON_KEY;
+      const res = await fetch(`${SUPABASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Prefer': options.prefer || 'return=representation',
+          ...options.headers
+        }
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`API ${res.status}: ${body}`);
+      }
+      const text = await res.text();
+      return text ? JSON.parse(text) : null;
+    }
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check for existing client session
+      try {
+        const stored = localStorage.getItem('alo_client_session');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const refreshed = await refreshSession(parsed.refresh_token);
+          if (refreshed) {
+            clientSession = refreshed;
+            clientId = refreshed.user.id;
+            localStorage.setItem('alo_client_session', JSON.stringify(refreshed));
+            await loadConnectedState();
+          }
+        }
+      } catch (e) {
+        console.log('No valid client session, running in guest mode');
+      }
+      
+      setupEventListeners();
+    });
+
+    async function refreshSession(refreshToken) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ refresh_token: refreshToken })
+        });
+        if (!res.ok) return null;
+        return await res.json();
+      } catch { return null; }
+    }
+
+    async function loadConnectedState() {
+      try {
+        // Get therapist link
+        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${clientId}&status=eq.active&select=*`);
+        if (!links?.length) {
+          // Client has account but not connected to therapist
+          showConnectButton();
+          return;
+        }
+        
+        therapistLink = links[0];
+        
+        // Get therapist name
+        const therapists = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
+        const therapistName = therapists?.[0]?.display_name || 'Your Therapist';
+        
+        // Get chat settings
+        const settings = await api(`/rest/v1/client_chat_settings?therapist_client_id=eq.${therapistLink.id}`);
+        chatSettings = settings?.[0] || {
+          homework_visibility: true,
+          messaging_enabled: true,
+          summary_sharing_enabled: true,
+          conversation_history_enabled: true
+        };
+        
+        // Show connected UI
+        showConnectedUI(therapistName);
+        
+        // Load homework if enabled
+        if (chatSettings.homework_visibility) {
+          await loadHomework();
+        }
+        
+      } catch (err) {
+        console.error('Error loading connected state:', err);
+      }
+    }
+
+    function showConnectButton() {
+      document.getElementById('connectBtn').style.display = 'inline-block';
+    }
+
+    function showConnectedUI(therapistName) {
+      document.getElementById('trustBadge').style.display = 'flex';
+      document.getElementById('trustBadgeText').textContent = `${therapistName} · Manual sharing only`;
+      
+      if (chatSettings.messaging_enabled) {
+        document.getElementById('messageBtn').style.display = 'inline-block';
+      }
+      
+      document.getElementById('privacyBtn').style.display = 'inline-block';
+    }
+
+    async function loadHomework() {
+      try {
+        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc&limit=1`);
+        if (homework?.length) {
+          activeHomework = homework[0];
+          document.getElementById('homeworkTitle').textContent = activeHomework.title;
+          document.getElementById('homeworkGoal').textContent = activeHomework.goal;
+          document.getElementById('homeworkContainer').classList.add('show');
+        }
+      } catch (err) {
+        console.error('Error loading homework:', err);
+      }
+    }
+
+    // =====================================================
+    // EVENT LISTENERS
+    // =====================================================
+    function setupEventListeners() {
+      // Iframe loading
+      const iframe = document.getElementById('aloFrame');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      let loadTimeout;
+      
+      iframe.addEventListener('load', function() {
+        loadingOverlay.style.display = 'none';
+        clearTimeout(loadTimeout);
+        
+        // iOS viewport fix
+        setTimeout(function() {
+          window.dispatchEvent(new Event('resize'));
+          const main = document.getElementById('chatMain');
+          const originalHeight = main.style.height;
+          main.style.height = 'calc(100% - 1px)';
+          setTimeout(function() {
+            main.style.height = originalHeight;
+            window.dispatchEvent(new Event('resize'));
+          }, 50);
+        }, 200);
+      });
+      
+      loadTimeout = setTimeout(function() {
+        loadingOverlay.innerHTML = `
+          <div class="error-message">
+            <p><strong>Having trouble loading Alo</strong></p>
+            <p>Please check your connection and try again.</p>
+            <button onclick="location.reload()">Retry</button>
+            <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
+              If you're in crisis, call <a href="tel:988" style="color: var(--text-primary);">988</a>
+            </p>
+          </div>
+        `;
+      }, 10000);
+      
+      // Header buttons
+      document.getElementById('connectBtn').addEventListener('click', showConnectModal);
+      document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
+      document.getElementById('messageBtn').addEventListener('click', showMessageModal);
+      document.getElementById('shareChat').addEventListener('click', showShareModal);
+      document.getElementById('startFresh').addEventListener('click', handleStartFresh);
+      
+      // Homework card
+      document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
+        const body = document.getElementById('homeworkBody');
+        const btn = document.getElementById('homeworkCollapseBtn');
+        if (body.classList.contains('collapsed')) {
+          body.classList.remove('collapsed');
+          btn.textContent = '−';
+        } else {
+          body.classList.add('collapsed');
+          btn.textContent = '+';
+        }
+      });
+      
+      document.getElementById('homeworkHideBtn').addEventListener('click', function() {
+        document.getElementById('homeworkContainer').classList.remove('show');
+        localStorage.setItem('alo_homework_hidden', 'true');
+      });
+    }
+
+    // =====================================================
+    // CONNECT MODAL
+    // =====================================================
+    function showConnectModal() {
+      const modal = createModal('Connect to Your Therapist', `
+        <p>Enter the invite code your therapist gave you to link your account.</p>
+        
+        <div class="error-text" id="connectError"></div>
+        
+        <div id="authForm">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="authEmail" placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="authPassword" placeholder="Min. 6 characters">
+            <div class="form-hint">Create a password to save your conversations</div>
+          </div>
+          <div class="form-group">
+            <label>Invite Code</label>
+            <input type="text" id="inviteCode" placeholder="ALO-XXXX" style="text-transform: uppercase;">
+          </div>
+        </div>
+        
+        <div class="button-group">
+          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+          <button class="btn-primary" onclick="handleConnect()">Connect</button>
+        </div>
+        
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; text-align: center;">
+          Already have an account? <button class="btn-link" onclick="showLoginModal()">Sign in</button>
+        </p>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+    }
+
+    async function handleConnect() {
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const code = document.getElementById('inviteCode').value.trim().toUpperCase();
+      const errorEl = document.getElementById('connectError');
+      
+      errorEl.classList.remove('show');
+      
+      if (!email || !password || !code) {
+        errorEl.textContent = 'Please fill in all fields';
+        errorEl.classList.add('show');
+        return;
+      }
+      
+      if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters';
+        errorEl.classList.add('show');
+        return;
+      }
+      
+      try {
+        // Create account
+        const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            data: { role: 'client' }
+          })
+        });
+        
+        if (!signupRes.ok) {
+          const body = await signupRes.json();
+          throw new Error(body.error_description || body.msg || 'Signup failed');
+        }
+        
+        const signupData = await signupRes.json();
+        
+        if (!signupData.access_token) {
+          errorEl.textContent = 'Account created! Check your email for confirmation, then sign in.';
+          errorEl.classList.add('show');
+          return;
+        }
+        
+        clientSession = signupData;
+        clientId = clientSession.user.id;
+        localStorage.setItem('alo_client_session', JSON.stringify(clientSession));
+        
+        // Create profile
+        await api('/rest/v1/profiles', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: clientId,
+            role: 'client',
+            email: email
+          }),
+          prefer: 'return=minimal'
+        });
+        
+        // Redeem invite code
+        const result = await api('/rest/v1/rpc/redeem_invite_code', {
+          method: 'POST',
+          body: JSON.stringify({
+            p_code: code,
+            p_client_id: clientId
+          })
+        });
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Invalid invite code');
+        }
+        
+        // Reload connected state
+        await loadConnectedState();
+        closeModal(document.querySelector('.modal-overlay'));
+        
+        alert(`Connected to ${result.therapist_name}!`);
+        
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('show');
+      }
+    }
+
+    function showLoginModal() {
+      closeModal(document.querySelector('.modal-overlay'));
+      
+      const modal = createModal('Sign In', `
+        <div class="error-text" id="loginError"></div>
+        
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="Your password">
+        </div>
+        
+        <div class="button-group">
+          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+          <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+        </div>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      
+      errorEl.classList.remove('show');
+      
+      if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password';
+        errorEl.classList.add('show');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, password })
+        });
+        
+        if (!res.ok) {
+          const body = await res.json();
+          throw new Error(body.error_description || body.msg || 'Login failed');
+        }
+        
+        clientSession = await res.json();
+        clientId = clientSession.user.id;
+        localStorage.setItem('alo_client_session', JSON.stringify(clientSession));
+        
+        await loadConnectedState();
+        closeModal(document.querySelector('.modal-overlay'));
+        
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.add('show');
+      }
+    }
+
+    // =====================================================
+    // MESSAGE MODAL
+    // =====================================================
+    function showMessageModal() {
+      const modal = createModal('Message Your Therapist', `
+        <p>Send a message to ${therapistLink ? document.getElementById('trustBadgeText').textContent.split(' · ')[0] : 'your therapist'}. They'll see it in their dashboard.</p>
+        
+        <div class="privacy-note">
+          <strong>Privacy:</strong> This message is separate from your Alo conversations. Your therapist cannot see your chat transcripts.
+        </div>
+        
+        <div class="error-text" id="messageError"></div>
+        
+        <div class="form-group">
+          <label>Your message</label>
+          <textarea id="messageText" placeholder="What would you like to share with your therapist?"></textarea>
+        </div>
+        
+        <div class="button-group">
+          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+          <button class="btn-primary" onclick="handleSendMessage()">Send Message</button>
+        </div>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+    }
+
+    async function handleSendMessage() {
+      const text = document.getElementById('messageText').value.trim();
+      const errorEl = document.getElementById('messageError');
+      
+      errorEl.classList.remove('show');
+      
+      if (!text) {
+        errorEl.textContent = 'Please enter a message';
+        errorEl.classList.add('show');
+        return;
+      }
+      
+      try {
+        await api('/rest/v1/client_messages', {
+          method: 'POST',
+          body: JSON.stringify({
+            client_id: clientId,
+            therapist_client_id: therapistLink.id,
+            message: text
+          }),
+          prefer: 'return=minimal'
+        });
+        
+        closeModal(document.querySelector('.modal-overlay'));
+        alert('Message sent to your therapist');
+        
+      } catch (err) {
+        errorEl.textContent = 'Failed to send message. Please try again.';
+        errorEl.classList.add('show');
+      }
+    }
+
+    // =====================================================
+    // PRIVACY MODAL
+    // =====================================================
+    function showPrivacyModal() {
+      const therapistName = document.getElementById('trustBadgeText').textContent.split(' · ')[0];
+      
+      const modal = createModal('Privacy Controls', `
+        <p>You control what your therapist sees. Nothing leaves this chat unless you explicitly send it.</p>
+        
+        <div class="privacy-note">
+          <strong>Connected to:</strong> ${therapistName}<br>
+          <button class="btn-link" style="margin-top: 8px;" onclick="handleUnlink()">Unlink from therapist</button>
+        </div>
+        
+        <h4 style="margin-top: 20px; margin-bottom: 12px;">What I've Shared</h4>
+        <div id="sharedMessagesList">
+          <p style="color: var(--text-secondary); font-size: 14px;">Loading...</p>
+        </div>
+        
+        <div class="button-group">
+          <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+        </div>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+      
+      loadSharedMessages();
+    }
+
+    async function loadSharedMessages() {
+      try {
+        const messages = await api(`/rest/v1/client_messages?client_id=eq.${clientId}&revoked_at=is.null&order=created_at.desc`);
+        
+        const container = document.getElementById('sharedMessagesList');
+        
+        if (!messages?.length) {
+          container.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px;">No messages sent yet</p>';
+          return;
+        }
+        
+        container.innerHTML = messages.map(m => `
+          <div class="message-item">
+            <div class="message-content">
+              <div class="message-date">${new Date(m.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+              <div class="message-text">${esc(m.message)}</div>
+            </div>
+            ${!m.read ? `<button class="message-delete" onclick="handleDeleteMessage('${m.id}')">Delete</button>` : ''}
+          </div>
+        `).join('');
+        
+      } catch (err) {
+        console.error('Error loading messages:', err);
+      }
+    }
+
+    async function handleDeleteMessage(id) {
+      if (!confirm('Delete this message? Your therapist may have already seen it.')) return;
+      
+      try {
+        await api(`/rest/v1/client_messages?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            revoked_at: new Date().toISOString()
+          })
+        });
+        
+        loadSharedMessages();
+        
+      } catch (err) {
+        alert('Failed to delete message');
+      }
+    }
+
+    async function handleUnlink() {
+      const therapistName = document.getElementById('trustBadgeText').textContent.split(' · ')[0];
+      
+      if (!confirm(`Unlink from ${therapistName}?\n\nYou can reconnect later with a new invite code.`)) return;
+      
+      try {
+        await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            status: 'inactive'
+          })
+        });
+        
+        therapistLink = null;
+        chatSettings = null;
+        activeHomework = null;
+        
+        // Hide connected UI
+        document.getElementById('trustBadge').style.display = 'none';
+        document.getElementById('messageBtn').style.display = 'none';
+        document.getElementById('privacyBtn').style.display = 'none';
+        document.getElementById('homeworkContainer').classList.remove('show');
+        
+        // Show connect button
+        showConnectButton();
+        
+        closeModal(document.querySelector('.modal-overlay'));
+        alert('Unlinked from therapist');
+        
+      } catch (err) {
+        alert('Failed to unlink. Please try again.');
+      }
+    }
+
+    // =====================================================
+    // SHARE MODAL
+    // =====================================================
+    function showShareModal() {
+      const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
+      const fullPrompt = `Alo, please provide a complete transcript of our entire conversation in a clean, readable format that I can share.`;
+      
+      const modal = createModal('Share Your Conversation', `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
+          <button id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: #f0f9ff; border-color: #0ea5e9;">
+            <span style="font-size: 24px;">📝</span>
+            <span style="font-size: 13px; font-weight: 600;">Summary</span>
+          </button>
+          <button id="optionFull" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">📄</span>
+            <span style="font-size: 13px; font-weight: 600;">Full</span>
+          </button>
+          <button id="optionRange" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">🎯</span>
+            <span style="font-size: 13px; font-weight: 600;">Range</span>
+          </button>
+        </div>
+        
+        <div id="instructionsArea">
+          <div id="summaryInstructions">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a 5-bullet summary perfect for sharing with your therapist
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates a summary</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div class="copy-box">
+              <textarea readonly id="summaryPromptText" style="min-height: 80px; font-size: 13px;">${summaryPrompt}</textarea>
+              <button id="copySummaryBtn" class="btn-primary">📋 Copy Message</button>
+            </div>
+          </div>
+          
+          <div id="fullInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a complete transcript of everything discussed
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates full transcript</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div class="copy-box">
+              <textarea readonly id="fullPromptText" style="min-height: 80px; font-size: 13px;">${fullPrompt}</textarea>
+              <button id="copyFullBtn" class="btn-primary" style="background: #6366f1; border-color: #6366f1;">📋 Copy Message</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Full transcripts are long—summary is usually better for sharing
+            </p>
+          </div>
+          
+          <div id="rangeInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Share specific parts (example: turns 3-8)
+            </p>
+            <div style="display: flex; gap: 12px; margin: 16px 0;">
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start:</label>
+                <input type="number" id="rangeStart" min="1" value="1" 
+                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+              </div>
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End:</label>
+                <input type="number" id="rangeEnd" min="1" value="10" 
+                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+              </div>
+            </div>
+            <button id="copyRangeBtn" class="btn-primary" style="width: 100%; background: #8b5cf6; border-color: #8b5cf6;">
+              📋 Copy Range Message
+            </button>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Count message bubbles to find turn numbers
+            </p>
+          </div>
+        </div>
+        
+        <div class="privacy-note" style="font-size: 12px; margin-top: 16px;">
+          <strong>How to share:</strong> After Alo creates your summary/transcript, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
+        </div>
+        
+        <div class="button-group" style="margin-top: 20px;">
+          <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+        </div>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+      
+      setupShareTabs(modal, summaryPrompt, fullPrompt);
+    }
+
+    function setupShareTabs(modal, summaryPrompt, fullPrompt) {
+      const optionSummary = modal.querySelector('#optionSummary');
+      const optionFull = modal.querySelector('#optionFull');
+      const optionRange = modal.querySelector('#optionRange');
+      
+      const summaryInstructions = modal.querySelector('#summaryInstructions');
+      const fullInstructions = modal.querySelector('#fullInstructions');
+      const rangeInstructions = modal.querySelector('#rangeInstructions');
+      
+      function switchTab(tab) {
+        [optionSummary, optionFull, optionRange].forEach(btn => {
+          btn.style.background = '#fff';
+          btn.style.borderColor = 'var(--border-visible)';
+        });
+        
+        summaryInstructions.style.display = 'none';
+        fullInstructions.style.display = 'none';
+        rangeInstructions.style.display = 'none';
+        
+        if (tab === 'summary') {
+          optionSummary.style.background = '#f0f9ff';
+          optionSummary.style.borderColor = '#0ea5e9';
+          summaryInstructions.style.display = 'block';
+        } else if (tab === 'full') {
+          optionFull.style.background = '#f0f9ff';
+          optionFull.style.borderColor = '#0ea5e9';
+          fullInstructions.style.display = 'block';
+        } else if (tab === 'range') {
+          optionRange.style.background = '#f0f9ff';
+          optionRange.style.borderColor = '#0ea5e9';
+          rangeInstructions.style.display = 'block';
+        }
+      }
+      
+      optionSummary.addEventListener('click', () => switchTab('summary'));
+      optionFull.addEventListener('click', () => switchTab('full'));
+      optionRange.addEventListener('click', () => switchTab('range'));
+      
+      const copySummaryBtn = modal.querySelector('#copySummaryBtn');
+      const copyFullBtn = modal.querySelector('#copyFullBtn');
+      const copyRangeBtn = modal.querySelector('#copyRangeBtn');
+      
+      copySummaryBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(summaryPrompt);
+        if (success) {
+          copySummaryBtn.textContent = '✓ Copied!';
+          copySummaryBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copySummaryBtn.textContent = '📋 Copy Message';
+            copySummaryBtn.style.background = '';
+          }, 2000);
+        }
+      });
+      
+      copyFullBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(fullPrompt);
+        if (success) {
+          copyFullBtn.textContent = '✓ Copied!';
+          copyFullBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copyFullBtn.textContent = '📋 Copy Message';
+            copyFullBtn.style.background = '#6366f1';
+          }, 2000);
+        }
+      });
+      
+      copyRangeBtn.addEventListener('click', async function() {
+        const startTurn = modal.querySelector('#rangeStart').value;
+        const endTurn = modal.querySelector('#rangeEnd').value;
+        const rangePrompt = `Alo, please provide turns ${startTurn} through ${endTurn} of our conversation in a clean, readable format that I can share.`;
+        
+        const success = await copyToClipboard(rangePrompt);
+        if (success) {
+          copyRangeBtn.textContent = '✓ Copied!';
+          copyRangeBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copyRangeBtn.textContent = '📋 Copy Range Message';
+            copyRangeBtn.style.background = '#8b5cf6';
+          }, 2000);
+        }
+      });
+    }
+
+    // =====================================================
+    // SAFETY RESOURCES MODAL
+    // =====================================================
+    function showSafetyResources(event) {
+      if (event) event.preventDefault();
+      
+      const modal = createModal('Safety Resources', `
+        <p><strong>If you're in immediate danger:</strong></p>
+        <ul>
+          <li><strong>United States:</strong> Call or text <a href="tel:988">988</a> (Suicide & Crisis Lifeline)</li>
+          <li><strong>United Kingdom:</strong> Call 116 123 (Samaritans)</li>
+          <li><strong>Canada:</strong> Call 1-833-456-4566 (Talk Suicide Canada)</li>
+          <li><strong>Australia:</strong> Call 13 11 14 (Lifeline)</li>
+          <li><strong>International:</strong> Visit <a href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a></li>
+        </ul>
+        
+        <div class="privacy-note">
+          <strong>About Alo:</strong> Alo is a support tool to help you process emotions between therapy sessions. 
+          It is not a therapist, crisis service, or medical provider. If you're experiencing a mental health 
+          emergency, please use the resources above.
+        </div>
+        
+        <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+    }
+
+    // =====================================================
+    // START FRESH
+    // =====================================================
+    function handleStartFresh() {
+      const message = 
+        'Start a new conversation?\n\n' +
+        'This will clear your current chat in this browser. ' +
+        'If you want to keep anything, share a summary first.';
+      
+      if (!confirm(message)) return;
+      
+      try {
+        const keys = Object.keys(localStorage);
+        keys.forEach(key => {
+          if (key.toLowerCase().includes('botpress') || 
+              key.toLowerCase().includes('bp') || 
+              key.toLowerCase().includes('webchat')) {
+            localStorage.removeItem(key);
+          }
+        });
+        sessionStorage.clear();
+      } catch (e) {
+        console.log('⚠️ Could not clear storage:', e);
+      }
+      
+      const timestamp = new Date().getTime();
+      window.location.href = window.location.pathname + '?refresh=' + timestamp;
+    }
+
+    // =====================================================
+    // UTILITIES
+    // =====================================================
+    function createModal(title, content) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', title);
+      
+      const modalContent = document.createElement('div');
+      modalContent.className = 'modal-content';
+      modalContent.innerHTML = `
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <h3>${title}</h3>
+        ${content}
+      `;
+      
+      overlay.appendChild(modalContent);
+      
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+          closeModal(overlay);
+        }
+      });
+      
+      overlay.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeModal(overlay);
+        }
+      });
+      
+      modalContent.querySelector('.modal-close').addEventListener('click', function() {
+        closeModal(overlay);
+      });
+      
+      return overlay;
+    }
+
+    function closeModal(modal) {
+      if (modal && modal.parentNode) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 200);
+      }
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+      }
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+  </script>
+</body>
 </html>
