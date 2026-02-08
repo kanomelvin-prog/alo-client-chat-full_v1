@@ -1,3 +1,4 @@
+
 <!doctype html>
 <!-- DEPLOY_TEST_2026_02_07_21:30 -->
 <html lang="en">
@@ -84,10 +85,6 @@
       align-items: center;
       gap: 4px;
       margin-top: 4px;
-    }
-    
-    .trust-badge.guest {
-      color: var(--text-secondary);
     }
     
     .trust-badge svg {
@@ -548,12 +545,15 @@
     <div class="brand">
       <strong>Alo</strong>
       <span>A companion for emotional clarity</span>
-      <div id="trustBadge" class="trust-badge guest">
-        <span id="trustBadgeText">Guest</span>
+      <div id="trustBadge" class="trust-badge" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <span id="trustBadgeText"></span>
       </div>
     </div>
     <div style="display: flex; gap: 8px;">
-      <button id="connectBtn">Connect</button>
+    <button id="connectBtn">Connect</button>
       <button id="privacyBtn" style="display: none;">Privacy</button>
       <button id="messageBtn" style="display: none;">Message</button>
       <button id="shareChat">Share</button>
@@ -689,7 +689,7 @@
         const links = await api(`/rest/v1/therapist_clients?client_id=eq.${clientId}&status=eq.active&select=*`);
         if (!links?.length) {
           // Client has account but not connected to therapist
-          showLoggedInNoConnection();
+          showConnectButton();
           return;
         }
         
@@ -698,10 +698,6 @@
         // Get therapist name
         const therapists = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const therapistName = therapists?.[0]?.display_name || 'Your Therapist';
-        
-        // Get client name
-        const clientProfiles = await api(`/rest/v1/profiles?id=eq.${clientId}&select=display_name,email`);
-        const clientName = clientProfiles?.[0]?.display_name || clientProfiles?.[0]?.email?.split('@')[0] || 'there';
         
         // Get chat settings
         const settings = await api(`/rest/v1/client_chat_settings?therapist_client_id=eq.${therapistLink.id}`);
@@ -713,7 +709,7 @@
         };
         
         // Show connected UI
-        showConnectedUI(therapistName, clientName);
+        showConnectedUI(therapistName);
         
         // Load homework if enabled
         if (chatSettings.homework_visibility) {
@@ -725,50 +721,19 @@
       }
     }
 
-    function showLoggedInNoConnection() {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      badge.classList.remove('guest');
-      badge.classList.add('trust-badge');
-      badgeText.textContent = 'Logged in';
+    function showConnectButton() {
       document.getElementById('connectBtn').style.display = 'inline-block';
     }
 
-    function showConnectedUI(therapistName, clientName) {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      
-      badge.classList.remove('guest');
-      badge.style.display = 'flex';
-      
-      // Add shield icon if not present
-      if (!badge.querySelector('svg')) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '2');
-        svg.style.width = '12px';
-        svg.style.height = '12px';
-        
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('stroke-linecap', 'round');
-        path.setAttribute('stroke-linejoin', 'round');
-        path.setAttribute('d', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z');
-        
-        svg.appendChild(path);
-        badge.insertBefore(svg, badgeText);
-      }
-      
-      badgeText.textContent = `Hi ${clientName} · Connected to ${therapistName}`;
-      
-      // Hide Connect button, show Privacy/Message buttons
-      document.getElementById('connectBtn').style.display = 'none';
-      document.getElementById('privacyBtn').style.display = 'inline-block';
+    function showConnectedUI(therapistName) {
+      document.getElementById('trustBadge').style.display = 'flex';
+      document.getElementById('trustBadgeText').textContent = `${therapistName} · Manual sharing only`;
       
       if (chatSettings.messaging_enabled) {
         document.getElementById('messageBtn').style.display = 'inline-block';
       }
+      
+      document.getElementById('privacyBtn').style.display = 'inline-block';
     }
 
     async function loadHomework() {
@@ -1047,10 +1012,8 @@
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
-      const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('Connected to ')[1] : 'your therapist';
-      
       const modal = createModal('Message Your Therapist', `
-        <p>Send a message to ${therapistName}. They'll see it in their dashboard.</p>
+        <p>Send a message to ${therapistLink ? document.getElementById('trustBadgeText').textContent.split(' · ')[0] : 'your therapist'}. They'll see it in their dashboard.</p>
         
         <div class="privacy-note">
           <strong>Privacy:</strong> This message is separate from your Alo conversations. Your therapist cannot see your chat transcripts.
@@ -1109,7 +1072,7 @@
     // PRIVACY MODAL
     // =====================================================
     function showPrivacyModal() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('Connected to ')[1];
+      const therapistName = document.getElementById('trustBadgeText').textContent.split(' · ')[0];
       
       const modal = createModal('Privacy Controls', `
         <p>You control what your therapist sees. Nothing leaves this chat unless you explicitly send it.</p>
@@ -1180,7 +1143,7 @@
     }
 
     async function handleUnlink() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('Connected to ')[1];
+      const therapistName = document.getElementById('trustBadgeText').textContent.split(' · ')[0];
       
       if (!confirm(`Unlink from ${therapistName}?\n\nYou can reconnect later with a new invite code.`)) return;
       
@@ -1196,21 +1159,14 @@
         chatSettings = null;
         activeHomework = null;
         
-        // Reset to guest mode
-        const badge = document.getElementById('trustBadge');
-        const badgeText = document.getElementById('trustBadgeText');
-        badge.classList.add('guest');
-        badgeText.textContent = 'Guest';
-        
-        // Remove shield icon if present
-        const svg = badge.querySelector('svg');
-        if (svg) svg.remove();
-        
-        // Show Connect button, hide Privacy/Message buttons
-        document.getElementById('connectBtn').style.display = 'inline-block';
+        // Hide connected UI
+        document.getElementById('trustBadge').style.display = 'none';
         document.getElementById('messageBtn').style.display = 'none';
         document.getElementById('privacyBtn').style.display = 'none';
         document.getElementById('homeworkContainer').classList.remove('show');
+        
+        // Show connect button
+        showConnectButton();
         
         closeModal(document.querySelector('.modal-overlay'));
         alert('Unlinked from therapist');
