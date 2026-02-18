@@ -28,8 +28,8 @@
       <button id="connectBtn">Connect</button>
       <button id="privacyBtn" style="display: none;">Privacy</button>
       <button id="messageBtn" style="display: none;">Message</button>
-      <button id="shareChat">Share</button>
-      <button id="startFresh">Start Fresh</button>
+            <button id="shareChat">Share</button>
+
     </div>
   </header>
 
@@ -288,7 +288,8 @@
       document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
       document.getElementById('messageBtn').addEventListener('click', showMessageModal);
       document.getElementById('shareChat').addEventListener('click', showShareModal);
-      document.getElementById('startFresh').addEventListener('click', handleStartFresh);
+            // Start Fresh removed — Botpress has built-in new chat icon
+
       
       document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
         const body = document.getElementById('homeworkBody');
