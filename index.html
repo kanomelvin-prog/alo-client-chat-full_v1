@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- DEPLOY_TEST_2026_02_08 -->
+<!-- ALO CLIENT CHAT v2.0 — Feb 18, 2026 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -9,538 +9,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Alo" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#f6f3ee" />
+  <meta name="theme-color" content="#FDFBF7" />
   
   <title>Alo — Companion for Emotional Clarity</title>
-  <style>
-    :root { 
-      color-scheme: light;
-      --warm-bg: #f6f3ee;
-      --text-primary: #1f1f1f;
-      --text-secondary: #595959;
-      --border-subtle: rgba(0, 0, 0, 0.08);
-      --border-visible: rgba(0, 0, 0, 0.4);
-      --sage: #8B9A7D;
-      --sage-light: #E8EDE4;
-      --sage-hover: #7a8a6d;
-    }
-    
-    * { box-sizing: border-box; }
-    
-    html { height: 100dvh; }
-    
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: var(--warm-bg);
-      color: var(--text-primary);
-      height: 100dvh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-    
-    header {
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      padding-top: max(16px, env(safe-area-inset-top));
-      padding-left: max(20px, env(safe-area-inset-left));
-      padding-right: max(20px, env(safe-area-inset-right));
-      background: rgba(246, 243, 238, 0.98);
-      border-bottom: 1px solid var(--border-subtle);
-      position: relative;
-      z-index: 10;
-    }
-    
-    .brand strong {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    
-    .brand span {
-      font-size: 13px;
-      color: var(--text-secondary);
-      display: block;
-      margin-top: 2px;
-    }
-    
-    .trust-badge {
-      font-size: 11px;
-      color: var(--sage);
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 4px;
-    }
-    
-    .trust-badge.guest {
-      color: var(--text-secondary);
-    }
-    
-    .trust-badge svg {
-      width: 12px;
-      height: 12px;
-    }
-    
-    button {
-      border: 1px solid var(--border-visible);
-      background: #fff;
-      padding: 9px 16px;
-      min-height: 44px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-    
-    button:hover { background: #f8f8f8; }
-    button:active { transform: scale(0.98); background: #f0f0f0; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    
-    .btn-primary {
-      background: var(--sage);
-      color: white;
-      border-color: var(--sage);
-    }
-    
-    .btn-primary:hover { background: var(--sage-hover); }
-    
-    .btn-link {
-      background: transparent;
-      border: none;
-      color: var(--sage);
-      padding: 4px 8px;
-      min-height: auto;
-      text-decoration: underline;
-      box-shadow: none;
-      font-size: 13px;
-    }
-    
-    main {
-      flex: 1;
-      min-height: 0;
-      overflow: hidden;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    /* Homework card above chat */
-    .homework-container {
-      flex-shrink: 0;
-      padding: 12px 20px;
-      padding-left: max(20px, env(safe-area-inset-left));
-      padding-right: max(20px, env(safe-area-inset-right));
-      background: var(--warm-bg);
-      border-bottom: 1px solid var(--border-subtle);
-      display: none;
-    }
-    
-    .homework-container.show { display: block; }
-    
-    .homework-card {
-      background: white;
-      border: 1px solid var(--border-visible);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    }
-    
-    .homework-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-    
-    .homework-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    
-    .homework-collapse {
-      background: transparent;
-      border: none;
-      padding: 4px;
-      min-height: auto;
-      box-shadow: none;
-      color: var(--text-secondary);
-      font-size: 20px;
-      line-height: 1;
-    }
-    
-    .homework-body {
-      font-size: 14px;
-      line-height: 1.5;
-      color: var(--text-primary);
-    }
-    
-    .homework-body.collapsed { display: none; }
-    
-    .homework-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    
-    .homework-actions button {
-      flex: 1;
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-    
-    /* Chat iframe */
-    .chat-container {
-      flex: 1;
-      min-height: 0;
-      position: relative;
-    }
-    
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      display: block;
-      background: #fff;
-    }
-    
-    .loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--warm-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 5;
-    }
-    
-    .loading-message { text-align: center; }
-    
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(0, 0, 0, 0.1);
-      border-top-color: var(--text-primary);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-    
-    @keyframes spin { to { transform: rotate(360deg); } }
-    
-    @media (prefers-reduced-motion: reduce) {
-      .spinner {
-        animation: none;
-        border-top-color: transparent;
-        border-right-color: var(--text-primary);
-      }
-    }
-    
-    .error-message {
-      text-align: center;
-      padding: 20px;
-    }
-    
-    .error-message button { margin-top: 16px; }
-    
-    footer {
-      flex-shrink: 0;
-      padding: 12px 20px;
-      padding-left: max(20px, env(safe-area-inset-left));
-      padding-right: max(20px, env(safe-area-inset-right));
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
-      font-size: 11px;
-      color: var(--text-secondary);
-      background: rgba(246, 243, 238, 0.98);
-      border-top: 1px solid var(--border-subtle);
-      text-align: center;
-      position: relative;
-      z-index: 10;
-      opacity: 0.7;
-    }
-    
-    footer a {
-      color: var(--text-primary);
-      font-weight: 600;
-      text-decoration: none;
-      border-bottom: 1px solid currentColor;
-    }
-    
-    /* Modal styles */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.85);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      padding: 20px;
-      backdrop-filter: blur(4px);
-      animation: fadeIn 0.2s ease;
-    }
-    
-    .modal-overlay.show { display: flex; }
-    
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-    
-    .modal-content {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-      max-height: 80vh;
-      overflow-y: auto;
-      animation: slideUp 0.3s ease;
-      position: relative;
-    }
-    
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    
-    .modal-content h3 {
-      margin-top: 0;
-      font-size: 20px;
-      font-weight: 600;
-      margin-bottom: 16px;
-      color: var(--text-primary);
-    }
-    
-    .modal-content p {
-      margin: 12px 0;
-      line-height: 1.6;
-      font-size: 15px;
-      color: var(--text-primary);
-    }
-    
-    .modal-content ol,
-    .modal-content ul {
-      margin: 16px 0;
-      padding-left: 24px;
-    }
-    
-    .modal-content li {
-      margin: 8px 0;
-      line-height: 1.5;
-    }
-    
-    .modal-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: transparent;
-      border: none;
-      font-size: 24px;
-      line-height: 1;
-      padding: 4px 8px;
-      min-height: 32px;
-      cursor: pointer;
-      color: var(--text-secondary);
-      box-shadow: none;
-    }
-    
-    .modal-close:hover {
-      color: var(--text-primary);
-      background: rgba(0, 0, 0, 0.05);
-    }
-    
-    .form-group {
-      margin-bottom: 16px;
-    }
-    
-    .form-group label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 6px;
-    }
-    
-    .form-group input,
-    .form-group textarea {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid var(--border-visible);
-      border-radius: 8px;
-      font-size: 15px;
-      font-family: inherit;
-    }
-    
-    .form-group input:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: var(--sage);
-    }
-    
-    .form-group textarea {
-      min-height: 100px;
-      resize: vertical;
-    }
-    
-    .form-hint {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-top: 4px;
-    }
-    
-    .error-text {
-      color: #dc2626;
-      font-size: 14px;
-      margin: 12px 0;
-      padding: 8px 12px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: 6px;
-      display: none;
-    }
-    
-    .error-text.show { display: block; }
-    
-    .privacy-note {
-      font-size: 13px;
-      color: var(--text-secondary);
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 6px;
-      border-left: 3px solid var(--text-primary);
-      margin: 16px 0;
-    }
-    
-    .button-group {
-      display: flex;
-      gap: 12px;
-      margin-top: 20px;
-    }
-    
-    .button-group button { flex: 1; }
-    
-    .copy-box {
-      background: #f5f5f5;
-      border: 1px solid #e0e0e0;
-      border-radius: 8px;
-      padding: 12px;
-      margin: 16px 0;
-    }
-    
-    .copy-box textarea {
-      width: 100%;
-      min-height: 80px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      padding: 8px;
-      font-family: inherit;
-      font-size: 14px;
-      resize: vertical;
-      margin-bottom: 8px;
-    }
-    
-    .copy-box button { width: 100%; }
-    
-    .message-item {
-      background: #f9f9f9;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-      gap: 12px;
-    }
-    
-    .message-content {
-      flex: 1;
-      min-width: 0;
-    }
-    
-    .message-date {
-      font-size: 12px;
-      color: var(--text-secondary);
-      margin-bottom: 4px;
-    }
-    
-    .message-text {
-      font-size: 14px;
-      color: var(--text-primary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .message-delete {
-      flex-shrink: 0;
-      padding: 4px 8px;
-      font-size: 12px;
-      min-height: auto;
-    }
-    
-    @media (max-width: 640px) {
-      header {
-        padding: 12px 16px;
-        padding-top: max(12px, env(safe-area-inset-top));
-      }
-      
-      .brand strong { font-size: 14px; }
-      .brand span { font-size: 12px; }
-      
-      button {
-        padding: 8px 12px;
-        font-size: 13px;
-      }
-      
-      footer {
-        font-size: 11px;
-        padding: 10px 16px;
-        padding-bottom: max(10px, env(safe-area-inset-bottom));
-      }
-    }
-    
-    @media (max-width: 400px) {
-      .brand span { display: none; }
-      button { 
-        padding: 8px 10px; 
-        font-size: 12px;
-      }
-      
-      header > div:last-child {
-        flex-direction: column;
-        gap: 6px !important;
-      }
-      
-      button {
-        width: 100%;
-        min-width: 80px;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -552,7 +24,7 @@
         <span id="trustBadgeText">Guest</span>
       </div>
     </div>
-    <div style="display: flex; gap: 8px;">
+    <div class="header-actions">
       <button id="connectBtn">Connect</button>
       <button id="privacyBtn" style="display: none;">Privacy</button>
       <button id="messageBtn" style="display: none;">Message</button>
@@ -607,7 +79,6 @@
   <footer>
     Need support? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
   </footer>
-
   <script>
     // =====================================================
     // CONFIG
@@ -648,10 +119,8 @@
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async () => {
-      // Setup event listeners FIRST (before any awaits)
       setupEventListeners();
       
-      // Check for existing client session
       try {
         const stored = localStorage.getItem('alo_client_session');
         if (stored) {
@@ -686,25 +155,20 @@
 
     async function loadConnectedState() {
       try {
-        // Get therapist link
         const links = await api(`/rest/v1/therapist_clients?client_id=eq.${clientId}&status=eq.active&select=*`);
         if (!links?.length) {
-          // Client has account but not connected to therapist
           showLoggedInNoConnection();
           return;
         }
         
         therapistLink = links[0];
         
-        // Get therapist name
         const therapists = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const therapistName = therapists?.[0]?.display_name || 'Your Therapist';
         
-        // Get client name
         const clientProfiles = await api(`/rest/v1/profiles?id=eq.${clientId}&select=display_name,email`);
         const clientName = clientProfiles?.[0]?.display_name || clientProfiles?.[0]?.email?.split('@')[0] || 'there';
         
-        // Get chat settings
         const settings = await api(`/rest/v1/client_chat_settings?therapist_client_id=eq.${therapistLink.id}`);
         chatSettings = settings?.[0] || {
           homework_visibility: true,
@@ -713,10 +177,8 @@
           conversation_history_enabled: true
         };
         
-        // Show connected UI
         showConnectedUI(therapistName, clientName);
         
-        // Load homework if enabled
         if (chatSettings.homework_visibility) {
           await loadHomework();
         }
@@ -740,9 +202,9 @@
       const badgeText = document.getElementById('trustBadgeText');
       
       badge.classList.remove('guest');
+      badge.classList.add('connected');
       badge.style.display = 'flex';
       
-      // Add shield icon if not present
       if (!badge.querySelector('svg')) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.setAttribute('fill', 'none');
@@ -763,7 +225,6 @@
       
       badgeText.textContent = `Hi ${clientName} · Connected to ${therapistName}`;
       
-      // Hide Connect button, show Privacy/Message buttons
       document.getElementById('connectBtn').style.display = 'none';
       document.getElementById('privacyBtn').style.display = 'inline-block';
       
@@ -790,7 +251,6 @@
     // EVENT LISTENERS
     // =====================================================
     function setupEventListeners() {
-      // Iframe loading
       const iframe = document.getElementById('aloFrame');
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
@@ -799,7 +259,6 @@
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
         
-        // iOS viewport fix
         setTimeout(function() {
           window.dispatchEvent(new Event('resize'));
           const main = document.getElementById('chatMain');
@@ -825,14 +284,12 @@
         `;
       }, 10000);
       
-      // Header buttons
       document.getElementById('connectBtn').addEventListener('click', showConnectModal);
       document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
       document.getElementById('messageBtn').addEventListener('click', showMessageModal);
       document.getElementById('shareChat').addEventListener('click', showShareModal);
       document.getElementById('startFresh').addEventListener('click', handleStartFresh);
       
-      // Homework card
       document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
         const body = document.getElementById('homeworkBody');
         const btn = document.getElementById('homeworkCollapseBtn');
@@ -911,7 +368,6 @@
       }
       
       try {
-        // Create account
         const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
           method: 'POST',
           headers: {
@@ -942,7 +398,6 @@
         clientId = clientSession.user.id;
         localStorage.setItem('alo_client_session', JSON.stringify(clientSession));
         
-        // Create profile
         await api('/rest/v1/profiles', {
           method: 'POST',
           body: JSON.stringify({
@@ -953,7 +408,6 @@
           prefer: 'return=minimal'
         });
         
-        // Redeem invite code
         const result = await api('/rest/v1/rpc/redeem_invite_code', {
           method: 'POST',
           body: JSON.stringify({
@@ -966,7 +420,6 @@
           throw new Error(result.error || 'Invalid invite code');
         }
         
-        // Reload connected state
         await loadConnectedState();
         closeModal(document.querySelector('.modal-overlay'));
         
@@ -1197,17 +650,15 @@
         chatSettings = null;
         activeHomework = null;
         
-        // Reset to guest mode
         const badge = document.getElementById('trustBadge');
         const badgeText = document.getElementById('trustBadgeText');
         badge.classList.add('guest');
+        badge.classList.remove('connected');
         badgeText.textContent = 'Guest';
         
-        // Remove shield icon if present
         const svg = badge.querySelector('svg');
         if (svg) svg.remove();
         
-        // Show Connect button, hide Privacy/Message buttons
         document.getElementById('connectBtn').style.display = 'inline-block';
         document.getElementById('messageBtn').style.display = 'none';
         document.getElementById('privacyBtn').style.display = 'none';
@@ -1230,7 +681,7 @@
       
       const modal = createModal('Share Your Conversation', `
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
-          <button id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: #f0f9ff; border-color: #0ea5e9;">
+          <button id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: var(--sage-light); border-color: var(--sage);">
             <span style="font-size: 24px;">📝</span>
             <span style="font-size: 13px; font-weight: 600;">Summary</span>
           </button>
@@ -1273,7 +724,7 @@
             </ol>
             <div class="copy-box">
               <textarea readonly id="fullPromptText" style="min-height: 80px; font-size: 13px;">${fullPrompt}</textarea>
-              <button id="copyFullBtn" class="btn-primary" style="background: #6366f1; border-color: #6366f1;">📋 Copy Message</button>
+              <button id="copyFullBtn" class="btn-primary">📋 Copy Message</button>
             </div>
             <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
               💡 Full transcripts are long—summary is usually better for sharing
@@ -1288,15 +739,15 @@
               <div style="flex: 1;">
                 <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start:</label>
                 <input type="number" id="rangeStart" min="1" value="1" 
-                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                  style="width: 100%; padding: 10px; border: 1px solid var(--border-visible); border-radius: 6px; font-size: 16px;">
               </div>
               <div style="flex: 1;">
                 <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End:</label>
                 <input type="number" id="rangeEnd" min="1" value="10" 
-                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                  style="width: 100%; padding: 10px; border: 1px solid var(--border-visible); border-radius: 6px; font-size: 16px;">
               </div>
             </div>
-            <button id="copyRangeBtn" class="btn-primary" style="width: 100%; background: #8b5cf6; border-color: #8b5cf6;">
+            <button id="copyRangeBtn" class="btn-primary" style="width: 100%;">
               📋 Copy Range Message
             </button>
             <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
@@ -1331,8 +782,8 @@
       
       function switchTab(tab) {
         [optionSummary, optionFull, optionRange].forEach(btn => {
-          btn.style.background = '#fff';
-          btn.style.borderColor = 'var(--border-visible)';
+          btn.style.background = '';
+          btn.style.borderColor = '';
         });
         
         summaryInstructions.style.display = 'none';
@@ -1340,16 +791,16 @@
         rangeInstructions.style.display = 'none';
         
         if (tab === 'summary') {
-          optionSummary.style.background = '#f0f9ff';
-          optionSummary.style.borderColor = '#0ea5e9';
+          optionSummary.style.background = 'var(--sage-light)';
+          optionSummary.style.borderColor = 'var(--sage)';
           summaryInstructions.style.display = 'block';
         } else if (tab === 'full') {
-          optionFull.style.background = '#f0f9ff';
-          optionFull.style.borderColor = '#0ea5e9';
+          optionFull.style.background = 'var(--sage-light)';
+          optionFull.style.borderColor = 'var(--sage)';
           fullInstructions.style.display = 'block';
         } else if (tab === 'range') {
-          optionRange.style.background = '#f0f9ff';
-          optionRange.style.borderColor = '#0ea5e9';
+          optionRange.style.background = 'var(--sage-light)';
+          optionRange.style.borderColor = 'var(--sage)';
           rangeInstructions.style.display = 'block';
         }
       }
@@ -1381,7 +832,7 @@
           copyFullBtn.style.background = '#10b981';
           setTimeout(function() {
             copyFullBtn.textContent = '📋 Copy Message';
-            copyFullBtn.style.background = '#6366f1';
+            copyFullBtn.style.background = '';
           }, 2000);
         }
       });
@@ -1397,7 +848,7 @@
           copyRangeBtn.style.background = '#10b981';
           setTimeout(function() {
             copyRangeBtn.textContent = '📋 Copy Range Message';
-            copyRangeBtn.style.background = '#8b5cf6';
+            copyRangeBtn.style.background = '';
           }, 2000);
         }
       });
@@ -1454,7 +905,7 @@
         });
         sessionStorage.clear();
       } catch (e) {
-        console.log('⚠️ Could not clear storage:', e);
+        console.log('Could not clear storage:', e);
       }
       
       const timestamp = new Date().getTime();
