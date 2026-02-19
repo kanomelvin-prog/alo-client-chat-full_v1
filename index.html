@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.1 — Feb 18, 2026 -->
+<!-- ALO CLIENT CHAT v2.2 — Feb 19, 2026 — 11-persona review fixes -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -11,6 +11,16 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#FDFBF7" />
   
+  <!-- Open Graph — link preview when therapist texts URL to client -->
+  <meta property="og:title" content="Alo — Someone to think out loud with" />
+  <meta property="og:description" content="A private space to process your thoughts and emotions. Your therapist recommended Alo as a companion between sessions." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://kanomelvin-prog.github.io/alo-client-chat-full_v1/" />
+  <meta property="og:image" content="https://kanomelvin-prog.github.io/alo-client-chat-full_v1/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="description" content="Alo is a private emotional support companion. Process thoughts between therapy sessions with Socratic questioning." />
+  
   <title>Alo — Someone to think out loud with</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -20,18 +30,19 @@
     <div class="brand">
       <div class="brand-icon">A</div>
       <div class="brand-text">
-        <strong>Alo</strong>
+        <h1 class="brand-name">Alo</h1>
         <span>Someone to think out loud with</span>
         <div id="trustBadge" class="trust-badge guest">
-          <span id="trustBadgeText">Guest</span>
+          <span id="trustBadgeText"></span>
         </div>
       </div>
     </div>
     <div class="header-actions">
-      <button id="connectBtn">Connect</button>
-      <button id="privacyBtn" style="display: none;">Privacy</button>
-      <button id="messageBtn" style="display: none;">Message</button>
+      <button id="connectBtn" class="btn-primary">Connect</button>
+      <button id="privacyBtn" class="hidden">My Privacy</button>
+      <button id="messageBtn" class="hidden">Message</button>
       <button id="shareChat">Share</button>
+      <button id="startFreshBtn">Start Fresh</button>
     </div>
   </header>
 
@@ -41,12 +52,15 @@
       <div class="homework-card">
         <div class="homework-header">
           <div class="homework-title" id="homeworkTitle">From your therapist</div>
-          <button class="homework-collapse" id="homeworkCollapseBtn" aria-label="Toggle homework">−</button>
+          <button class="homework-collapse" id="homeworkCollapseBtn" 
+            aria-label="Toggle homework" 
+            aria-controls="homeworkBody" 
+            aria-expanded="true">−</button>
         </div>
         <div class="homework-body" id="homeworkBody">
           <p id="homeworkGoal"></p>
           <div class="homework-actions">
-            <button class="btn-primary" id="homeworkDoneBtn" style="font-size: 13px; padding: 8px 16px;">✓ I did this</button>
+            <button class="btn-primary" id="homeworkDoneBtn">✓ I did this</button>
             <button class="btn-link" id="homeworkHideBtn">Hide for now</button>
           </div>
         </div>
@@ -66,24 +80,27 @@
         id="aloFrame"
         src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
         allow="clipboard-read; clipboard-write; microphone"
-        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
+        sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin allow-top-navigation-by-user-activation"
         referrerpolicy="no-referrer"
         title="Alo Chat Interface"
         aria-label="Chatbot Conversation Window"
       >
         <div style="padding: 20px; text-align: center;">
           <p>Unable to load chat interface.</p>
-          <p>If you are in crisis, please call <a href="tel:988">988</a> (US).</p>
+          <p>If you need help now, call <a href="tel:988">988</a> (US).</p>
         </div>
       </iframe>
     </div>
   </main>
 
   <footer>
-    Alo is a support tool, not a therapist or medical provider. · 
-    Need support? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
+    Alo helps you think — not a therapist or doctor. · 
+    Need help now? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
     <br><a href="#terms" onclick="showTermsModal(event); return false;">Terms</a> · <a href="#privacy" onclick="showPrivacyModal2(event); return false;">Privacy Policy</a>
   </footer>
+
+  <!-- Toast container -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script>
     // =====================================================
     // CONFIG
@@ -118,6 +135,51 @@
       }
       const text = await res.text();
       return text ? JSON.parse(text) : null;
+    }
+
+    // =====================================================
+    // TOAST NOTIFICATIONS (replaces alert())
+    // =====================================================
+    function showToast(message, type = 'default', duration = 3000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast' + (type === 'success' ? ' success' : '');
+      
+      // Force reflow then show
+      toast.offsetHeight;
+      toast.classList.add('show');
+      
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, duration);
+    }
+
+    // =====================================================
+    // CONFIRM MODAL (replaces confirm())
+    // =====================================================
+    function showConfirm(title, message, confirmLabel, onConfirm, options = {}) {
+      const isDanger = options.danger || false;
+      const cancelLabel = options.cancelLabel || 'Cancel';
+      
+      const modal = createModal(title, `
+        <p>${message}</p>
+        <div class="button-group">
+          <button class="btn-secondary" data-action="cancel">${esc(cancelLabel)}</button>
+          <button class="${isDanger ? 'btn-danger-outline' : 'btn-primary'}" data-action="confirm">${esc(confirmLabel)}</button>
+        </div>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+      
+      modal.querySelector('[data-action="cancel"]').addEventListener('click', function() {
+        closeModal(modal);
+      });
+      
+      modal.querySelector('[data-action="confirm"]').addEventListener('click', function() {
+        closeModal(modal);
+        onConfirm();
+      });
     }
 
     // =====================================================
@@ -196,19 +258,17 @@
     function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
       const badgeText = document.getElementById('trustBadgeText');
-      badge.classList.remove('guest');
-      badge.classList.add('trust-badge');
+      badge.className = 'trust-badge';
       badgeText.textContent = 'Logged in';
-      document.getElementById('connectBtn').style.display = 'inline-block';
+      badge.style.display = 'flex';
+      document.getElementById('connectBtn').classList.remove('hidden');
     }
 
     function showConnectedUI(therapistName, clientName) {
       const badge = document.getElementById('trustBadge');
       const badgeText = document.getElementById('trustBadgeText');
       
-      badge.classList.remove('guest');
-      badge.classList.add('connected');
-      badge.style.display = 'flex';
+      badge.className = 'trust-badge connected';
       
       if (!badge.querySelector('svg')) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -228,13 +288,13 @@
         badge.insertBefore(svg, badgeText);
       }
       
-      badgeText.textContent = `Hi ${clientName} · Connected to ${therapistName}`;
+      badgeText.textContent = `Hi ${clientName} · with ${therapistName}`;
       
-      document.getElementById('connectBtn').style.display = 'none';
-      document.getElementById('privacyBtn').style.display = 'inline-block';
+      document.getElementById('connectBtn').classList.add('hidden');
+      document.getElementById('privacyBtn').classList.remove('hidden');
       
       if (chatSettings.messaging_enabled) {
-        document.getElementById('messageBtn').style.display = 'inline-block';
+        document.getElementById('messageBtn').classList.remove('hidden');
       }
     }
 
@@ -243,7 +303,7 @@
         const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc&limit=1`);
         if (homework?.length) {
           activeHomework = homework[0];
-          document.getElementById('homeworkTitle').textContent = activeHomework.title;
+          document.getElementById('homeworkTitle').textContent = activeHomework.title || 'From your therapist';
           document.getElementById('homeworkGoal').textContent = activeHomework.goal;
           document.getElementById('homeworkContainer').classList.add('show');
         }
@@ -260,55 +320,39 @@
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
       
-            iframe.addEventListener('load', function() {
+      // Clean iframe load — no viewport hacks
+      iframe.addEventListener('load', function() {
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
-        
-        // Force layout recalculation to fix iOS viewport overlap
-        document.body.style.height = '100dvh';
-        window.scrollTo(0, 0);
-
-        
-        setTimeout(function() {
-          window.dispatchEvent(new Event('resize'));
-          const main = document.getElementById('chatMain');
-          const originalHeight = main.style.height;
-          main.style.height = 'calc(100% - 1px)';
-          setTimeout(function() {
-            main.style.height = originalHeight;
-            window.dispatchEvent(new Event('resize'));
-          }, 50);
-        }, 200);
       });
       
       loadTimeout = setTimeout(function() {
         loadingOverlay.innerHTML = `
           <div class="error-message">
-            <p><strong>Having trouble loading Alo</strong></p>
-            <p>Please check your connection and try again.</p>
+            <p><strong>Still loading...</strong></p>
+            <p>This is taking longer than usual. Let's try again.</p>
             <button onclick="location.reload()">Retry</button>
             <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
-              If you're in crisis, call <a href="tel:988" style="color: var(--text-primary);">988</a>
+              Need help now? Call <a href="tel:988" style="color: var(--text-primary);">988</a>
             </p>
           </div>
         `;
-      }, 10000);
+      }, 15000);
       
       document.getElementById('connectBtn').addEventListener('click', showConnectModal);
       document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
       document.getElementById('messageBtn').addEventListener('click', showMessageModal);
       document.getElementById('shareChat').addEventListener('click', showShareModal);
-      document.getElementById('homeworkDoneBtn').addEventListener('click', handleHomeworkDone);      
+      document.getElementById('startFreshBtn').addEventListener('click', handleStartFresh);
+      document.getElementById('homeworkDoneBtn').addEventListener('click', handleHomeworkDone);
+      
       document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
         const body = document.getElementById('homeworkBody');
-        const btn = document.getElementById('homeworkCollapseBtn');
-        if (body.classList.contains('collapsed')) {
-          body.classList.remove('collapsed');
-          btn.textContent = '−';
-        } else {
-          body.classList.add('collapsed');
-          btn.textContent = '+';
-        }
+        const btn = this;
+        const isCollapsed = body.classList.contains('collapsed');
+        body.classList.toggle('collapsed');
+        btn.textContent = isCollapsed ? '−' : '+';
+        btn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
       });
       
       document.getElementById('homeworkHideBtn').addEventListener('click', function() {
@@ -318,35 +362,84 @@
     }
 
     // =====================================================
+    // START FRESH
+    // =====================================================
+    function handleStartFresh() {
+      showConfirm(
+        'Start a new conversation?',
+        'This will clear your current chat. If you want to keep anything, use Share to save a summary first.',
+        'Start Fresh',
+        function() {
+          const iframe = document.getElementById('aloFrame');
+          const src = iframe.src;
+          
+          // Clear Botpress storage
+          try {
+            const keys = Object.keys(localStorage);
+            keys.forEach(function(key) {
+              if (key.toLowerCase().includes('botpress') || 
+                  key.toLowerCase().includes('bp') || 
+                  key.toLowerCase().includes('webchat')) {
+                localStorage.removeItem(key);
+              }
+            });
+            sessionStorage.clear();
+          } catch (e) {
+            console.log('Could not clear storage:', e);
+          }
+          
+          // Recreate iframe
+          const loadingOverlay = document.getElementById('loadingOverlay');
+          loadingOverlay.style.display = 'flex';
+          loadingOverlay.innerHTML = `
+            <div class="loading-message">
+              <div class="spinner"></div>
+              <p>Starting fresh...</p>
+            </div>
+          `;
+          
+          iframe.src = '';
+          setTimeout(function() {
+            iframe.src = src + '&t=' + Date.now();
+          }, 100);
+          
+          showToast('New conversation started', 'success');
+        },
+        { cancelLabel: 'Keep chatting' }
+      );
+    }
+
+    // =====================================================
     // CONNECT MODAL
     // =====================================================
     function showConnectModal() {
       const modal = createModal('Connect to Your Therapist', `
-        <p>Connecting lets your therapist send you exercises and lets you message them between sessions. <strong>They can never see your conversations with Alo.</strong></p>
+        <p>Connecting lets your therapist send you exercises and lets you message them between sessions. <strong>They never see your conversations with Alo.</strong></p>
         <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enter the invite code your therapist gave you to link your account.</p>
         
         <div class="error-text" id="connectError"></div>
         
-        <div id="authForm">
+        <form id="authForm" onsubmit="handleConnect(); return false;">
           <div class="form-group">
-            <label>Email</label>
+            <label for="authEmail">Email</label>
             <input type="email" id="authEmail" placeholder="you@example.com">
           </div>
           <div class="form-group">
-            <label>Password</label>
+            <label for="authPassword">Password</label>
             <input type="password" id="authPassword" placeholder="Min. 6 characters">
-            <div class="form-hint">Create a password to save your conversations</div>
+            <div class="form-hint">Create a password to save your connection</div>
           </div>
           <div class="form-group">
-            <label>Invite Code</label>
+            <label for="inviteCode">Invite Code</label>
             <input type="text" id="inviteCode" placeholder="ALO-XXXX" style="text-transform: uppercase;">
+            <div class="form-hint">Your therapist will give you this code</div>
           </div>
-        </div>
-        
-        <div class="button-group">
-          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
-          <button class="btn-primary" onclick="handleConnect()">Connect</button>
-        </div>
+          
+          <div class="button-group">
+            <button type="button" class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+            <button type="submit" class="btn-primary">Connect</button>
+          </div>
+        </form>
         
         <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px; text-align: center;">
           By creating an account, you agree to our <a href="#" onclick="showTermsModal(event); return false;" style="color: var(--sage);">Terms of Use</a> and <a href="#" onclick="showPrivacyModal2(event); return false;" style="color: var(--sage);">Privacy Policy</a>.
@@ -437,7 +530,7 @@
         await loadConnectedState();
         closeModal(document.querySelector('.modal-overlay'));
         
-        alert(`Connected to ${result.therapist_name}!`);
+        showToast(`Connected to ${result.therapist_name} ✓`, 'success');
         
       } catch (err) {
         errorEl.textContent = err.message;
@@ -451,19 +544,21 @@
       const modal = createModal('Sign In', `
         <div class="error-text" id="loginError"></div>
         
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" id="loginEmail" placeholder="you@example.com">
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="loginPassword" placeholder="Your password">
-        </div>
-        
-        <div class="button-group">
-          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
-          <button class="btn-primary" onclick="handleLogin()">Sign In</button>
-        </div>
+        <form onsubmit="handleLogin(); return false;">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com">
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" placeholder="Your password">
+          </div>
+          
+          <div class="button-group">
+            <button type="button" class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+            <button type="submit" class="btn-primary">Sign In</button>
+          </div>
+        </form>
       `);
       
       document.body.appendChild(modal);
@@ -504,36 +599,40 @@
         
         await loadConnectedState();
         closeModal(document.querySelector('.modal-overlay'));
+        showToast('Signed in ✓', 'success');
         
       } catch (err) {
         errorEl.textContent = err.message;
         errorEl.classList.add('show');
       }
     }
+
     // =====================================================
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
-      const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('Connected to ')[1] : 'your therapist';
+      const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('with ')[1] : 'your therapist';
       
       const modal = createModal('Message Your Therapist', `
-        <p>Send a message to ${therapistName}. They'll see it in their dashboard.</p>
+        <p>Send a message to ${esc(therapistName)}. They'll see it in their dashboard.</p>
         
         <div class="privacy-note">
-          <strong>Privacy:</strong> This message is separate from your Alo conversations. Your therapist cannot see your chat transcripts.
+          <strong>Privacy:</strong> This message is separate from your Alo conversations. Your therapist never sees your chat.
         </div>
         
         <div class="error-text" id="messageError"></div>
         
-        <div class="form-group">
-          <label>Your message</label>
-          <textarea id="messageText" placeholder="What would you like to share with your therapist?"></textarea>
-        </div>
-        
-        <div class="button-group">
-          <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
-          <button class="btn-primary" onclick="handleSendMessage()">Send Message</button>
-        </div>
+        <form onsubmit="handleSendMessage(); return false;">
+          <div class="form-group">
+            <label for="messageText">Your message</label>
+            <textarea id="messageText" placeholder="What would you like to share with your therapist?"></textarea>
+          </div>
+          
+          <div class="button-group">
+            <button type="button" class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
+            <button type="submit" class="btn-primary">Send Message</button>
+          </div>
+        </form>
       `);
       
       document.body.appendChild(modal);
@@ -564,7 +663,8 @@
         });
         
         closeModal(document.querySelector('.modal-overlay'));
-        alert('Message sent to your therapist');
+        const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
+        showToast(`Sent to ${therapistName} ✓`, 'success');
         
       } catch (err) {
         errorEl.textContent = 'Failed to send message. Please try again.';
@@ -576,17 +676,17 @@
     // PRIVACY MODAL
     // =====================================================
     function showPrivacyModal() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('Connected to ')[1];
+      const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
       
-      const modal = createModal('Privacy Controls', `
-        <p>You control what your therapist sees. Nothing leaves this chat unless you explicitly send it.</p>
+      const modal = createModal('My Privacy', `
+        <p>You control what ${esc(therapistName)} sees. Nothing leaves this chat unless you send it.</p>
         
         <div class="privacy-note">
-          <strong>Connected to:</strong> ${therapistName}<br>
+          <strong>Connected to:</strong> ${esc(therapistName)}<br>
           <button class="btn-link" style="margin-top: 8px;" onclick="handleUnlink()">Unlink from therapist</button>
         </div>
         
-        <h4 style="margin-top: 20px; margin-bottom: 12px;">What I've Shared</h4>
+        <h4 style="margin-top: 20px; margin-bottom: 12px;">What I've shared</h4>
         <div id="sharedMessagesList">
           <p style="color: var(--text-secondary); font-size: 14px;">Loading...</p>
         </div>
@@ -633,60 +733,56 @@
     }
 
     async function handleDeleteMessage(id) {
-      if (!confirm('Delete this message? Your therapist may have already seen it.')) return;
-      
-      try {
-        await api(`/rest/v1/client_messages?id=eq.${id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            revoked_at: new Date().toISOString()
-          })
-        });
-        
-        loadSharedMessages();
-        
-      } catch (err) {
-        alert('Failed to delete message');
-      }
+      showConfirm(
+        'Delete this message?',
+        'If your therapist already opened it, deleting won\'t undo what they saw.',
+        'Delete',
+        async function() {
+          try {
+            await api(`/rest/v1/client_messages?id=eq.${id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                revoked_at: new Date().toISOString()
+              })
+            });
+            loadSharedMessages();
+            showToast('Message deleted', 'default');
+          } catch (err) {
+            showToast('Failed to delete message');
+          }
+        },
+        { danger: true }
+      );
     }
 
     async function handleUnlink() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('Connected to ')[1];
+      const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
       
-      if (!confirm(`Unlink from ${therapistName}?\n\nYou can reconnect later with a new invite code.`)) return;
-      
-      try {
-        await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            status: 'inactive'
-          })
-        });
-        
-        therapistLink = null;
-        chatSettings = null;
-        activeHomework = null;
-        
-        const badge = document.getElementById('trustBadge');
-        const badgeText = document.getElementById('trustBadgeText');
-        badge.classList.add('guest');
-        badge.classList.remove('connected');
-        badgeText.textContent = 'Guest';
-        
-        const svg = badge.querySelector('svg');
-        if (svg) svg.remove();
-        
-        document.getElementById('connectBtn').style.display = 'inline-block';
-        document.getElementById('messageBtn').style.display = 'none';
-        document.getElementById('privacyBtn').style.display = 'none';
-        document.getElementById('homeworkContainer').classList.remove('show');
-        
-        closeModal(document.querySelector('.modal-overlay'));
-        alert('Unlinked from therapist');
-        
-      } catch (err) {
-        alert('Failed to unlink. Please try again.');
-      }
+      showConfirm(
+        'Unlink from ' + therapistName + '?',
+        'You can reconnect later with a new invite code. This won\'t delete your account.',
+        'Unlink',
+        async function() {
+          try {
+            await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: 'inactive' })
+            });
+            
+            therapistLink = null;
+            chatSettings = null;
+            activeHomework = null;
+            
+            resetToGuestUI();
+            closeModal(document.querySelector('.modal-overlay'));
+            showToast('Unlinked from therapist', 'default');
+            
+          } catch (err) {
+            showToast('Failed to unlink. Please try again.');
+          }
+        },
+        { danger: true }
+      );
     }
 
     // =====================================================
@@ -721,10 +817,10 @@
               <li>Copy the message below</li>
               <li>Paste it into chat</li>
               <li>Alo creates a summary</li>
-              <li>Long-press to copy & share</li>
+              <li>Long-press to copy &amp; share</li>
             </ol>
             <div class="copy-box">
-              <textarea readonly id="summaryPromptText" style="min-height: 80px; font-size: 13px;">${summaryPrompt}</textarea>
+              <textarea readonly id="summaryPromptText">${summaryPrompt}</textarea>
               <button id="copySummaryBtn" class="btn-primary">📋 Copy Message</button>
             </div>
           </div>
@@ -737,14 +833,14 @@
               <li>Copy the message below</li>
               <li>Paste it into chat</li>
               <li>Alo creates full transcript</li>
-              <li>Long-press to copy & share</li>
+              <li>Long-press to copy &amp; share</li>
             </ol>
             <div class="copy-box">
-              <textarea readonly id="fullPromptText" style="min-height: 80px; font-size: 13px;">${fullPrompt}</textarea>
+              <textarea readonly id="fullPromptText">${fullPrompt}</textarea>
               <button id="copyFullBtn" class="btn-primary">📋 Copy Message</button>
             </div>
             <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-              💡 Full transcripts are long—summary is usually better for sharing
+              💡 Full transcripts are long — summary is usually better for sharing
             </p>
           </div>
           
@@ -798,72 +894,38 @@
       const rangeInstructions = modal.querySelector('#rangeInstructions');
       
       function switchTab(tab) {
-        [optionSummary, optionFull, optionRange].forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
+        [optionSummary, optionFull, optionRange].forEach(btn => btn.classList.remove('active'));
         summaryInstructions.style.display = 'none';
         fullInstructions.style.display = 'none';
         rangeInstructions.style.display = 'none';
         
-        if (tab === 'summary') {
-          optionSummary.classList.add('active');
-          summaryInstructions.style.display = 'block';
-        } else if (tab === 'full') {
-          optionFull.classList.add('active');
-          fullInstructions.style.display = 'block';
-        } else if (tab === 'range') {
-          optionRange.classList.add('active');
-          rangeInstructions.style.display = 'block';
-        }
+        if (tab === 'summary') { optionSummary.classList.add('active'); summaryInstructions.style.display = 'block'; }
+        else if (tab === 'full') { optionFull.classList.add('active'); fullInstructions.style.display = 'block'; }
+        else if (tab === 'range') { optionRange.classList.add('active'); rangeInstructions.style.display = 'block'; }
       }
       
       optionSummary.addEventListener('click', () => switchTab('summary'));
       optionFull.addEventListener('click', () => switchTab('full'));
       optionRange.addEventListener('click', () => switchTab('range'));
       
-      const copySummaryBtn = modal.querySelector('#copySummaryBtn');
-      const copyFullBtn = modal.querySelector('#copyFullBtn');
-      const copyRangeBtn = modal.querySelector('#copyRangeBtn');
+      function setupCopyBtn(btn, getText) {
+        btn.addEventListener('click', async function() {
+          const original = btn.textContent;
+          const success = await copyToClipboard(getText());
+          if (success) {
+            btn.textContent = '✓ Copied!';
+            btn.style.background = 'var(--success)';
+            setTimeout(function() { btn.textContent = original; btn.style.background = ''; }, 2000);
+          }
+        });
+      }
       
-      copySummaryBtn.addEventListener('click', async function() {
-        const success = await copyToClipboard(summaryPrompt);
-        if (success) {
-          copySummaryBtn.textContent = '✓ Copied!';
-          copySummaryBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copySummaryBtn.textContent = '📋 Copy Message';
-            copySummaryBtn.style.background = '';
-          }, 2000);
-        }
-      });
-      
-      copyFullBtn.addEventListener('click', async function() {
-        const success = await copyToClipboard(fullPrompt);
-        if (success) {
-          copyFullBtn.textContent = '✓ Copied!';
-          copyFullBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copyFullBtn.textContent = '📋 Copy Message';
-            copyFullBtn.style.background = '';
-          }, 2000);
-        }
-      });
-      
-      copyRangeBtn.addEventListener('click', async function() {
-        const startTurn = modal.querySelector('#rangeStart').value;
-        const endTurn = modal.querySelector('#rangeEnd').value;
-        const rangePrompt = `Alo, please provide turns ${startTurn} through ${endTurn} of our conversation in a clean, readable format that I can share.`;
-        
-        const success = await copyToClipboard(rangePrompt);
-        if (success) {
-          copyRangeBtn.textContent = '✓ Copied!';
-          copyRangeBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copyRangeBtn.textContent = '📋 Copy Range Message';
-            copyRangeBtn.style.background = '';
-          }, 2000);
-        }
+      setupCopyBtn(modal.querySelector('#copySummaryBtn'), () => summaryPrompt);
+      setupCopyBtn(modal.querySelector('#copyFullBtn'), () => fullPrompt);
+      setupCopyBtn(modal.querySelector('#copyRangeBtn'), () => {
+        const s = modal.querySelector('#rangeStart').value;
+        const e = modal.querySelector('#rangeEnd').value;
+        return `Alo, please provide turns ${s} through ${e} of our conversation in a clean, readable format that I can share.`;
       });
     }
 
@@ -874,9 +936,9 @@
       if (event) event.preventDefault();
       
       const modal = createModal('Safety Resources', `
-        <p><strong>If you're in immediate danger:</strong></p>
+        <p><strong>Need to talk to someone right now?</strong></p>
         <ul>
-          <li><strong>United States:</strong> Call or text <a href="tel:988">988</a> (Suicide & Crisis Lifeline)</li>
+          <li><strong>United States:</strong> Call or text <a href="tel:988">988</a> (Suicide &amp; Crisis Lifeline)</li>
           <li><strong>United Kingdom:</strong> Call 116 123 (Samaritans)</li>
           <li><strong>Canada:</strong> Call 1-833-456-4566 (Talk Suicide Canada)</li>
           <li><strong>Australia:</strong> Call 13 11 14 (Lifeline)</li>
@@ -884,7 +946,7 @@
         </ul>
         
         <div class="privacy-note">
-          <strong>About Alo:</strong> Alo is a support tool to help you process emotions between therapy sessions. 
+          <strong>About Alo:</strong> Alo helps you process emotions between therapy sessions. 
           It is not a therapist, crisis service, or medical provider. If you're experiencing a mental health 
           emergency, please use the resources above.
         </div>
@@ -900,30 +962,38 @@
     // LOGOUT
     // =====================================================
     function handleLogout() {
-      if (!confirm('Log out of Alo?\n\nYou can sign back in anytime with your email and password.')) return;
-      
-      clientSession = null;
-      clientId = null;
-      therapistLink = null;
-      chatSettings = null;
-      activeHomework = null;
-      localStorage.removeItem('alo_client_session');
-      
+      showConfirm(
+        'Log out of Alo?',
+        'You can sign back in anytime with your email and password.',
+        'Log Out',
+        function() {
+          clientSession = null;
+          clientId = null;
+          therapistLink = null;
+          chatSettings = null;
+          activeHomework = null;
+          localStorage.removeItem('alo_client_session');
+          
+          resetToGuestUI();
+          closeModal(document.querySelector('.modal-overlay'));
+          showToast('Logged out', 'default');
+        }
+      );
+    }
+
+    function resetToGuestUI() {
       const badge = document.getElementById('trustBadge');
       const badgeText = document.getElementById('trustBadgeText');
-      badge.classList.add('guest');
-      badge.classList.remove('connected');
-      badgeText.textContent = 'Guest';
+      badge.className = 'trust-badge guest';
+      badgeText.textContent = '';
       
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
       
-      document.getElementById('connectBtn').style.display = 'inline-block';
-      document.getElementById('messageBtn').style.display = 'none';
-      document.getElementById('privacyBtn').style.display = 'none';
+      document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('messageBtn').classList.add('hidden');
+      document.getElementById('privacyBtn').classList.add('hidden');
       document.getElementById('homeworkContainer').classList.remove('show');
-      
-      closeModal(document.querySelector('.modal-overlay'));
     }
 
     // =====================================================
@@ -932,29 +1002,37 @@
     async function handleHomeworkDone() {
       if (!activeHomework || !clientSession) return;
       
-      try {
-        await api(`/rest/v1/homework_cards?id=eq.${activeHomework.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            completed_at: new Date().toISOString(),
-            is_active: false
-          })
-        });
-        
-        const card = document.querySelector('.homework-card');
-        card.classList.add('completed');
-        document.getElementById('homeworkTitle').textContent = 'COMPLETED ✓';
-        document.getElementById('homeworkBody').innerHTML = `
-          <p>${esc(activeHomework.title || activeHomework.goal)}</p>
-          <p class="homework-complete-note">Marked complete · ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-          <p class="homework-complete-note">Your therapist can see this.</p>
-        `;
-        activeHomework = null;
-        
-      } catch (err) {
-        console.error('Error completing homework:', err);
-        alert('Could not mark homework as complete. Please try again.');
-      }
+      showConfirm(
+        'Mark as complete?',
+        'Your therapist will see that you completed this. Nice work!',
+        '✓ Complete',
+        async function() {
+          try {
+            await api(`/rest/v1/homework_cards?id=eq.${activeHomework.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({
+                completed_at: new Date().toISOString(),
+                is_active: false
+              })
+            });
+            
+            const card = document.querySelector('.homework-card');
+            card.classList.add('completed');
+            document.getElementById('homeworkTitle').textContent = 'COMPLETED ✓';
+            document.getElementById('homeworkBody').innerHTML = `
+              <p>${esc(activeHomework.title || activeHomework.goal)}</p>
+              <p class="homework-complete-note">Marked complete · ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+              <p class="homework-complete-note">Your therapist can see this.</p>
+            `;
+            activeHomework = null;
+            showToast('Homework completed ✓', 'success');
+            
+          } catch (err) {
+            console.error('Error completing homework:', err);
+            showToast('Could not mark homework as complete. Please try again.');
+          }
+        }
+      );
     }
 
     // =====================================================
@@ -978,7 +1056,7 @@
         <p><strong>Your Responsibility</strong></p>
         <p>You use Alo voluntarily and at your own discretion. Alo is a supplement to — not a replacement for — professional care. You are responsible for decisions you make based on conversations with Alo.</p>
         
-        <p><strong>Account & Data</strong></p>
+        <p><strong>Account &amp; Data</strong></p>
         <p>You may create an account to connect with your therapist. You may delete your account and data at any time by contacting support. Disconnecting from a therapist does not delete your account.</p>
         
         <p><strong>Limitations</strong></p>
@@ -1013,7 +1091,7 @@
         <p>Data is stored on Supabase (US-hosted, SOC 2 compliant infrastructure). Connections are encrypted in transit (HTTPS/TLS).</p>
         
         <p><strong>Your Rights</strong></p>
-        <p>You can: view what you've shared (Privacy Controls), delete sent messages (if unread), disconnect from your therapist, log out and clear your session, request full account deletion by contacting support.</p>
+        <p>You can: view what you've shared (My Privacy), delete sent messages (if unread), disconnect from your therapist, log out and clear your session, request full account deletion by contacting support.</p>
         
         <p><strong>Third Parties</strong></p>
         <p>We do not sell, rent, or share your personal data with advertisers or data brokers. AI conversation processing is handled by Anthropic (Claude) via Botpress. No conversation content is stored by these providers beyond real-time processing.</p>
@@ -1029,57 +1107,107 @@
     }
 
     // =====================================================
-    // UTILITIES
+    // MODAL SYSTEM (with focus trap + return focus)
     // =====================================================
+    let _modalOpener = null;
+
     function createModal(title, content) {
+      _modalOpener = document.activeElement;
+      
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
-      overlay.setAttribute('aria-label', title);
+      
+      const titleId = 'modalTitle_' + Date.now();
+      overlay.setAttribute('aria-labelledby', titleId);
       
       const modalContent = document.createElement('div');
       modalContent.className = 'modal-content';
+      modalContent.setAttribute('tabindex', '-1');
       modalContent.innerHTML = `
         <button class="modal-close" aria-label="Close">&times;</button>
-        <h3>${title}</h3>
+        <h2 id="${titleId}">${title}</h2>
         ${content}
       `;
       
       overlay.appendChild(modalContent);
       
+      // Close on backdrop click
       overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) {
-          closeModal(overlay);
-        }
+        if (e.target === overlay) closeModal(overlay);
       });
       
-      overlay.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          closeModal(overlay);
-        }
-      });
-      
+      // Close button
       modalContent.querySelector('.modal-close').addEventListener('click', function() {
         closeModal(overlay);
       });
       
-      // Auto-focus first focusable element for accessibility
+      // Focus trap + Escape
+      function getFocusables() {
+        return [...modalContent.querySelectorAll(
+          'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
+        )];
+      }
+      
+      function onKeydown(e) {
+        if (e.key === 'Escape') {
+          closeModal(overlay);
+          return;
+        }
+        if (e.key === 'Tab') {
+          const focusables = getFocusables();
+          if (!focusables.length) return;
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          }​​​​​​​​​​​​​​​​
+          else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+      
+      document.addEventListener('keydown', onKeydown);
+      overlay._cleanup = function() {
+        document.removeEventListener('keydown', onKeydown);
+      };
+      
+      // Auto-focus first input or the close button
       setTimeout(function() {
-        const firstFocusable = modalContent.querySelector('input, textarea, button:not(.modal-close)');
-        if (firstFocusable) firstFocusable.focus();
-      }, 100);
+        const firstInput = modalContent.querySelector('input, textarea');
+        if (firstInput) {
+          firstInput.focus();
+        } else {
+          const firstBtn = modalContent.querySelector('button:not(.modal-close)');
+          if (firstBtn) firstBtn.focus();
+          else modalContent.focus();
+        }
+      }, 50);
       
       return overlay;
     }
 
     function closeModal(modal) {
-      if (modal && modal.parentNode) {
-        modal.classList.remove('show');
-        setTimeout(() => modal.remove(), 200);
-      }
+      if (!modal || !modal.parentNode) return;
+      if (modal._cleanup) modal._cleanup();
+      modal.classList.remove('show');
+      setTimeout(function() {
+        modal.remove();
+        // Return focus to opener
+        if (_modalOpener && _modalOpener.focus) {
+          _modalOpener.focus();
+          _modalOpener = null;
+        }
+      }, 200);
     }
 
+    // =====================================================
+    // UTILITIES
+    // =====================================================
     async function copyToClipboard(text) {
       try {
         await navigator.clipboard.writeText(text);
