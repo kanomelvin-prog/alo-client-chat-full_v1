@@ -260,9 +260,14 @@
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
       
-      iframe.addEventListener('load', function() {
+            iframe.addEventListener('load', function() {
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
+        
+        // Force layout recalculation to fix iOS viewport overlap
+        document.body.style.height = '100dvh';
+        window.scrollTo(0, 0);
+
         
         setTimeout(function() {
           window.dispatchEvent(new Event('resize'));
