@@ -186,9 +186,10 @@
     // =====================================================
     // INITIALIZATION
     // =====================================================
-    document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', async () => {
       setupEventListeners();
       
+      /* TEMP DISABLED — bisecting iframe load issue
       try {
         const stored = localStorage.getItem('alo_client_session');
         if (stored) {
@@ -204,7 +205,9 @@
       } catch (e) {
         console.log('No valid client session, running in guest mode');
       }
+      */
     });
+
 
     async function refreshSession(refreshToken) {
       try {
