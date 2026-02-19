@@ -1,14 +1,15 @@
 /* ============================================================
-   ALO CLIENT CHAT v2.1
+   ALO CLIENT CHAT v2.2
    Design: Warm companion (aligned with dashboard palette)
+   Updated: Feb 19, 2026 — 11-persona cross-AI review fixes
    ============================================================ */
 
 :root { 
   color-scheme: light;
   --warm-bg: #FDFBF7;
   --text-primary: #2D2A26;
-  --text-secondary: #6b6560;
-  --text-muted: #9C9589;
+  --text-secondary: #5C5752;
+  --text-muted: #7A756E;
   --border-subtle: rgba(156, 149, 137, 0.12);
   --border-visible: rgba(156, 149, 137, 0.35);
   --sage: #8B9A7D;
@@ -18,6 +19,7 @@
   --white: #ffffff;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
+  --success: #10b981;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -30,7 +32,6 @@ html, body { overflow-x: clip; }
 html { height: 100dvh; }
 
 body {
-  margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
   background: var(--warm-bg);
   color: var(--text-primary);
@@ -92,10 +93,12 @@ header {
   min-width: 0;
 }
 
-.brand-text strong {
+.brand-name {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
 }
 
 .brand-text span {
@@ -125,10 +128,11 @@ header {
 }
 
 .trust-badge.guest {
-  color: var(--text-muted);
+  display: none;
 }
 
 .trust-badge.connected {
+  display: flex;
   background: var(--sage-light);
   color: var(--sage-hover);
   padding: 2px 8px;
@@ -187,7 +191,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border: none;
   color: var(--sage);
   padding: 4px 8px;
-  min-height: auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   text-decoration: underline;
   box-shadow: none;
   font-size: 13px;
@@ -275,10 +281,9 @@ main {
   margin-top: 12px;
 }
 
-.homework-actions button {
-  flex: 1;
-  padding: 8px 12px;
+.homework-actions .btn-primary {
   font-size: 13px;
+  padding: 8px 16px;
 }
 
 /* === CHAT IFRAME === */
@@ -353,7 +358,6 @@ footer {
   text-align: center;
   position: relative;
   z-index: 10;
-  opacity: 0.85;
 }
 
 footer a {
@@ -398,6 +402,7 @@ footer a {
   overflow-y: auto;
   animation: slideUp 0.3s ease;
   position: relative;
+  outline: none;
 }
 
 @keyframes slideUp {
@@ -405,12 +410,13 @@ footer a {
   to { transform: translateY(0); opacity: 1; }
 }
 
-.modal-content h3 {
+.modal-content h2 {
   margin-top: 0;
   font-size: 1.125rem;
   font-weight: 600;
   margin-bottom: 16px;
   color: var(--text-primary);
+  padding-right: 32px;
 }
 
 .modal-content p {
@@ -433,14 +439,18 @@ footer a {
 
 .modal-close {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   background: transparent;
   border: none;
   font-size: 24px;
   line-height: 1;
-  padding: 4px 8px;
-  min-height: 32px;
+  padding: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: var(--text-muted);
   box-shadow: none;
@@ -449,6 +459,36 @@ footer a {
 .modal-close:hover {
   color: var(--text-primary);
   background: rgba(0, 0, 0, 0.05);
+}
+
+/* === TOAST NOTIFICATIONS === */
+.toast {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text-primary);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 20000;
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(45, 42, 38, 0.2);
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  background: var(--sage-dark);
 }
 
 /* === FORMS === */
@@ -538,7 +578,7 @@ footer a {
   border-radius: 6px;
   padding: 8px;
   font-family: inherit;
-  font-size: 0.8125rem;
+  font-size: 16px;
   resize: vertical;
   margin-bottom: 8px;
 }
@@ -580,8 +620,15 @@ footer a {
   flex-shrink: 0;
   padding: 4px 8px;
   font-size: 0.75rem;
-  min-height: auto;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* === HIDDEN UTILITY === */
+.hidden { display: none !important; }
 
 /* === PHONE === */
 @media (max-width: 640px) {
@@ -590,7 +637,7 @@ footer a {
     padding-top: max(10px, env(safe-area-inset-top));
   }
   
-  .brand-text strong { font-size: 14px; }
+  .brand-name { font-size: 14px; }
   .brand-text span { font-size: 11px; }
   .brand-icon { width: 24px; height: 24px; font-size: 12px; border-radius: 5px; }
   
