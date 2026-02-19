@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.0 — Feb 18, 2026 -->
+<!-- ALO CLIENT CHAT v2.1 — Feb 18, 2026 -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -11,25 +11,27 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#FDFBF7" />
   
-  <title>Alo — Companion for Emotional Clarity</title>
+  <title>Alo — Someone to think out loud with</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
   <header>
     <div class="brand">
-      <strong>Alo</strong>
-      <span>A companion for emotional clarity</span>
-      <div id="trustBadge" class="trust-badge guest">
-        <span id="trustBadgeText">Guest</span>
+      <div class="brand-icon">A</div>
+      <div class="brand-text">
+        <strong>Alo</strong>
+        <span>Someone to think out loud with</span>
+        <div id="trustBadge" class="trust-badge guest">
+          <span id="trustBadgeText">Guest</span>
+        </div>
       </div>
     </div>
     <div class="header-actions">
       <button id="connectBtn">Connect</button>
       <button id="privacyBtn" style="display: none;">Privacy</button>
       <button id="messageBtn" style="display: none;">Message</button>
-            <button id="shareChat">Share</button>
-
+      <button id="shareChat">Share</button>
     </div>
   </header>
 
@@ -44,6 +46,7 @@
         <div class="homework-body" id="homeworkBody">
           <p id="homeworkGoal"></p>
           <div class="homework-actions">
+            <button class="btn-primary" id="homeworkDoneBtn" style="font-size: 13px; padding: 8px 16px;">✓ I did this</button>
             <button class="btn-link" id="homeworkHideBtn">Hide for now</button>
           </div>
         </div>
@@ -62,8 +65,7 @@
       <iframe
         id="aloFrame"
         src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
-                allow="clipboard-read; clipboard-write; microphone"
-
+        allow="clipboard-read; clipboard-write; microphone"
         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"
         referrerpolicy="no-referrer"
         title="Alo Chat Interface"
@@ -78,7 +80,9 @@
   </main>
 
   <footer>
+    Alo is a support tool, not a therapist or medical provider. · 
     Need support? <a href="tel:988">988</a> (US) · <a href="#safety" onclick="showSafetyResources(event); return false;">Other resources</a>
+    <br><a href="#terms" onclick="showTermsModal(event); return false;">Terms</a> · <a href="#privacy" onclick="showPrivacyModal2(event); return false;">Privacy Policy</a>
   </footer>
   <script>
     // =====================================================
@@ -289,9 +293,7 @@
       document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
       document.getElementById('messageBtn').addEventListener('click', showMessageModal);
       document.getElementById('shareChat').addEventListener('click', showShareModal);
-            // Start Fresh removed — Botpress has built-in new chat icon
-
-      
+      document.getElementById('homeworkDoneBtn').addEventListener('click', handleHomeworkDone);      
       document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
         const body = document.getElementById('homeworkBody');
         const btn = document.getElementById('homeworkCollapseBtn');
@@ -315,7 +317,8 @@
     // =====================================================
     function showConnectModal() {
       const modal = createModal('Connect to Your Therapist', `
-        <p>Enter the invite code your therapist gave you to link your account.</p>
+        <p>Connecting lets your therapist send you exercises and lets you message them between sessions. <strong>They can never see your conversations with Alo.</strong></p>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enter the invite code your therapist gave you to link your account.</p>
         
         <div class="error-text" id="connectError"></div>
         
@@ -339,6 +342,10 @@
           <button class="btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Cancel</button>
           <button class="btn-primary" onclick="handleConnect()">Connect</button>
         </div>
+        
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 12px; text-align: center;">
+          By creating an account, you agree to our <a href="#" onclick="showTermsModal(event); return false;" style="color: var(--sage);">Terms of Use</a> and <a href="#" onclick="showPrivacyModal2(event); return false;" style="color: var(--sage);">Privacy Policy</a>.
+        </p>
         
         <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; text-align: center;">
           Already have an account? <button class="btn-link" onclick="showLoginModal()">Sign in</button>
@@ -498,7 +505,6 @@
         errorEl.classList.add('show');
       }
     }
-
     // =====================================================
     // MESSAGE MODAL
     // =====================================================
@@ -578,6 +584,10 @@
         <h4 style="margin-top: 20px; margin-bottom: 12px;">What I've Shared</h4>
         <div id="sharedMessagesList">
           <p style="color: var(--text-secondary); font-size: 14px;">Loading...</p>
+        </div>
+        
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+          <button class="btn-link" style="color: var(--danger);" onclick="handleLogout()">Log out of Alo</button>
         </div>
         
         <div class="button-group">
@@ -682,18 +692,18 @@
       const fullPrompt = `Alo, please provide a complete transcript of our entire conversation in a clean, readable format that I can share.`;
       
       const modal = createModal('Share Your Conversation', `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
-          <button id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: var(--sage-light); border-color: var(--sage);">
-            <span style="font-size: 24px;">📝</span>
-            <span style="font-size: 13px; font-weight: 600;">Summary</span>
+        <div class="share-options">
+          <button id="optionSummary" class="share-option active">
+            <span class="share-option-icon">📝</span>
+            <span class="share-option-label">Summary</span>
           </button>
-          <button id="optionFull" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 24px;">📄</span>
-            <span style="font-size: 13px; font-weight: 600;">Full</span>
+          <button id="optionFull" class="share-option">
+            <span class="share-option-icon">📄</span>
+            <span class="share-option-label">Full</span>
           </button>
-          <button id="optionRange" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 24px;">🎯</span>
-            <span style="font-size: 13px; font-weight: 600;">Range</span>
+          <button id="optionRange" class="share-option">
+            <span class="share-option-icon">🎯</span>
+            <span class="share-option-label">Range</span>
           </button>
         </div>
         
@@ -784,8 +794,7 @@
       
       function switchTab(tab) {
         [optionSummary, optionFull, optionRange].forEach(btn => {
-          btn.style.background = '';
-          btn.style.borderColor = '';
+          btn.classList.remove('active');
         });
         
         summaryInstructions.style.display = 'none';
@@ -793,16 +802,13 @@
         rangeInstructions.style.display = 'none';
         
         if (tab === 'summary') {
-          optionSummary.style.background = 'var(--sage-light)';
-          optionSummary.style.borderColor = 'var(--sage)';
+          optionSummary.classList.add('active');
           summaryInstructions.style.display = 'block';
         } else if (tab === 'full') {
-          optionFull.style.background = 'var(--sage-light)';
-          optionFull.style.borderColor = 'var(--sage)';
+          optionFull.classList.add('active');
           fullInstructions.style.display = 'block';
         } else if (tab === 'range') {
-          optionRange.style.background = 'var(--sage-light)';
-          optionRange.style.borderColor = 'var(--sage)';
+          optionRange.classList.add('active');
           rangeInstructions.style.display = 'block';
         }
       }
@@ -886,32 +892,135 @@
     }
 
     // =====================================================
-    // START FRESH
+    // LOGOUT
     // =====================================================
-    function handleStartFresh() {
-      const message = 
-        'Start a new conversation?\n\n' +
-        'This will clear your current chat in this browser. ' +
-        'If you want to keep anything, share a summary first.';
+    function handleLogout() {
+      if (!confirm('Log out of Alo?\n\nYou can sign back in anytime with your email and password.')) return;
       
-      if (!confirm(message)) return;
+      clientSession = null;
+      clientId = null;
+      therapistLink = null;
+      chatSettings = null;
+      activeHomework = null;
+      localStorage.removeItem('alo_client_session');
+      
+      const badge = document.getElementById('trustBadge');
+      const badgeText = document.getElementById('trustBadgeText');
+      badge.classList.add('guest');
+      badge.classList.remove('connected');
+      badgeText.textContent = 'Guest';
+      
+      const svg = badge.querySelector('svg');
+      if (svg) svg.remove();
+      
+      document.getElementById('connectBtn').style.display = 'inline-block';
+      document.getElementById('messageBtn').style.display = 'none';
+      document.getElementById('privacyBtn').style.display = 'none';
+      document.getElementById('homeworkContainer').classList.remove('show');
+      
+      closeModal(document.querySelector('.modal-overlay'));
+    }
+
+    // =====================================================
+    // HOMEWORK COMPLETION
+    // =====================================================
+    async function handleHomeworkDone() {
+      if (!activeHomework || !clientSession) return;
       
       try {
-        const keys = Object.keys(localStorage);
-        keys.forEach(key => {
-          if (key.toLowerCase().includes('botpress') || 
-              key.toLowerCase().includes('bp') || 
-              key.toLowerCase().includes('webchat')) {
-            localStorage.removeItem(key);
-          }
+        await api(`/rest/v1/homework_cards?id=eq.${activeHomework.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            completed_at: new Date().toISOString(),
+            is_active: false
+          })
         });
-        sessionStorage.clear();
-      } catch (e) {
-        console.log('Could not clear storage:', e);
+        
+        const card = document.querySelector('.homework-card');
+        card.classList.add('completed');
+        document.getElementById('homeworkTitle').textContent = 'COMPLETED ✓';
+        document.getElementById('homeworkBody').innerHTML = `
+          <p>${esc(activeHomework.title || activeHomework.goal)}</p>
+          <p class="homework-complete-note">Marked complete · ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
+          <p class="homework-complete-note">Your therapist can see this.</p>
+        `;
+        activeHomework = null;
+        
+      } catch (err) {
+        console.error('Error completing homework:', err);
+        alert('Could not mark homework as complete. Please try again.');
       }
+    }
+
+    // =====================================================
+    // TERMS OF USE MODAL
+    // =====================================================
+    function showTermsModal(event) {
+      if (event) event.preventDefault();
       
-      const timestamp = new Date().getTime();
-      window.location.href = window.location.pathname + '?refresh=' + timestamp;
+      const modal = createModal('Terms of Use', `
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Last updated: February 2026</p>
+        
+        <p><strong>What Alo Is</strong></p>
+        <p>Alo is a self-help emotional support tool that uses AI to help you think through decisions and process emotions. Alo is not a therapist, counselor, medical provider, or crisis service.</p>
+        
+        <p><strong>What Alo Is Not</strong></p>
+        <p>Alo does not provide diagnoses, treatment plans, prescriptions, or clinical recommendations. If you need mental health treatment, please work with a licensed professional. If you are in crisis, call 988 (US) or your local emergency number.</p>
+        
+        <p><strong>Your Privacy</strong></p>
+        <p>Your conversations with Alo are processed by AI but are not stored or accessible to anyone — including your therapist, Alo staff, or any third party. If you choose to connect with a therapist, only messages you explicitly send and homework completion status are visible to them. See our Privacy Policy for details.</p>
+        
+        <p><strong>Your Responsibility</strong></p>
+        <p>You use Alo voluntarily and at your own discretion. Alo is a supplement to — not a replacement for — professional care. You are responsible for decisions you make based on conversations with Alo.</p>
+        
+        <p><strong>Account & Data</strong></p>
+        <p>You may create an account to connect with your therapist. You may delete your account and data at any time by contacting support. Disconnecting from a therapist does not delete your account.</p>
+        
+        <p><strong>Limitations</strong></p>
+        <p>Alo is provided "as is." We make no guarantees about availability, accuracy of AI responses, or fitness for any particular purpose. Alo has crisis detection features, but these are not infallible. Always seek professional help in emergencies.</p>
+        
+        <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
+    }
+
+    // =====================================================
+    // PRIVACY POLICY MODAL
+    // =====================================================
+    function showPrivacyModal2(event) {
+      if (event) event.preventDefault();
+      
+      const modal = createModal('Privacy Policy', `
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Last updated: February 2026</p>
+        
+        <p><strong>What We Collect</strong></p>
+        <p>If you create an account: your email address and an encrypted password. If you connect to a therapist: the connection status and any messages you choose to send them. If your therapist assigns homework: completion status when you mark it done.</p>
+        
+        <p><strong>What We Do NOT Collect</strong></p>
+        <p>We do not store, read, or have access to your conversations with Alo. Chat transcripts are processed in real-time by AI and are not retained on any server. Your therapist cannot see your conversations.</p>
+        
+        <p><strong>How Data Is Used</strong></p>
+        <p>Account data is used only to authenticate you and maintain your therapist connection. Messages you send to your therapist are stored until you delete them. Homework completion status is shared with your connected therapist.</p>
+        
+        <p><strong>Data Storage</strong></p>
+        <p>Data is stored on Supabase (US-hosted, SOC 2 compliant infrastructure). Connections are encrypted in transit (HTTPS/TLS).</p>
+        
+        <p><strong>Your Rights</strong></p>
+        <p>You can: view what you've shared (Privacy Controls), delete sent messages (if unread), disconnect from your therapist, log out and clear your session, request full account deletion by contacting support.</p>
+        
+        <p><strong>Third Parties</strong></p>
+        <p>We do not sell, rent, or share your personal data with advertisers or data brokers. AI conversation processing is handled by Anthropic (Claude) via Botpress. No conversation content is stored by these providers beyond real-time processing.</p>
+        
+        <p><strong>Contact</strong></p>
+        <p>Questions about your data? Contact us at privacy@along.inc</p>
+        
+        <button onclick="closeModal(this.closest('.modal-overlay'))">Close</button>
+      `);
+      
+      document.body.appendChild(modal);
+      modal.classList.add('show');
     }
 
     // =====================================================
@@ -949,6 +1058,12 @@
       modalContent.querySelector('.modal-close').addEventListener('click', function() {
         closeModal(overlay);
       });
+      
+      // Auto-focus first focusable element for accessibility
+      setTimeout(function() {
+        const firstFocusable = modalContent.querySelector('input, textarea, button:not(.modal-close)');
+        if (firstFocusable) firstFocusable.focus();
+      }, 100);
       
       return overlay;
     }
