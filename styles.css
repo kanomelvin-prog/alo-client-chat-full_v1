@@ -1,5 +1,5 @@
 /* ============================================================
-   ALO CLIENT CHAT v2.0
+   ALO CLIENT CHAT v2.1
    Design: Warm companion (aligned with dashboard palette)
    ============================================================ */
 
@@ -14,12 +14,18 @@
   --sage: #8B9A7D;
   --sage-light: #E8EDE4;
   --sage-hover: #7a8a6d;
+  --sage-dark: #5C6B4F;
   --white: #ffffff;
   --danger: #dc2626;
   --danger-bg: #fef2f2;
 }
 
-* { box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { overflow-x: clip; }
+@supports not (overflow-x: clip) {
+  html, body { overflow-x: hidden; }
+}
 
 html { height: 100dvh; }
 
@@ -55,18 +61,44 @@ header {
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
   background: rgba(253, 251, 247, 0.98);
+  border-top: 3px solid var(--sage);
   border-bottom: 1px solid var(--border-subtle);
   position: relative;
   z-index: 10;
 }
 
-.brand strong {
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--sage);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  min-width: 0;
+}
+
+.brand-text strong {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.brand span {
+.brand-text span {
   font-size: 0.75rem;
   color: var(--text-muted);
   display: block;
@@ -86,6 +118,10 @@ header {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trust-badge.guest {
@@ -125,9 +161,9 @@ button:active { transform: scale(0.98); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-primary {
-  background: var(--sage);
+  background: var(--sage-dark);
   color: white;
-  border-color: var(--sage);
+  border-color: var(--sage-dark);
   font-weight: 600;
 }
 
@@ -213,12 +249,16 @@ main {
 .homework-collapse {
   background: transparent;
   border: none;
-  padding: 4px;
-  min-height: auto;
+  padding: 8px;
+  min-height: 44px;
+  min-width: 44px;
   box-shadow: none;
   color: var(--text-secondary);
   font-size: 20px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .homework-body {
@@ -313,7 +353,7 @@ footer {
   text-align: center;
   position: relative;
   z-index: 10;
-  opacity: 0.7;
+  opacity: 0.85;
 }
 
 footer a {
@@ -550,8 +590,9 @@ footer a {
     padding-top: max(10px, env(safe-area-inset-top));
   }
   
-  .brand strong { font-size: 14px; }
-  .brand span { font-size: 11px; }
+  .brand-text strong { font-size: 14px; }
+  .brand-text span { font-size: 11px; }
+  .brand-icon { width: 24px; height: 24px; font-size: 12px; border-radius: 5px; }
   
   button {
     padding: 8px 12px;
@@ -589,7 +630,8 @@ footer a {
 }
 
 @media (max-width: 400px) {
-  .brand span { display: none; }
+  .brand-text span { display: none; }
+  .trust-badge { max-width: 140px; }
   
   .header-actions {
     gap: 6px;
@@ -600,6 +642,46 @@ footer a {
     font-size: 0.6875rem;
     min-width: 0;
   }
+}
+
+/* === SHARE OPTIONS === */
+.share-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.share-option {
+  padding: 16px 12px;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-option.active {
+  background: var(--sage-light);
+  border-color: var(--sage);
+}
+
+.share-option-icon { font-size: 24px; }
+.share-option-label { font-size: 13px; font-weight: 600; }
+
+/* === HOMEWORK COMPLETE STATE === */
+.homework-card.completed {
+  opacity: 0.75;
+  border-left-color: var(--text-muted);
+}
+
+.homework-card.completed .homework-title {
+  color: var(--sage);
+}
+
+.homework-complete-note {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 /* === FOCUS & ACCESSIBILITY === */
