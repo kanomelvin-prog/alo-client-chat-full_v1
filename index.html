@@ -1,5 +1,8 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.3 — Feb 20, 2026 — Auth fixed + Share modal restored -->
+<!-- ALO CLIENT CHAT v2.4 — Feb 20, 2026 — 16-persona review P0+P1 fixes -->
+<!-- Changes: border-color fix, profiles on signup, homework writes to DB,
+     chat settings enforcement, privacy bar, header warmth, microcopy improvements,
+     homework viewed tracking, inline styles moved to CSS classes -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -10,6 +13,10 @@
   <meta name="apple-mobile-web-app-title" content="Alo">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#FDFBF7">
+  
+  <!-- Preconnect hints for faster iframe load -->
+  <link rel="preconnect" href="https://cdn.botpress.cloud">
+  <link rel="preconnect" href="https://files.bpcontent.cloud">
   
   <!-- Open Graph — link preview when therapist texts URL to client -->
   <meta property="og:title" content="Alo — Someone to think out loud with">
@@ -38,7 +45,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <button id="connectBtn" class="btn-primary">Connect</button>
+      <button id="connectBtn" class="btn-primary">Link to Therapist</button>
       <button id="logoutBtn" class="btn-link hidden">Log Out</button>
       <button id="privacyBtn" class="hidden">My Privacy</button>
       <button id="messageBtn" class="hidden">Message</button>
@@ -46,10 +53,19 @@
     </div>
   </header>
 
+  <!-- Privacy assurance bar — shown on first visit, dismissible -->
+  <div id="privacyBar" class="privacy-bar">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+    <span class="privacy-bar-text">Your conversations with Alo are private. No one else can see what you discuss here.</span>
+    <button class="privacy-bar-dismiss" id="privacyBarDismiss" aria-label="Dismiss">&times;</button>
+  </div>
+
   <main id="chatMain">
     <!-- Homework card (hidden unless client has active homework) -->
     <div id="homeworkContainer" class="homework-container">
-      <div class="homework-card">
+      <div class="homework-card" id="homeworkCard">
         <div class="homework-header">
           <div class="homework-title" id="homeworkTitle">From your therapist</div>
           <button class="homework-collapse" id="homeworkCollapseBtn" 
@@ -123,6 +139,7 @@
     let clientId = null;
     let therapistLink = null;
     let chatSettings = {};
+    let currentHomeworkId = null;
 
     // =====================================================
     // TOAST NOTIFICATIONS
@@ -269,6 +286,7 @@
       if (svg) svg.remove();
       
       document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('connectBtn').textContent = 'Link to Therapist';
       document.getElementById('logoutBtn').classList.remove('hidden');
       document.getElementById('privacyBtn').classList.add('hidden');
       document.getElementById('messageBtn').classList.add('hidden');
@@ -298,14 +316,17 @@
         badge.insertBefore(svg, badgeText);
       }
       
-      badgeText.textContent = `Hi ${clientName} · with ${therapistName}`;
+      badgeText.textContent = `Hi ${clientName} \u00B7 with ${therapistName}`;
       
       document.getElementById('connectBtn').classList.add('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
       document.getElementById('privacyBtn').classList.remove('hidden');
       
-      if (chatSettings.messaging_enabled) {
+      // Enforce chat settings from dashboard
+      if (chatSettings.messaging_enabled !== false) {
         document.getElementById('messageBtn').classList.remove('hidden');
+      } else {
+        document.getElementById('messageBtn').classList.add('hidden');
       }
     }
 
@@ -319,6 +340,7 @@
       if (svg) svg.remove();
       
       document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('connectBtn').textContent = 'Link to Therapist';
       document.getElementById('logoutBtn').classList.add('hidden');
       document.getElementById('messageBtn').classList.add('hidden');
       document.getElementById('privacyBtn').classList.add('hidden');
@@ -329,30 +351,60 @@
     // HOMEWORK
     // =====================================================
     async function loadHomework() {
+      // P1: Enforce chat settings — if therapist disabled homework visibility, skip
+      if (chatSettings.homework_visibility === false) {
+        return;
+      }
+
       try {
         const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc&limit=1`);
         
         if (homework && homework.length > 0) {
           const hw = homework[0];
+          currentHomeworkId = hw.id;
           document.getElementById('homeworkTitle').textContent = hw.title || 'From your therapist';
           document.getElementById('homeworkGoal').textContent = hw.goal || '';
           document.getElementById('homeworkContainer').classList.add('show');
+
+          // P1: Track that client viewed this homework
+          if (!hw.viewed_at) {
+            try {
+              await api(`/rest/v1/homework_cards?id=eq.${hw.id}`, 'PATCH', {
+                viewed_at: new Date().toISOString()
+              });
+            } catch (viewErr) {
+              console.error('Error tracking homework view:', viewErr);
+            }
+          }
         }
       } catch (err) {
         console.error('Error loading homework:', err);
       }
     }
 
-    function handleHomeworkDone() {
+    async function handleHomeworkDone() {
       showConfirm(
         'Mark as complete?',
-        'This will let your therapist know you completed this exercise.',
+        'Nice work. This lets your therapist know you engaged with this exercise.',
         {
           confirmLabel: 'Yes, I did this',
           cancelLabel: 'Not yet'
         }
-      ).then(confirmed => {
-        if (confirmed) {
+      ).then(async (confirmed) => {
+        if (confirmed && currentHomeworkId) {
+          try {
+            // P0: Actually write completion to Supabase
+            await api(`/rest/v1/homework_cards?id=eq.${currentHomeworkId}`, 'PATCH', {
+              is_active: false,
+              completed_at: new Date().toISOString()
+            });
+            showToast('Marked complete');
+            document.getElementById('homeworkContainer').classList.remove('show');
+          } catch (err) {
+            console.error('Error completing homework:', err);
+            showToast('Could not save. Please try again.');
+          }
+        } else if (confirmed && !currentHomeworkId) {
           showToast('Marked complete');
           document.getElementById('homeworkContainer').classList.remove('show');
         }
@@ -373,6 +425,7 @@
       clientId = null;
       therapistLink = null;
       chatSettings = {};
+      currentHomeworkId = null;
       
       location.reload();
     }
@@ -381,19 +434,18 @@
     // CONNECT MODAL
     // =====================================================
     function showConnectModal() {
-      createModal('Connect to Your Therapist', `
-        <p>Connecting lets your therapist send you exercises and lets you message them between sessions. <strong>They never see your conversations with Alo.</strong></p>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enter the invite code your therapist gave you to link your account.</p>
+      createModal('Link to Your Therapist', `
+        <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
+        <p class="modal-hint">Your conversations with Alo stay completely private — your therapist never sees them.</p>
         <div style="margin-top: 16px;">
-          <input type="text" id="inviteCodeInput" placeholder="Enter invite code" 
-            style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;" 
-            autocomplete="off" />
+          <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
+          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
         </div>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; text-align: center;">
-          Already have an account? <button class="btn-link" onclick="document.querySelector('.modal-overlay').remove(); showLoginModal();" style="background: none; border: none; color: var(--sage); cursor: pointer; font-size: 13px; text-decoration: underline;">Sign in</button>
+        <p class="modal-sign-in-link">
+          Already have an account? <button onclick="document.querySelector('.modal-overlay').remove(); showLoginModal();">Sign in</button>
         </p>
       `, {
-        confirmLabel: 'Connect',
+        confirmLabel: 'Link',
         cancelLabel: 'Maybe later',
         onConfirm: async () => {
           const code = document.getElementById('inviteCodeInput').value.trim();
@@ -418,7 +470,7 @@
         const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
         
         if (!link || link.length === 0) {
-          showToast('Invalid invite code');
+          showToast('Invalid invite code. Check the code your therapist sent you.');
           return;
         }
 
@@ -443,12 +495,10 @@
       createModal('Sign In or Create Account', `
         <p>Create an account or sign in to connect with your therapist.</p>
         <div style="margin-top: 16px;">
-          <input type="email" id="emailInput" placeholder="Email" 
-            style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; margin-bottom: 12px;" 
-            autocomplete="email" />
-          <input type="password" id="passwordInput" placeholder="Password" 
-            style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;" 
-            autocomplete="current-password" />
+          <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
+          <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
+          <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
+          <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
         </div>
       `, {
         confirmLabel: 'Continue',
@@ -481,6 +531,20 @@
             
             data = signUpResult.data;
             error = null;
+
+            // P0: Create profiles row on sign-up
+            try {
+              const displayName = email.split('@')[0];
+              await api('/rest/v1/profiles', 'POST', {
+                id: data.user.id,
+                role: 'client',
+                display_name: displayName,
+                email: email
+              });
+            } catch (profileErr) {
+              // Non-blocking — profile creation failure shouldn't break signup
+              console.error('Error creating profile:', profileErr);
+            }
           }
 
           if (error) {
@@ -506,12 +570,10 @@
       const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('with ')[1] : 'your therapist';
       
       createModal(`Message ${therapistName}`, `
-        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+        <p class="modal-subtext">
           ${therapistName} will see this message in their dashboard. They'll respond when they can.
         </p>
-        <textarea id="messageTextarea" placeholder="Type your message..." 
-          style="width: 100%; min-height: 120px; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; font-family: inherit; resize: vertical;"
-        ></textarea>
+        <textarea id="messageTextarea" class="modal-textarea" placeholder="Type your message..."></textarea>
       `, {
         confirmLabel: 'Send',
         cancelLabel: 'Cancel',
@@ -547,21 +609,21 @@
       const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
       
       createModal('Your Privacy', `
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">What ${therapistName} sees</h3>
-        <ul style="font-size: 14px; line-height: 1.6; margin-bottom: 20px; padding-left: 20px;">
-          <li>Whether you've used Alo recently</li>
+        <h3 class="modal-section-title">What ${therapistName} sees</h3>
+        <ul class="modal-list">
+          <li>Whether you're connected to Alo</li>
           <li>If you completed homework exercises</li>
           <li>Messages you send them directly</li>
         </ul>
         
-        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px;">What they never see</h3>
-        <ul style="font-size: 14px; line-height: 1.6; margin-bottom: 20px; padding-left: 20px;">
+        <h3 class="modal-section-title">What they never see</h3>
+        <ul class="modal-list">
           <li><strong>Your conversations with Alo</strong></li>
           <li>What you talked about</li>
           <li>How you're feeling</li>
         </ul>
         
-        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <p class="modal-divider">
           Alo is a private space. Your therapist trusts you to share what matters when you're ready.
         </p>
       `, {
@@ -578,83 +640,81 @@
       const fullPrompt = `Alo, please provide a complete transcript of our entire conversation in a clean, readable format that I can share.`;
       
       const modal = createModal('Share Your Conversation', `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
-          <button class="share-option" id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: var(--sage-light); border: 1px solid var(--sage); border-radius: 8px; cursor: pointer;">
-            <span style="font-size: 24px;">📝</span>
-            <span style="font-size: 13px; font-weight: 600;">Summary</span>
+        <div class="share-options">
+          <button class="share-option active" id="optionSummary">
+            <span class="share-option-icon">\u{1F4DD}</span>
+            <span class="share-option-label">Summary</span>
           </button>
-          <button class="share-option" id="optionFull" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-            <span style="font-size: 24px;">📄</span>
-            <span style="font-size: 13px; font-weight: 600;">Full</span>
+          <button class="share-option" id="optionFull">
+            <span class="share-option-icon">\u{1F4C4}</span>
+            <span class="share-option-label">Full</span>
           </button>
-          <button class="share-option" id="optionRange" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
-            <span style="font-size: 24px;">🎯</span>
-            <span style="font-size: 13px; font-weight: 600;">Range</span>
+          <button class="share-option" id="optionRange">
+            <span class="share-option-icon">\u{1F3AF}</span>
+            <span class="share-option-label">Range</span>
           </button>
         </div>
         
         <div id="instructionsArea">
           <div id="summaryInstructions">
-            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+            <p class="share-instructions">
               Get a 5-bullet summary perfect for sharing with your therapist
             </p>
-            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+            <ol class="share-steps">
               <li>Copy the message below</li>
               <li>Paste it into chat</li>
               <li>Alo creates a summary</li>
-              <li>Long-press to copy & share</li>
+              <li>Long-press to copy &amp; share</li>
             </ol>
-            <div style="background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 12px;">
-              <textarea readonly id="summaryPromptText" style="width: 100%; min-height: 80px; font-size: 13px; background: transparent; border: none; resize: none;">${summaryPrompt}</textarea>
-              <button id="copySummaryBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">📋 Copy Message</button>
+            <div class="share-prompt-box">
+              <textarea readonly id="summaryPromptText" class="share-prompt-textarea">${summaryPrompt}</textarea>
+              <button id="copySummaryBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
             </div>
           </div>
           
           <div id="fullInstructions" style="display: none;">
-            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+            <p class="share-instructions">
               Get a complete transcript of everything discussed
             </p>
-            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+            <ol class="share-steps">
               <li>Copy the message below</li>
               <li>Paste it into chat</li>
               <li>Alo creates full transcript</li>
-              <li>Long-press to copy & share</li>
+              <li>Long-press to copy &amp; share</li>
             </ol>
-            <div style="background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 12px;">
-              <textarea readonly id="fullPromptText" style="width: 100%; min-height: 80px; font-size: 13px; background: transparent; border: none; resize: none;">${fullPrompt}</textarea>
-              <button id="copyFullBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">📋 Copy Message</button>
+            <div class="share-prompt-box">
+              <textarea readonly id="fullPromptText" class="share-prompt-textarea">${fullPrompt}</textarea>
+              <button id="copyFullBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
             </div>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-              💡 Full transcripts are long—summary is usually better for sharing
+            <p class="share-hint">
+              \u{1F4A1} Full transcripts are long — summary is usually better for sharing
             </p>
           </div>
           
           <div id="rangeInstructions" style="display: none;">
-            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+            <p class="share-instructions">
               Share specific parts (example: turns 3-8)
             </p>
-            <div style="display: flex; gap: 12px; margin: 16px 0;">
-              <div style="flex: 1;">
-                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start:</label>
-                <input type="number" id="rangeStart" min="1" value="1" 
-                  style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px;">
+            <div class="range-inputs">
+              <div class="range-field">
+                <label for="rangeStart">Start:</label>
+                <input type="number" id="rangeStart" min="1" value="1">
               </div>
-              <div style="flex: 1;">
-                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End:</label>
-                <input type="number" id="rangeEnd" min="1" value="10" 
-                  style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px;">
+              <div class="range-field">
+                <label for="rangeEnd">End:</label>
+                <input type="number" id="rangeEnd" min="1" value="10">
               </div>
             </div>
             <button id="copyRangeBtn" class="btn-primary" style="width: 100%;">
-              📋 Copy Range Message
+              \u{1F4CB} Copy Range Message
             </button>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
-              💡 Count message bubbles to find turn numbers
+            <p class="share-hint">
+              \u{1F4A1} Count message bubbles to find turn numbers
             </p>
           </div>
         </div>
         
-        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+        <p class="share-footer-note">
           <strong>How to share:</strong> After Alo creates your summary/transcript, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
         </p>
       `, {
@@ -675,9 +735,8 @@
       const rangeInstructions = modal.querySelector('#rangeInstructions');
       
       function switchTab(tab) {
-        document.querySelectorAll('.share-option').forEach(btn => {
-          btn.style.background = 'transparent';
-          btn.style.borderColor = 'var(--border-color)';
+        [optionSummary, optionFull, optionRange].forEach(btn => {
+          btn.classList.remove('active');
         });
         
         summaryInstructions.style.display = 'none';
@@ -685,16 +744,13 @@
         rangeInstructions.style.display = 'none';
         
         if (tab === 'summary') {
-          optionSummary.style.background = 'var(--sage-light)';
-          optionSummary.style.borderColor = 'var(--sage)';
+          optionSummary.classList.add('active');
           summaryInstructions.style.display = 'block';
         } else if (tab === 'full') {
-          optionFull.style.background = 'var(--sage-light)';
-          optionFull.style.borderColor = 'var(--sage)';
+          optionFull.classList.add('active');
           fullInstructions.style.display = 'block';
         } else if (tab === 'range') {
-          optionRange.style.background = 'var(--sage-light)';
-          optionRange.style.borderColor = 'var(--sage)';
+          optionRange.classList.add('active');
           rangeInstructions.style.display = 'block';
         }
       }
@@ -710,10 +766,10 @@
       copySummaryBtn.addEventListener('click', async function() {
         const success = await copyToClipboard(summaryPrompt);
         if (success) {
-          copySummaryBtn.textContent = '✓ Copied!';
+          copySummaryBtn.textContent = '\u2713 Copied!';
           copySummaryBtn.style.background = '#10b981';
           setTimeout(function() {
-            copySummaryBtn.textContent = '📋 Copy Message';
+            copySummaryBtn.textContent = '\u{1F4CB} Copy Message';
             copySummaryBtn.style.background = '';
           }, 2000);
         }
@@ -722,10 +778,10 @@
       copyFullBtn.addEventListener('click', async function() {
         const success = await copyToClipboard(fullPrompt);
         if (success) {
-          copyFullBtn.textContent = '✓ Copied!';
+          copyFullBtn.textContent = '\u2713 Copied!';
           copyFullBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyFullBtn.textContent = '📋 Copy Message';
+            copyFullBtn.textContent = '\u{1F4CB} Copy Message';
             copyFullBtn.style.background = '';
           }, 2000);
         }
@@ -738,10 +794,10 @@
         
         const success = await copyToClipboard(rangePrompt);
         if (success) {
-          copyRangeBtn.textContent = '✓ Copied!';
+          copyRangeBtn.textContent = '\u2713 Copied!';
           copyRangeBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyRangeBtn.textContent = '📋 Copy Range Message';
+            copyRangeBtn.textContent = '\u{1F4CB} Copy Range Message';
             copyRangeBtn.style.background = '';
           }, 2000);
         }
@@ -784,6 +840,11 @@
         options.body = JSON.stringify(body);
       }
 
+      // For POST, add Prefer header to get minimal response
+      if (method === 'POST') {
+        options.headers['Prefer'] = 'return=minimal';
+      }
+
       const response = await fetch(`${SUPABASE_URL}${endpoint}`, options);
       
       if (!response.ok) {
@@ -822,7 +883,8 @@
         const therapistName = therapist?.[0]?.display_name || 'Your therapist';
         const clientName = client?.[0]?.display_name || 'there';
 
-        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=messaging_enabled`);
+        // P1: Read ALL chat settings, not just messaging_enabled
+        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=messaging_enabled,homework_visibility,summary_sharing,conversation_history`);
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
@@ -831,6 +893,25 @@
       } catch (err) {
         console.error('Error loading connected state:', err);
       }
+    }
+
+    // =====================================================
+    // PRIVACY BAR
+    // =====================================================
+    function initPrivacyBar() {
+      const bar = document.getElementById('privacyBar');
+      const dismissBtn = document.getElementById('privacyBarDismiss');
+      
+      // Check if user has dismissed it before
+      if (localStorage.getItem('alo_privacy_bar_dismissed')) {
+        bar.style.display = 'none';
+        return;
+      }
+
+      dismissBtn.addEventListener('click', () => {
+        bar.style.display = 'none';
+        localStorage.setItem('alo_privacy_bar_dismissed', 'true');
+      });
     }
 
     // =====================================================
@@ -859,6 +940,10 @@
         `;
       }, 15000);
 
+      // Privacy bar
+      initPrivacyBar();
+
+      // Event listeners
       document.getElementById('connectBtn').addEventListener('click', showConnectModal);
       document.getElementById('logoutBtn').addEventListener('click', handleLogout);
       document.getElementById('privacyBtn').addEventListener('click', showPrivacyModal);
@@ -872,13 +957,13 @@
         const btn = this;
         const isCollapsed = body.classList.contains('collapsed');
         body.classList.toggle('collapsed');
-        btn.textContent = isCollapsed ? '−' : '+';
+        btn.textContent = isCollapsed ? '\u2212' : '+';
         btn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
       });
 
       document.getElementById('homeworkHideBtn').addEventListener('click', function() {
         document.getElementById('homeworkContainer').classList.remove('show');
-        showToast('Homework hidden. Your therapist can still see if you completed it.');
+        showToast('Hidden for now. Tap here to see it again when you\u2019re ready.');
       });
 
       document.getElementById('termsLink').addEventListener('click', function(e) {
@@ -886,13 +971,13 @@
         createModal('Terms of Use', `
           <p>Alo is a conversational companion, not a replacement for professional mental health care.</p>
           <p style="margin-top: 12px;"><strong>By using Alo, you agree that:</strong></p>
-          <ul style="margin: 12px 0; padding-left: 20px; line-height: 1.6;">
+          <ul class="modal-list">
             <li>Alo does not provide medical advice, diagnosis, or treatment</li>
             <li>You will seek professional help for mental health crises</li>
             <li>Your therapist does not see your conversations with Alo</li>
             <li>You are responsible for deciding what to share with your therapist</li>
           </ul>
-          <p style="margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
+          <p class="modal-divider">
             If you're in crisis, call <strong>988</strong> (US Suicide & Crisis Lifeline) or go to your nearest emergency room.
           </p>
         `, {
@@ -904,30 +989,30 @@
       document.getElementById('privacyLink').addEventListener('click', function(e) {
         e.preventDefault();
         createModal('Privacy Policy', `
-          <h3 style="font-size: 16px; margin-bottom: 12px;">What we collect</h3>
-          <ul style="margin-bottom: 16px; padding-left: 20px; line-height: 1.6;">
+          <h3 class="modal-section-title">What we collect</h3>
+          <ul class="modal-list">
             <li>Account information (email, password hash)</li>
             <li>Connection to your therapist</li>
             <li>Homework completion status</li>
             <li>Messages you send to your therapist</li>
           </ul>
 
-          <h3 style="font-size: 16px; margin-bottom: 12px;">What we don't collect</h3>
-          <ul style="margin-bottom: 16px; padding-left: 20px; line-height: 1.6;">
+          <h3 class="modal-section-title">What we don't collect</h3>
+          <ul class="modal-list">
             <li><strong>Your conversations with Alo</strong></li>
             <li>Chat transcripts or history</li>
             <li>Personal details you share with Alo</li>
           </ul>
 
-          <h3 style="font-size: 16px; margin-bottom: 12px;">Who sees your data</h3>
-          <ul style="margin-bottom: 16px; padding-left: 20px; line-height: 1.6;">
+          <h3 class="modal-section-title">Who sees your data</h3>
+          <ul class="modal-list">
             <li>Your therapist sees homework status and messages you send them</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
             <li>We don't sell or share your data with third parties</li>
           </ul>
 
-          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-            Questions? Contact your therapist or email support@alo.example.com
+          <p class="modal-divider">
+            Questions? Contact your therapist or email support@along.inc
           </p>
         `, {
           confirmLabel: 'Got it',
