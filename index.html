@@ -323,7 +323,7 @@
       document.getElementById('privacyBtn').classList.remove('hidden');
       
       // Enforce chat settings from dashboard
-      if (chatSettings.messaging_enabled !== false) {
+      if (chatSettings.allow_messages !== false) {
         document.getElementById('messageBtn').classList.remove('hidden');
       } else {
         document.getElementById('messageBtn').classList.add('hidden');
@@ -352,7 +352,7 @@
     // =====================================================
     async function loadHomework() {
       // P1: Enforce chat settings — if therapist disabled homework visibility, skip
-      if (chatSettings.homework_visibility === false) {
+      if (chatSettings.allow_homework === false) {
         return;
       }
 
@@ -588,8 +588,8 @@
             await api('/rest/v1/client_messages', 'POST', {
               client_id: clientId,
               therapist_id: therapistLink.therapist_id,
-              message_text: messageText,
-              read_by_therapist: false
+              message: messageText,
+              read: false
             });
 
             showToast('Message sent');
@@ -883,8 +883,8 @@
         const therapistName = therapist?.[0]?.display_name || 'Your therapist';
         const clientName = client?.[0]?.display_name || 'there';
 
-        // P1: Read ALL chat settings, not just messaging_enabled
-        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=messaging_enabled,homework_visibility,summary_sharing,conversation_history`);
+        // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
+        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history`);
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
