@@ -255,10 +255,13 @@
     }
 
     function showConnectedUI(therapistName, clientName) {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      
-      badge.className = 'trust-badge connected';
+  console.log('[UI] showConnectedUI() called');
+  const badge = document.getElementById('trustBadge');
+  const badgeText = document.getElementById('trustBadgeText');
+  console.log('[UI] Badge element:', badge ? 'FOUND' : 'NULL');
+  console.log('[UI] Badge text element:', badgeText ? 'FOUND' : 'NULL');
+  
+  badge.className = 'trust-badge connected';
       
       if (!badge.querySelector('svg')) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -285,8 +288,10 @@
       document.getElementById('privacyBtn').classList.remove('hidden');
       
       if (chatSettings.messaging_enabled) {
-        document.getElementById('messageBtn').classList.remove('hidden');
-      }
+  document.getElementById('messageBtn').classList.remove('hidden');
+}
+
+console.log('[UI] showConnectedUI() complete');
     }
 
     async function loadHomework() {
@@ -582,23 +587,31 @@
     // LOAD CONNECTED STATE
     // =====================================================
     async function loadConnectedState() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          resetToGuestUI();
-          return;
-        }
+  console.log('[AUTH] loadConnectedState() called');
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log('[AUTH] Supabase user:', user ? 'FOUND' : 'NULL');
+    
+    if (!user) {
+      console.log('[AUTH] No user, resetting to guest UI');
+      resetToGuestUI();
+      return;
+    }
+    
+    console.log('[AUTH] User ID:', user.id);
 
         const links = await api(`/rest/v1/therapist_client_links?client_id=eq.${user.id}&status=eq.active`);
-        
-        if (!links || links.length === 0) {
-          showLoggedInNoConnection();
-          return;
-        }
+console.log('[AUTH] Therapist links:', links ? links.length : 'NULL');
 
-        therapistLink = links[0];
-        clientId = user.id;
+if (!links || links.length === 0) {
+  console.log('[AUTH] No therapist link, showing logged in state');
+  showLoggedInNoConnection();
+  return;
+}
+
+therapistLink = links[0];
+clientId = user.id;
+console.log('[AUTH] Connected! Therapist ID:', therapistLink.therapist_id);
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
@@ -609,12 +622,14 @@
         const settings = await api(`/rest/v1/therapist_client_links?id=eq.${therapistLink.id}&select=messaging_enabled`);
         chatSettings = settings?.[0] || {};
 
-        showConnectedUI(therapistName, clientName);
-        await loadHomework();
+        console.log('[AUTH] Calling showConnectedUI with:', therapistName, clientName);
+showConnectedUI(therapistName, clientName);
+await loadHomework();
 
       } catch (err) {
-        console.error('Error loading connected state:', err);
-      }
+  console.error('[AUTH] Error loading connected state:', err);
+  console.error('[AUTH] Stack:', err.stack);
+}
     }
 
     function resetToGuestUI() {
