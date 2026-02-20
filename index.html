@@ -442,7 +442,7 @@
           <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
         </div>
         <p class="modal-sign-in-link">
-          Already have an account? <button onclick="document.querySelector('.modal-overlay').remove(); showLoginModal();">Sign in</button>
+          Already have an account? <button onclick="const c=document.getElementById('inviteCodeInput')?.value?.trim(); document.querySelector('.modal-overlay').remove(); showLoginModal(c||null);">Sign in</button>
         </p>
       `, {
         confirmLabel: 'Link',
@@ -537,7 +537,7 @@
               const displayName = email.split('@')[0];
               await api('/rest/v1/profiles', 'POST', {
                 id: data.user.id,
-                role: 'client',
+                role: 'individual',
                 display_name: displayName,
                 email: email
               });
