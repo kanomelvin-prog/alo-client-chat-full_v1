@@ -1160,15 +1160,14 @@
           return;
         }
         if (e.key === 'Tab') {
-          const focusables = getFocusables();
+          var focusables = getFocusables();
           if (!focusables.length) return;
-          const first = focusables[0];
-          const last = focusables[focusables.length - 1];
+          var first = focusables[0];
+          var last = focusables[focusables.length - 1];
           if (e.shiftKey && document.activeElement === first) {
             e.preventDefault();
             last.focus();
-          }​​​​​​​​​​​​​​​​
-          else if (!e.shiftKey && document.activeElement === last) {
+          } else if (!e.shiftKey && document.activeElement === last) {
             e.preventDefault();
             first.focus();
           }
