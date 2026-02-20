@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Alo Test 2</title>
+  <title>Alo Test 4</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -13,11 +13,46 @@
       <div class="brand-text">
         <h1 class="brand-name">Alo</h1>
         <span>Someone to think out loud with</span>
+        <div id="trustBadge" class="trust-badge guest">
+          <span id="trustBadgeText"></span>
+        </div>
       </div>
     </div>
+    <div class="header-actions">
+      <button id="connectBtn" class="btn-primary">Connect</button>
+      <button id="privacyBtn" class="hidden">My Privacy</button>
+      <button id="messageBtn" class="hidden">Message</button>
+      <button id="shareChat">Share</button>
+    </div>
   </header>
+
   <main id="chatMain">
+    <div id="homeworkContainer" class="homework-container">
+      <div class="homework-card">
+        <div class="homework-header">
+          <div class="homework-title" id="homeworkTitle">From your therapist</div>
+          <button class="homework-collapse" id="homeworkCollapseBtn" 
+            aria-label="Toggle homework" 
+            aria-controls="homeworkBody" 
+            aria-expanded="true">−</button>
+        </div>
+        <div class="homework-body" id="homeworkBody">
+          <p id="homeworkGoal"></p>
+          <div class="homework-actions">
+            <button class="btn-primary" id="homeworkDoneBtn">✓ I did this</button>
+            <button class="btn-link" id="homeworkHideBtn">Hide for now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="chat-container">
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-message">
+          <div class="spinner"></div>
+          <p>Loading Alo...</p>
+        </div>
+      </div>
       <iframe
         id="aloFrame"
         src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
@@ -26,6 +61,75 @@
       ></iframe>
     </div>
   </main>
-  <footer>Test 2 · <a href="tel:988">988</a></footer>
+
+  <footer>
+    Alo helps you think — not a therapist or doctor. · 
+    Need help now? <a href="tel:988">988</a> (US)
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script>
+    const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MDk1NDUsImV4cCI6MjA3OTE4NTU0NX0.mm1POxfEEoRXyTF08NsUZOau6qA_UdZJnoUH_5bkQas';
+
+    let clientSession = null;
+    let clientId = null;
+    let therapistLink = null;
+    let chatSettings = null;
+    let activeHomework = null;
+
+    function setupEventListeners() {
+      const iframe = document.getElementById('aloFrame');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      let loadTimeout;
+      
+      iframe.addEventListener('load', function() {
+        loadingOverlay.style.display = 'none';
+        clearTimeout(loadTimeout);
+      });
+      
+      loadTimeout = setTimeout(function() {
+        loadingOverlay.innerHTML = '<div class="error-message"><p><strong>Still loading...</strong></p><button onclick="location.reload()">Retry</button></div>';
+      }, 15000);
+      
+      document.getElementById('connectBtn').addEventListener('click', function() { alert('connect'); });
+      document.getElementById('privacyBtn').addEventListener('click', function() { alert('privacy'); });
+      document.getElementById('messageBtn').addEventListener('click', function() { alert('message'); });
+      document.getElementById('shareChat').addEventListener('click', function() { alert('share'); });
+      document.getElementById('homeworkDoneBtn').addEventListener('click', function() { alert('done'); });
+      document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
+        document.getElementById('homeworkBody').classList.toggle('collapsed');
+      });
+      document.getElementById('homeworkHideBtn').addEventListener('click', function() {
+        document.getElementById('homeworkContainer').classList.remove('show');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      setupEventListeners();
+      
+      try {
+        const stored = localStorage.getItem('alo_client_session');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refresh_token: parsed.refresh_token })
+          });
+          if (res.ok) {
+            clientSession = await res.json();
+            clientId = clientSession.user.id;
+            localStorage.setItem('alo_client_session', JSON.stringify(clientSession));
+          }
+        }
+      } catch (e) {
+        console.log('No valid client session, running in guest mode');
+      }
+    });
+  </script>
 </body>
 </html>
