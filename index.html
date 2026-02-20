@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.2.1 — Feb 20, 2026 — Logout button added -->
+<!-- ALO CLIENT CHAT v2.3 — Feb 20, 2026 — Auth fixed + Share modal restored -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -78,7 +78,7 @@
       
       <iframe
         id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.5/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/06/16/20260206160131-TJR3ODT9.json"
+        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/20/16/20260220161212-N5ZPU2UY.json"
         allow="clipboard-read; clipboard-write"
         title="Alo Chat Interface"
         aria-label="Chatbot Conversation Window"
@@ -95,6 +95,7 @@
       <a href="#" id="privacyLink">Privacy Policy</a>
     </div>
   </footer>
+
   <!-- Modals container -->
   <div id="modalsContainer"></div>
 
@@ -103,16 +104,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <script>
+    // =====================================================
+    // CONFIG
+    // =====================================================
     const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgwMTIyOTEsImV4cCI6MjA1MzU4ODI5MX0.VW0LhR-X31KCN9j8KOcQbPBTXzFxGxf6rOjY8pM';
+    
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    storage: window.localStorage,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-});
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+        storageKey: 'alo_client_session',
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
 
     let clientId = null;
     let therapistLink = null;
@@ -227,6 +233,7 @@
 
       return modal;
     }
+
     // =====================================================
     // CONFIRM DIALOG
     // =====================================================
@@ -257,18 +264,21 @@
       badge.className = 'trust-badge';
       badgeText.textContent = 'Logged in';
       badge.style.display = 'flex';
+      
+      const svg = badge.querySelector('svg');
+      if (svg) svg.remove();
+      
       document.getElementById('connectBtn').classList.remove('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
+      document.getElementById('privacyBtn').classList.add('hidden');
+      document.getElementById('messageBtn').classList.add('hidden');
     }
 
     function showConnectedUI(therapistName, clientName) {
-  console.log('[UI] showConnectedUI() called');
-  const badge = document.getElementById('trustBadge');
-  const badgeText = document.getElementById('trustBadgeText');
-  console.log('[UI] Badge element:', badge ? 'FOUND' : 'NULL');
-  console.log('[UI] Badge text element:', badgeText ? 'FOUND' : 'NULL');
-  
-  badge.className = 'trust-badge connected';
+      const badge = document.getElementById('trustBadge');
+      const badgeText = document.getElementById('trustBadgeText');
+      
+      badge.className = 'trust-badge connected';
       
       if (!badge.querySelector('svg')) {
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -295,12 +305,29 @@
       document.getElementById('privacyBtn').classList.remove('hidden');
       
       if (chatSettings.messaging_enabled) {
-  document.getElementById('messageBtn').classList.remove('hidden');
-}
-
-console.log('[UI] showConnectedUI() complete');
+        document.getElementById('messageBtn').classList.remove('hidden');
+      }
     }
 
+    function resetToGuestUI() {
+      const badge = document.getElementById('trustBadge');
+      const badgeText = document.getElementById('trustBadgeText');
+      badge.className = 'trust-badge guest';
+      badgeText.textContent = '';
+      
+      const svg = badge.querySelector('svg');
+      if (svg) svg.remove();
+      
+      document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.getElementById('messageBtn').classList.add('hidden');
+      document.getElementById('privacyBtn').classList.add('hidden');
+      document.getElementById('homeworkContainer').classList.remove('show');
+    }
+
+    // =====================================================
+    // HOMEWORK
+    // =====================================================
     async function loadHomework() {
       try {
         const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc&limit=1`);
@@ -322,21 +349,14 @@ console.log('[UI] showConnectedUI() complete');
         'This will let your therapist know you completed this exercise.',
         {
           confirmLabel: 'Yes, I did this',
-          cancelLabel: 'Not yet',
-          onConfirm: async () => {
-            showToast('Marked complete');
-            document.getElementById('homeworkContainer').classList.remove('show');
-          }
+          cancelLabel: 'Not yet'
         }
-      );
-    }
-
-    function handleShareChat() {
-      showConfirm(
-        'Share this conversation?',
-        'Alo never shares conversations automatically. You can copy and share them if you want to.',
-        { confirmLabel: 'Copy chat', cancelLabel: 'Cancel' }
-      );
+      ).then(confirmed => {
+        if (confirmed) {
+          showToast('Marked complete');
+          document.getElementById('homeworkContainer').classList.remove('show');
+        }
+      });
     }
 
     // =====================================================
@@ -350,12 +370,10 @@ console.log('[UI] showConnectedUI() complete');
         return;
       }
       
-      // Clear local state
       clientId = null;
       therapistLink = null;
       chatSettings = {};
       
-      // Reload to reset to guest mode
       location.reload();
     }
 
@@ -363,7 +381,7 @@ console.log('[UI] showConnectedUI() complete');
     // CONNECT MODAL
     // =====================================================
     function showConnectModal() {
-      const modal = createModal('Connect to Your Therapist', `
+      createModal('Connect to Your Therapist', `
         <p>Connecting lets your therapist send you exercises and lets you message them between sessions. <strong>They never see your conversations with Alo.</strong></p>
         <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Enter the invite code your therapist gave you to link your account.</p>
         <div style="margin-top: 16px;">
@@ -394,7 +412,7 @@ console.log('[UI] showConnectedUI() complete');
       }
 
       try {
-        const link = await api(`/rest/v1/therapist_client_links?invite_code=eq.${inviteCode}&status=eq.pending`, 'GET');
+        const link = await api(`/rest/v1/therapist_client_links?invite_code=eq.${inviteCode}&status=eq.pending`);
         
         if (!link || link.length === 0) {
           showToast('Invalid invite code');
@@ -414,11 +432,12 @@ console.log('[UI] showConnectedUI() complete');
         showToast('Connection failed. Please try again.');
       }
     }
+
     // =====================================================
     // LOGIN MODAL
     // =====================================================
     function showLoginModal(inviteCode = null) {
-      const modal = createModal('Sign In or Create Account', `
+      createModal('Sign In or Create Account', `
         <p>Create an account or sign in to connect with your therapist.</p>
         <div style="margin-top: 16px;">
           <input type="email" id="emailInput" placeholder="Email" 
@@ -440,13 +459,28 @@ console.log('[UI] showConnectedUI() complete');
             return false;
           }
 
-          let authResult = await supabase.auth.signInWithPassword({ email, password });
+          // Try sign in first
+          let { data, error } = await supabase.auth.signInWithPassword({ email, password });
           
-          if (authResult.error?.message.includes('Invalid login credentials')) {
-            authResult = await supabase.auth.signUp({ email, password });
+          // If sign in fails, try sign up
+          if (error && error.message.includes('Invalid login credentials')) {
+            const signUpResult = await supabase.auth.signUp({ email, password });
+            
+            if (signUpResult.error) {
+              showToast('Authentication failed. Please try again.');
+              return false;
+            }
+            
+            if (!signUpResult.data.session) {
+              showToast('Account created! Check your email to confirm.');
+              return;
+            }
+            
+            data = signUpResult.data;
+            error = null;
           }
 
-          if (authResult.error) {
+          if (error) {
             showToast('Authentication failed. Please try again.');
             return false;
           }
@@ -468,7 +502,7 @@ console.log('[UI] showConnectedUI() complete');
     function showMessageModal() {
       const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('with ')[1] : 'your therapist';
       
-      const modal = createModal(`Message ${therapistName}`, `
+      createModal(`Message ${therapistName}`, `
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
           ${therapistName} will see this message in their dashboard. They'll respond when they can.
         </p>
@@ -534,32 +568,198 @@ console.log('[UI] showConnectedUI() complete');
     }
 
     // =====================================================
-    // SHARE MODAL
+    // SHARE MODAL (3-option: Summary/Full/Range)
     // =====================================================
     function showShareModal() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
+      const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
+      const fullPrompt = `Alo, please provide a complete transcript of our entire conversation in a clean, readable format that I can share.`;
       
-      createModal('Share This Conversation', `
-        <p style="margin-bottom: 16px;">Copy your conversation with Alo to share with ${therapistName} or save for yourself.</p>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
-          <strong>Note:</strong> This feature extracts text from the chat below. Formatting may vary.
+      const modal = createModal('Share Your Conversation', `
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0;">
+          <button class="share-option" id="optionSummary" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: var(--sage-light); border: 1px solid var(--sage); border-radius: 8px; cursor: pointer;">
+            <span style="font-size: 24px;">📝</span>
+            <span style="font-size: 13px; font-weight: 600;">Summary</span>
+          </button>
+          <button class="share-option" id="optionFull" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+            <span style="font-size: 24px;">📄</span>
+            <span style="font-size: 13px; font-weight: 600;">Full</span>
+          </button>
+          <button class="share-option" id="optionRange" style="padding: 16px 12px; flex-direction: column; display: flex; align-items: center; gap: 8px; background: transparent; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+            <span style="font-size: 24px;">🎯</span>
+            <span style="font-size: 13px; font-weight: 600;">Range</span>
+          </button>
+        </div>
+        
+        <div id="instructionsArea">
+          <div id="summaryInstructions">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a 5-bullet summary perfect for sharing with your therapist
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates a summary</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div style="background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 12px;">
+              <textarea readonly id="summaryPromptText" style="width: 100%; min-height: 80px; font-size: 13px; background: transparent; border: none; resize: none;">${summaryPrompt}</textarea>
+              <button id="copySummaryBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">📋 Copy Message</button>
+            </div>
+          </div>
+          
+          <div id="fullInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Get a complete transcript of everything discussed
+            </p>
+            <ol style="font-size: 14px; line-height: 1.5; margin: 12px 0;">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates full transcript</li>
+              <li>Long-press to copy & share</li>
+            </ol>
+            <div style="background: var(--background-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 12px;">
+              <textarea readonly id="fullPromptText" style="width: 100%; min-height: 80px; font-size: 13px; background: transparent; border: none; resize: none;">${fullPrompt}</textarea>
+              <button id="copyFullBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">📋 Copy Message</button>
+            </div>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Full transcripts are long—summary is usually better for sharing
+            </p>
+          </div>
+          
+          <div id="rangeInstructions" style="display: none;">
+            <p style="font-size: 14px; margin: 12px 0 8px 0; color: var(--text-secondary);">
+              Share specific parts (example: turns 3-8)
+            </p>
+            <div style="display: flex; gap: 12px; margin: 16px 0;">
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">Start:</label>
+                <input type="number" id="rangeStart" min="1" value="1" 
+                  style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px;">
+              </div>
+              <div style="flex: 1;">
+                <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px;">End:</label>
+                <input type="number" id="rangeEnd" min="1" value="10" 
+                  style="width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 16px;">
+              </div>
+            </div>
+            <button id="copyRangeBtn" class="btn-primary" style="width: 100%;">
+              📋 Copy Range Message
+            </button>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+              💡 Count message bubbles to find turn numbers
+            </p>
+          </div>
+        </div>
+        
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+          <strong>How to share:</strong> After Alo creates your summary/transcript, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
         </p>
       `, {
-        confirmLabel: 'Copy conversation',
-        cancelLabel: 'Cancel',
-        onConfirm: async () => {
-          try {
-            const conversationText = "Alo Conversation\n\n[Conversation extraction from iframe - implementation pending]\n\nThis feature will copy your conversation when fully implemented.";
-            
-            await navigator.clipboard.writeText(conversationText);
-            showToast('Conversation copied to clipboard');
-          } catch (err) {
-            console.error('Error copying conversation:', err);
-            showToast('Could not copy conversation. Please try again.');
-            return false;
-          }
+        confirmLabel: 'Close',
+        showCancel: false
+      });
+      
+      setupShareTabs(modal, summaryPrompt, fullPrompt);
+    }
+
+    function setupShareTabs(modal, summaryPrompt, fullPrompt) {
+      const optionSummary = modal.querySelector('#optionSummary');
+      const optionFull = modal.querySelector('#optionFull');
+      const optionRange = modal.querySelector('#optionRange');
+      
+      const summaryInstructions = modal.querySelector('#summaryInstructions');
+      const fullInstructions = modal.querySelector('#fullInstructions');
+      const rangeInstructions = modal.querySelector('#rangeInstructions');
+      
+      function switchTab(tab) {
+        document.querySelectorAll('.share-option').forEach(btn => {
+          btn.style.background = 'transparent';
+          btn.style.borderColor = 'var(--border-color)';
+        });
+        
+        summaryInstructions.style.display = 'none';
+        fullInstructions.style.display = 'none';
+        rangeInstructions.style.display = 'none';
+        
+        if (tab === 'summary') {
+          optionSummary.style.background = 'var(--sage-light)';
+          optionSummary.style.borderColor = 'var(--sage)';
+          summaryInstructions.style.display = 'block';
+        } else if (tab === 'full') {
+          optionFull.style.background = 'var(--sage-light)';
+          optionFull.style.borderColor = 'var(--sage)';
+          fullInstructions.style.display = 'block';
+        } else if (tab === 'range') {
+          optionRange.style.background = 'var(--sage-light)';
+          optionRange.style.borderColor = 'var(--sage)';
+          rangeInstructions.style.display = 'block';
+        }
+      }
+      
+      optionSummary.addEventListener('click', () => switchTab('summary'));
+      optionFull.addEventListener('click', () => switchTab('full'));
+      optionRange.addEventListener('click', () => switchTab('range'));
+      
+      const copySummaryBtn = modal.querySelector('#copySummaryBtn');
+      const copyFullBtn = modal.querySelector('#copyFullBtn');
+      const copyRangeBtn = modal.querySelector('#copyRangeBtn');
+      
+      copySummaryBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(summaryPrompt);
+        if (success) {
+          copySummaryBtn.textContent = '✓ Copied!';
+          copySummaryBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copySummaryBtn.textContent = '📋 Copy Message';
+            copySummaryBtn.style.background = '';
+          }, 2000);
         }
       });
+      
+      copyFullBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(fullPrompt);
+        if (success) {
+          copyFullBtn.textContent = '✓ Copied!';
+          copyFullBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copyFullBtn.textContent = '📋 Copy Message';
+            copyFullBtn.style.background = '';
+          }, 2000);
+        }
+      });
+      
+      copyRangeBtn.addEventListener('click', async function() {
+        const startTurn = modal.querySelector('#rangeStart').value;
+        const endTurn = modal.querySelector('#rangeEnd').value;
+        const rangePrompt = `Alo, please provide turns ${startTurn} through ${endTurn} of our conversation in a clean, readable format that I can share.`;
+        
+        const success = await copyToClipboard(rangePrompt);
+        if (success) {
+          copyRangeBtn.textContent = '✓ Copied!';
+          copyRangeBtn.style.background = '#10b981';
+          setTimeout(function() {
+            copyRangeBtn.textContent = '📋 Copy Range Message';
+            copyRangeBtn.style.background = '';
+          }, 2000);
+        }
+      });
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+      }
     }
 
     // =====================================================
@@ -590,35 +790,28 @@ console.log('[UI] showConnectedUI() complete');
       const text = await response.text();
       return text ? JSON.parse(text) : null;
     }
+
     // =====================================================
     // LOAD CONNECTED STATE
     // =====================================================
     async function loadConnectedState() {
-  console.log('[AUTH] loadConnectedState() called');
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log('[AUTH] Supabase user:', user ? 'FOUND' : 'NULL');
-    
-    if (!user) {
-      console.log('[AUTH] No user, resetting to guest UI');
-      resetToGuestUI();
-      return;
-    }
-    
-    console.log('[AUTH] User ID:', user.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          resetToGuestUI();
+          return;
+        }
 
         const links = await api(`/rest/v1/therapist_client_links?client_id=eq.${user.id}&status=eq.active`);
-console.log('[AUTH] Therapist links:', links ? links.length : 'NULL');
 
-if (!links || links.length === 0) {
-  console.log('[AUTH] No therapist link, showing logged in state');
-  showLoggedInNoConnection();
-  return;
-}
+        if (!links || links.length === 0) {
+          showLoggedInNoConnection();
+          return;
+        }
 
-therapistLink = links[0];
-clientId = user.id;
-console.log('[AUTH] Connected! Therapist ID:', therapistLink.therapist_id);
+        therapistLink = links[0];
+        clientId = user.id;
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
@@ -629,43 +822,23 @@ console.log('[AUTH] Connected! Therapist ID:', therapistLink.therapist_id);
         const settings = await api(`/rest/v1/therapist_client_links?id=eq.${therapistLink.id}&select=messaging_enabled`);
         chatSettings = settings?.[0] || {};
 
-        console.log('[AUTH] Calling showConnectedUI with:', therapistName, clientName);
-showConnectedUI(therapistName, clientName);
-await loadHomework();
+        showConnectedUI(therapistName, clientName);
+        await loadHomework();
 
       } catch (err) {
-  console.error('[AUTH] Error loading connected state:', err);
-  console.error('[AUTH] Stack:', err.stack);
-}
-    }
-
-    function resetToGuestUI() {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      badge.className = 'trust-badge guest';
-      badgeText.textContent = '';
-      
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
-      
-      document.getElementById('connectBtn').classList.remove('hidden');
-      document.getElementById('logoutBtn').classList.add('hidden');
-      document.getElementById('messageBtn').classList.add('hidden');
-      document.getElementById('privacyBtn').classList.add('hidden');
-      document.getElementById('homeworkContainer').classList.remove('show');
+        console.error('Error loading connected state:', err);
+      }
     }
 
     // =====================================================
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
-  console.log('[INIT] Page loaded, checking auth state');
-  
-  const iframe = document.getElementById('aloFrame');
-  const loadingOverlay = document.getElementById('loadingOverlay');
-  let loadTimeout;
+      const iframe = document.getElementById('aloFrame');
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      let loadTimeout;
 
-  iframe.addEventListener('load', function() {
+      iframe.addEventListener('load', function() {
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
       });
@@ -675,7 +848,7 @@ await loadHomework();
           <div class="error-message">
             <p><strong>Still loading...</strong></p>
             <p>This is taking longer than usual. Let's try again.</p>
-            <button onclick="location.reload()">Retry</button>
+            <button onclick="location.reload()" class="btn-primary">Retry</button>
             <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
               Need help now? Call <a href="tel:988" style="color: var(--text-primary);">988</a>
             </p>
@@ -759,17 +932,22 @@ await loadHomework();
         });
       });
 
-      // Check for existing session
-const { data: { session } } = await supabase.auth.getSession();
-console.log('[INIT] Session check:', session ? 'FOUND' : 'NULL');
+      // Listen for auth state changes
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN') {
+          loadConnectedState();
+        } else if (event === 'SIGNED_OUT') {
+          resetToGuestUI();
+        }
+      });
 
-if (session) {
-  console.log('[INIT] Valid session, loading connected state');
-  await loadConnectedState();
-} else {
-  console.log('[INIT] No session, staying in guest mode');
-}
-});
+      // Check for existing session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        await loadConnectedState();
+      }
+    });
   </script>
 </body>
 </html>
