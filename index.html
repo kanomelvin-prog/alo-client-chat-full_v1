@@ -389,6 +389,9 @@
             style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;" 
             autocomplete="off" />
         </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 16px; text-align: center;">
+          Already have an account? <button class="btn-link" onclick="document.querySelector('.modal-overlay').remove(); showLoginModal();" style="background: none; border: none; color: var(--sage); cursor: pointer; font-size: 13px; text-decoration: underline;">Sign in</button>
+        </p>
       `, {
         confirmLabel: 'Connect',
         cancelLabel: 'Maybe later',
