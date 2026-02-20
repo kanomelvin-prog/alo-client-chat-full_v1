@@ -412,7 +412,7 @@
       }
 
       try {
-        const link = await api(`/rest/v1/therapist_client_links?invite_code=eq.${inviteCode}&status=eq.pending`);
+        const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
         
         if (!link || link.length === 0) {
           showToast('Invalid invite code');
@@ -420,7 +420,7 @@
         }
 
         const linkId = link[0].id;
-        await api(`/rest/v1/therapist_client_links?id=eq.${linkId}`, 'PATCH', {
+        await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
           client_id: user.id,
           status: 'active'
         });
@@ -803,7 +803,7 @@
           return;
         }
 
-        const links = await api(`/rest/v1/therapist_client_links?client_id=eq.${user.id}&status=eq.active`);
+        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
 
         if (!links || links.length === 0) {
           showLoggedInNoConnection();
@@ -819,7 +819,7 @@
         const therapistName = therapist?.[0]?.display_name || 'Your therapist';
         const clientName = client?.[0]?.display_name || 'there';
 
-        const settings = await api(`/rest/v1/therapist_client_links?id=eq.${therapistLink.id}&select=messaging_enabled`);
+        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=messaging_enabled`);
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
