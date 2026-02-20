@@ -105,7 +105,14 @@
   <script>
     const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgwMTIyOTEsImV4cCI6MjA1MzU4ODI5MX0.VW0LhR-X31KCN9j8KOcQbPBTXzFxGxf6rOjY8pM';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    storage: window.localStorage,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
     let clientId = null;
     let therapistLink = null;
@@ -652,11 +659,13 @@ await loadHomework();
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
-      const iframe = document.getElementById('aloFrame');
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      let loadTimeout;
+  console.log('[INIT] Page loaded, checking auth state');
+  
+  const iframe = document.getElementById('aloFrame');
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  let loadTimeout;
 
-      iframe.addEventListener('load', function() {
+  iframe.addEventListener('load', function() {
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
       });
@@ -750,7 +759,17 @@ await loadHomework();
         });
       });
 
-      await loadConnectedState();
+      // Check for existing session
+const { data: { session } } = await supabase.auth.getSession();
+console.log('[INIT] Session check:', session ? 'FOUND' : 'NULL');
+
+if (session) {
+  console.log('[INIT] Valid session, loading connected state');
+  await loadConnectedState();
+} else {
+  console.log('[INIT] No session, staying in guest mode');
+}
+});
     });
   </script>
 </body>
