@@ -95,6 +95,7 @@ header {
 
 .brand-text {
   min-width: 0;
+  overflow: visible;
 }
 
 .brand-name {
@@ -140,7 +141,8 @@ header {
   border-radius: 10px;
   font-weight: 600;
   white-space: nowrap;
-  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .trust-badge svg {
