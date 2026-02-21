@@ -701,7 +701,7 @@
             await api('/rest/v1/client_messages', 'POST', {
               client_id: clientId,
               therapist_id: therapistLink.therapist_id,
-              message: messageText,
+              content: messageText,
               read: false
             });
 
