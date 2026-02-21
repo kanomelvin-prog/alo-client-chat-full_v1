@@ -26,7 +26,7 @@
   <meta property="og:image" content="https://kanomelvin-prog.github.io/alo-client-chat-full_v1/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta name="description" content="Alo is a private emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
+  <meta name="description" content="Alo is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alo — Someone to think out loud with</title>
   <link rel="stylesheet" href="styles.css">
@@ -58,7 +58,7 @@
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
-    <span class="privacy-bar-text">Your conversations with Alo are private. No one else can see what you discuss here.</span>
+    <span class="privacy-bar-text">Your conversations with Alo are private. Your therapist cannot see what you discuss here.</span>
     <button class="privacy-bar-dismiss" id="privacyBarDismiss" aria-label="Dismiss">&times;</button>
   </div>
 
@@ -536,7 +536,7 @@
     function showConnectModal() {
       createModal('Link to Your Therapist', `
         <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
-        <p class="modal-hint">Your conversations with Alo stay completely private — your therapist never sees them.</p>
+        <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
         <div style="margin-top: 16px;">
           <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
           <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
@@ -727,17 +727,18 @@
           <li>Whether you're connected to Alo</li>
           <li>If you completed homework exercises</li>
           <li>Messages you send them directly</li>
+          <li>How often you use Alo (not what you discuss)</li>
         </ul>
         
         <h3 class="modal-section-title">What they never see</h3>
         <ul class="modal-list">
-          <li><strong>Your conversations with Alo</strong></li>
-          <li>What you talked about</li>
-          <li>How you're feeling</li>
+          <li><strong>Your conversations with Alo</strong> — there is no way for them to access these</li>
+          <li>What you talked about or how you're feeling</li>
+          <li>Only you decide what to share with your therapist</li>
         </ul>
         
         <p class="modal-divider">
-          Alo is a private space. Your therapist trusts you to share what matters when you're ready.
+          Alo is your space. Your therapist trusts you to share what matters when you're ready.
         </p>
       `, {
         confirmLabel: 'Got it',
@@ -1098,7 +1099,7 @@
       document.getElementById('privacyLink').addEventListener('click', function(e) {
         e.preventDefault();
         createModal('Privacy Policy', `
-          <h3 class="modal-section-title">What we collect</h3>
+          <h3 class="modal-section-title">What we store</h3>
           <ul class="modal-list">
             <li>Account information (email, password hash)</li>
             <li>Connection to your therapist</li>
@@ -1106,11 +1107,12 @@
             <li>Messages you send to your therapist</li>
           </ul>
 
-          <h3 class="modal-section-title">What we don't collect</h3>
+          <h3 class="modal-section-title">Your Alo conversations</h3>
           <ul class="modal-list">
-            <li><strong>Your conversations with Alo</strong></li>
-            <li>Chat transcripts or history</li>
-            <li>Personal details you share with Alo</li>
+            <li>Conversations are processed by our chat provider to power the experience</li>
+            <li>Chat data is <strong>not permanently stored</strong> — it is automatically deleted</li>
+            <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
+            <li>Conversations are not used for training, analytics, or advertising</li>
           </ul>
 
           <h3 class="modal-section-title">Who sees your data</h3>
@@ -1118,6 +1120,12 @@
             <li>Your therapist sees homework status and messages you send them</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
             <li>We don't sell or share your data with third parties</li>
+          </ul>
+
+          <h3 class="modal-section-title">Security</h3>
+          <ul class="modal-list">
+            <li>All data is encrypted at rest (AES-256) and in transit (TLS)</li>
+            <li>Access is controlled by row-level security policies</li>
           </ul>
 
           <p class="modal-divider">
