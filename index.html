@@ -316,7 +316,16 @@
         badge.insertBefore(svg, badgeText);
       }
       
-      badgeText.textContent = `Hi ${clientName} \u00B7 with ${therapistName}`;
+      badgeText.innerHTML = `Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">${clientName}</span> · with ${therapistName}`;
+      
+      const nameEl = document.getElementById('clientNameEditable');
+      nameEl.addEventListener('click', showNameEditModal);
+      nameEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          showNameEditModal();
+        }
+      });
       
       document.getElementById('connectBtn').classList.add('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
@@ -328,6 +337,45 @@
       } else {
         document.getElementById('messageBtn').classList.add('hidden');
       }
+    }
+
+    function showNameEditModal() {
+      const currentName = document.getElementById('clientNameEditable')?.textContent || '';
+      
+      createModal('What should we call you?', `
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">This is how you'll appear in Alo. Only you see this.</p>
+        <input type="text" id="nameEditInput" value="${currentName}" 
+          placeholder="Your preferred name"
+          style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;"
+          autocomplete="given-name" maxlength="50" />
+      `, {
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const newName = document.getElementById('nameEditInput').value.trim();
+          if (!newName) {
+            showToast('Please enter a name');
+            return false;
+          }
+
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return false;
+
+            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
+              display_name: newName
+            });
+
+            // Update badge immediately
+            document.getElementById('clientNameEditable').textContent = newName;
+            showToast('Name updated');
+          } catch (err) {
+            console.error('Name update error:', err);
+            showToast('Could not update name. Please try again.');
+            return false;
+          }
+        }
+      });
     }
 
     function resetToGuestUI() {
@@ -475,10 +523,23 @@
         }
 
         const linkId = link[0].id;
+        const therapistDisplayName = link[0].display_name || null;
+
         await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
           client_id: user.id,
           status: 'active'
         });
+
+        // Seed client profile with therapist's chosen name (client can change later)
+        if (therapistDisplayName) {
+          const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
+          const currentName = existingProfile?.[0]?.display_name;
+          if (!currentName || currentName === user.email?.split('@')[0]) {
+            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
+              display_name: therapistDisplayName
+            });
+          }
+        }
 
         showToast('Connected successfully!');
         await loadConnectedState();
@@ -881,7 +942,10 @@
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
 
         const therapistName = therapist?.[0]?.display_name || 'Your therapist';
-        const clientName = client?.[0]?.display_name || 'there';
+        // Fallback chain: client's own profile name → therapist's label → 'there'
+        const clientProfileName = client?.[0]?.display_name;
+        const therapistLabel = therapistLink.display_name;
+        const clientName = clientProfileName || therapistLabel || 'there';
 
         // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
         const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history`);
