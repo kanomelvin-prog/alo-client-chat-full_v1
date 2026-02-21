@@ -1007,9 +1007,10 @@
         await loadHomework();
 
         // Write session start to session_metadata (fire-and-forget)
+        const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         api('/rest/v1/session_metadata', 'POST', {
           client_id: clientId,
-          created_at: new Date().toISOString()
+          session_id: sessionId
         }).catch(err => console.error('Session metadata write failed:', err));
 
       } catch (err) {
