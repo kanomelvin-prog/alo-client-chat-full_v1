@@ -989,3 +989,18 @@ footer a {
     min-width: 0;
   }
 }
+.editable-name {
+  border-bottom: 1.5px dotted currentColor;
+  cursor: pointer;
+  padding-bottom: 1px;
+}
+
+.editable-name:hover {
+  opacity: 0.8;
+}
+
+.editable-name:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
