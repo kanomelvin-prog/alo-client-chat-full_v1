@@ -63,25 +63,8 @@
   </div>
 
   <main id="chatMain">
-    <!-- Homework card (hidden unless client has active homework) -->
-    <div id="homeworkContainer" class="homework-container">
-      <div class="homework-card" id="homeworkCard">
-        <div class="homework-header">
-          <div class="homework-title" id="homeworkTitle">From your therapist</div>
-          <button class="homework-collapse" id="homeworkCollapseBtn" 
-            aria-label="Toggle homework" 
-            aria-controls="homeworkBody" 
-            aria-expanded="true">−</button>
-        </div>
-        <div class="homework-body" id="homeworkBody">
-          <p id="homeworkGoal"></p>
-          <div class="homework-actions">
-            <button class="btn-primary" id="homeworkDoneBtn">✓ I did this</button>
-            <button class="btn-link" id="homeworkHideBtn">Hide for now</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Homework cards (hidden unless client has active homework) -->
+    <div id="homeworkContainer" class="homework-container"></div>
 
     <!-- Chat iframe -->
     <div class="chat-container">
@@ -139,6 +122,8 @@
     let clientId = null;
     let therapistLink = null;
     let chatSettings = {};
+    let connectedTherapistName = '';
+    let activeHomework = [];
     let currentHomeworkId = null;
 
     // =====================================================
@@ -293,45 +278,32 @@
     }
 
     function showConnectedUI(therapistName, clientName) {
+      connectedTherapistName = therapistName;
       const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
       
       badge.className = 'trust-badge connected';
       
-      if (!badge.querySelector('svg')) {
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('fill', 'none');
-        svg.setAttribute('viewBox', '0 0 24 24');
-        svg.setAttribute('stroke', 'currentColor');
-        svg.setAttribute('stroke-width', '2');
-        svg.style.width = '12px';
-        svg.style.height = '12px';
-        
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('stroke-linecap', 'round');
-        path.setAttribute('stroke-linejoin', 'round');
-        path.setAttribute('d', 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z');
-        
-        svg.appendChild(path);
-        badge.insertBefore(svg, badgeText);
-      }
-      
-      badgeText.innerHTML = `Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">${clientName}</span> · with ${therapistName}`;
+      const shieldSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
+
+      const withText = (clientName === therapistName) ? 'connected' : 'with ' + therapistName;
+
+      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + clientName + '</span> \u00B7 ' + withText + '</span>';
       
       const nameEl = document.getElementById('clientNameEditable');
-      nameEl.addEventListener('click', showNameEditModal);
-      nameEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          showNameEditModal();
-        }
-      });
+      if (nameEl) {
+        nameEl.addEventListener('click', showNameEditModal);
+        nameEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showNameEditModal();
+          }
+        });
+      }
       
       document.getElementById('connectBtn').classList.add('hidden');
       document.getElementById('logoutBtn').classList.remove('hidden');
       document.getElementById('privacyBtn').classList.remove('hidden');
       
-      // Enforce chat settings from dashboard
       if (chatSettings.allow_messages !== false) {
         document.getElementById('messageBtn').classList.remove('hidden');
       } else {
@@ -399,64 +371,144 @@
     // HOMEWORK
     // =====================================================
     async function loadHomework() {
-      // P1: Enforce chat settings — if therapist disabled homework visibility, skip
       if (chatSettings.allow_homework === false) {
         return;
       }
 
       try {
-        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc&limit=1`);
+        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc`);
         
-        if (homework && homework.length > 0) {
-          const hw = homework[0];
-          currentHomeworkId = hw.id;
-          document.getElementById('homeworkTitle').textContent = hw.title || 'From your therapist';
-          document.getElementById('homeworkGoal').textContent = hw.goal || '';
-          document.getElementById('homeworkContainer').classList.add('show');
+        if (!homework || homework.length === 0) {
+          document.getElementById('homeworkContainer').innerHTML = '';
+          document.getElementById('homeworkContainer').classList.remove('show');
+          return;
+        }
 
-          // P1: Track that client viewed this homework
-          if (!hw.viewed_at) {
+        activeHomework = homework;
+        const container = document.getElementById('homeworkContainer');
+        const therapistName = connectedTherapistName || 'your therapist';
+
+        container.innerHTML = homework.map(function(hw) {
+          return '<div class="homework-card" id="hwCard-' + hw.id + '" data-hw-id="' + hw.id + '">' +
+            '<div class="homework-header">' +
+              '<div>' +
+                '<div class="homework-from">From ' + therapistName + '</div>' +
+                '<h3 class="homework-title">' + (hw.title || 'Practice exercise') + '</h3>' +
+              '</div>' +
+              '<button class="homework-collapse" aria-label="Collapse homework details" aria-expanded="true" data-hw-id="' + hw.id + '">\u2212</button>' +
+            '</div>' +
+            '<div class="homework-body" id="hwBody-' + hw.id + '">' +
+              (hw.homework_type ? '<span class="homework-type-tag">' + hw.homework_type + '</span>' : '') +
+              '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
+              '<div class="homework-actions">' +
+                '<button class="btn-primary homework-done-btn" data-hw-id="' + hw.id + '">Mark complete</button>' +
+                '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Hide for now</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        container.classList.add('show');
+
+        // Attach event listeners
+        container.querySelectorAll('.homework-collapse').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var hwId = this.dataset.hwId;
+            var body = document.getElementById('hwBody-' + hwId);
+            var isCollapsed = body.classList.contains('collapsed');
+            body.classList.toggle('collapsed');
+            this.textContent = isCollapsed ? '\u2212' : '+';
+            this.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+            this.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
+          });
+        });
+
+        container.querySelectorAll('.homework-done-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            handleHomeworkDone(this.dataset.hwId);
+          });
+        });
+
+        container.querySelectorAll('.homework-hide-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            handleHomeworkHide(this.dataset.hwId);
+          });
+        });
+
+        // Write viewed_at for any homework not yet viewed
+        for (var i = 0; i < homework.length; i++) {
+          if (!homework[i].viewed_at) {
             try {
-              await api(`/rest/v1/homework_cards?id=eq.${hw.id}`, 'PATCH', {
+              await api('/rest/v1/homework_cards?id=eq.' + homework[i].id, 'PATCH', {
                 viewed_at: new Date().toISOString()
               });
             } catch (viewErr) {
-              console.error('Error tracking homework view:', viewErr);
+              console.error('Error writing viewed_at:', viewErr);
             }
           }
         }
+
       } catch (err) {
         console.error('Error loading homework:', err);
       }
     }
 
-    async function handleHomeworkDone() {
+    function handleHomeworkDone(hwId) {
       showConfirm(
-        'Mark as complete?',
-        'Nice work. This lets your therapist know you engaged with this exercise.',
+        'Nice work!',
+        'This will be marked as complete.',
         {
-          confirmLabel: 'Yes, I did this',
+          confirmLabel: 'Done',
           cancelLabel: 'Not yet'
         }
-      ).then(async (confirmed) => {
-        if (confirmed && currentHomeworkId) {
-          try {
-            // P0: Actually write completion to Supabase
-            await api(`/rest/v1/homework_cards?id=eq.${currentHomeworkId}`, 'PATCH', {
-              is_active: false,
-              completed_at: new Date().toISOString()
-            });
-            showToast('Marked complete');
-            document.getElementById('homeworkContainer').classList.remove('show');
-          } catch (err) {
-            console.error('Error completing homework:', err);
-            showToast('Could not save. Please try again.');
+      ).then(async function(confirmed) {
+        if (!confirmed) return;
+
+        var card = document.getElementById('hwCard-' + hwId);
+        
+        try {
+          await api('/rest/v1/homework_cards?id=eq.' + hwId, 'PATCH', {
+            is_active: false,
+            completed_at: new Date().toISOString()
+          });
+
+          if (card) {
+            var body = card.querySelector('.homework-body');
+            card.classList.add('completed');
+            if (body) body.innerHTML = '<p class="homework-complete-note">Completed just now</p>';
+            
+            setTimeout(function() {
+              if (body) body.classList.add('collapsed');
+              var collapseBtn = card.querySelector('.homework-collapse');
+              if (collapseBtn) {
+                collapseBtn.textContent = '+';
+                collapseBtn.setAttribute('aria-expanded', 'false');
+              }
+            }, 3000);
           }
-        } else if (confirmed && !currentHomeworkId) {
-          showToast('Marked complete');
-          document.getElementById('homeworkContainer').classList.remove('show');
+
+          showToast('Marked complete \u2014 nice work!');
+        } catch (err) {
+          console.error('Error completing homework:', err);
+          showToast('Could not save. Please try again.');
         }
       });
+    }
+
+    function handleHomeworkHide(hwId) {
+      var card = document.getElementById('hwCard-' + hwId);
+      if (!card) return;
+
+      var body = card.querySelector('.homework-body');
+      if (body) body.classList.add('collapsed');
+      card.classList.add('minimized');
+      
+      var collapseBtn = card.querySelector('.homework-collapse');
+      if (collapseBtn) {
+        collapseBtn.textContent = '+';
+        collapseBtn.setAttribute('aria-expanded', 'false');
+        collapseBtn.setAttribute('aria-label', 'Expand homework details');
+      }
     }
 
     // =====================================================
@@ -1014,21 +1066,7 @@
       document.getElementById('messageBtn').addEventListener('click', showMessageModal);
       document.getElementById('shareChat').addEventListener('click', showShareModal);
       
-      document.getElementById('homeworkDoneBtn').addEventListener('click', handleHomeworkDone);
-      
-      document.getElementById('homeworkCollapseBtn').addEventListener('click', function() {
-        const body = document.getElementById('homeworkBody');
-        const btn = this;
-        const isCollapsed = body.classList.contains('collapsed');
-        body.classList.toggle('collapsed');
-        btn.textContent = isCollapsed ? '\u2212' : '+';
-        btn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
-      });
-
-      document.getElementById('homeworkHideBtn').addEventListener('click', function() {
-        document.getElementById('homeworkContainer').classList.remove('show');
-        showToast('Hidden for now. Tap here to see it again when you\u2019re ready.');
-      });
+      // Homework event listeners are attached dynamically in loadHomework()
 
       document.getElementById('termsLink').addEventListener('click', function(e) {
         e.preventDefault();
