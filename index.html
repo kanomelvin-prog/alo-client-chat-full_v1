@@ -680,7 +680,7 @@
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
-      const therapistName = therapistLink ? document.getElementById('trustBadgeText').textContent.split('with ')[1] : 'your therapist';
+      const therapistName = connectedTherapistName || 'your therapist';
       
       createModal(`Message ${therapistName}`, `
         <p class="modal-subtext">
@@ -719,7 +719,7 @@
     // PRIVACY MODAL
     // =====================================================
     function showPrivacyModal() {
-      const therapistName = document.getElementById('trustBadgeText').textContent.split('with ')[1] || 'your therapist';
+      const therapistName = connectedTherapistName || 'your therapist';
       
       createModal('Your Privacy', `
         <h3 class="modal-section-title">What ${therapistName} sees</h3>
@@ -1005,6 +1005,12 @@
 
         showConnectedUI(therapistName, clientName);
         await loadHomework();
+
+        // Write session start to session_metadata (fire-and-forget)
+        api('/rest/v1/session_metadata', 'POST', {
+          client_id: clientId,
+          created_at: new Date().toISOString()
+        }).catch(err => console.error('Session metadata write failed:', err));
 
       } catch (err) {
         console.error('Error loading connected state:', err);
