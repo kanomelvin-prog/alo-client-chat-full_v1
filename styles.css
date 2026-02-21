@@ -120,16 +120,12 @@ header {
 
 /* === TRUST BADGE === */
 .trust-badge {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 4px;
   margin-top: 4px;
-  max-width: 240px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .trust-badge.guest {
@@ -137,18 +133,20 @@ header {
 }
 
 .trust-badge.connected {
-  display: flex;
+  display: inline-flex;
   background: var(--sage-light);
   color: var(--sage-dark);
   padding: 3px 10px;
   border-radius: 10px;
   font-weight: 600;
-  font-size: 12px;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .trust-badge svg {
   width: 12px;
   height: 12px;
+  flex-shrink: 0;
 }
 
 /* === PRIVACY ASSURANCE BAR === */
@@ -269,10 +267,10 @@ main {
   flex-direction: column;
 }
 
-/* === HOMEWORK CARD === */
+/* === HOMEWORK CARDS === */
 .homework-container {
   flex-shrink: 0;
-  padding: 12px 20px;
+  padding: 8px 20px;
   padding-left: max(20px, env(safe-area-inset-left));
   padding-right: max(20px, env(safe-area-inset-right));
   background: var(--warm-bg);
@@ -280,30 +278,57 @@ main {
   display: none;
 }
 
-.homework-container.show { display: block; }
+.homework-container.show { 
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .homework-card {
   background: var(--white);
   border: 1px solid var(--border-subtle);
   border-left: 4px solid var(--sage);
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06);
+  transition: opacity 0.3s ease, border-left-color 0.3s ease;
+}
+
+.homework-from {
+  font-size: 0.6875rem;
+  color: var(--sage);
+  font-weight: 500;
+  margin-bottom: 2px;
 }
 
 .homework-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .homework-title {
-  font-size: 0.75rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.homework-type-tag {
+  display: inline-block;
+  font-size: 0.6875rem;
+  color: var(--sage-hover);
+  background: var(--sage-light);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.homework-goal {
+  margin: 0;
 }
 
 .homework-collapse {
@@ -319,25 +344,41 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .homework-body {
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--text-primary);
+  margin-top: 8px;
 }
 
 .homework-body.collapsed { display: none; }
 
 .homework-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
   margin-top: 12px;
 }
 
+@media (min-width: 480px) {
+  .homework-actions {
+    flex-direction: row;
+  }
+}
+
 .homework-actions .btn-primary {
   font-size: 13px;
-  padding: 8px 16px;
+  padding: 10px 16px;
+}
+
+.homework-actions .btn-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* === CHAT IFRAME === */
@@ -902,20 +943,42 @@ footer a {
   font-size: 16px;
 }
 
-/* === HOMEWORK COMPLETE STATE === */
+/* === HOMEWORK STATES === */
 .homework-card.completed {
-  opacity: 0.75;
-  border-left-color: var(--text-muted);
+  border-left-color: var(--success);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.homework-card.completed .homework-from {
+  color: var(--success);
+}
+
+.homework-card.completed .homework-title::before {
+  content: '\2713 ';
+  color: var(--success);
 }
 
 .homework-card.completed .homework-title {
-  color: var(--sage);
+  color: var(--text-secondary);
 }
 
 .homework-complete-note {
   font-size: 0.8125rem;
   color: var(--text-muted);
   margin-top: 4px;
+  font-style: italic;
+}
+
+.homework-card.minimized {
+  padding: 10px 16px;
+}
+
+.homework-card.minimized .homework-from {
+  display: none;
+}
+
+.homework-card.minimized .homework-header {
+  margin-bottom: 0;
 }
 
 /* === HIDDEN UTILITY === */
@@ -977,7 +1040,7 @@ footer a {
 
 @media (max-width: 400px) {
   .brand-text span { display: none; }
-  .trust-badge { max-width: 160px; }
+  .trust-badge.connected { font-size: 10px; }
   
   .header-actions {
     gap: 6px;
