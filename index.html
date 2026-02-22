@@ -813,7 +813,7 @@
     // =====================================================
     function showShareModal() {
       const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
-      const fullPrompt = `Alo, please provide a complete transcript of our entire conversation in a clean, readable format that I can share.`;
+      const recapPrompt = `Alo, please reconstruct our conversation as a back-and-forth recap in "You said... Alo said..." format. Keep it concise — paraphrase rather than quoting exactly. Include the key moments and turning points.`;
       
       const modal = createModal('Share Your Conversation', `
         <div class="share-options">
@@ -821,13 +821,9 @@
             <span class="share-option-icon">\u{1F4DD}</span>
             <span class="share-option-label">Summary</span>
           </button>
-          <button class="share-option" id="optionFull">
-            <span class="share-option-icon">\u{1F4C4}</span>
-            <span class="share-option-label">Full</span>
-          </button>
-          <button class="share-option" id="optionRange">
-            <span class="share-option-icon">\u{1F3AF}</span>
-            <span class="share-option-label">Range</span>
+          <button class="share-option" id="optionRecap">
+            <span class="share-option-icon">\u{1F4AC}</span>
+            <span class="share-option-label">Recap</span>
           </button>
         </div>
         
@@ -848,96 +844,63 @@
             </div>
           </div>
           
-          <div id="fullInstructions" style="display: none;">
+          <div id="recapInstructions" style="display: none;">
             <p class="share-instructions">
-              Get a complete transcript of everything discussed
+              Get a back-and-forth recap of what you discussed
             </p>
             <ol class="share-steps">
               <li>Copy the message below</li>
               <li>Paste it into chat</li>
-              <li>Alo creates full transcript</li>
+              <li>Alo reconstructs the conversation</li>
               <li>Long-press to copy &amp; share</li>
             </ol>
             <div class="share-prompt-box">
-              <textarea readonly id="fullPromptText" class="share-prompt-textarea">${fullPrompt}</textarea>
-              <button id="copyFullBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
+              <textarea readonly id="recapPromptText" class="share-prompt-textarea">${recapPrompt}</textarea>
+              <button id="copyRecapBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
             </div>
             <p class="share-hint">
-              \u{1F4A1} Full transcripts are long — summary is usually better for sharing
-            </p>
-          </div>
-          
-          <div id="rangeInstructions" style="display: none;">
-            <p class="share-instructions">
-              Share specific parts (example: turns 3-8)
-            </p>
-            <div class="range-inputs">
-              <div class="range-field">
-                <label for="rangeStart">Start:</label>
-                <input type="number" id="rangeStart" min="1" value="1">
-              </div>
-              <div class="range-field">
-                <label for="rangeEnd">End:</label>
-                <input type="number" id="rangeEnd" min="1" value="10">
-              </div>
-            </div>
-            <button id="copyRangeBtn" class="btn-primary" style="width: 100%;">
-              \u{1F4CB} Copy Range Message
-            </button>
-            <p class="share-hint">
-              \u{1F4A1} Count message bubbles to find turn numbers
+              \u{1F4A1} This is a paraphrased reconstruction, not an exact transcript
             </p>
           </div>
         </div>
         
         <p class="share-footer-note">
-          <strong>How to share:</strong> After Alo creates your summary/transcript, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
+          <strong>How to share:</strong> After Alo creates your summary or recap, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
         </p>
       `, {
         confirmLabel: 'Close',
         showCancel: false
       });
       
-      setupShareTabs(modal, summaryPrompt, fullPrompt);
+      setupShareTabs(modal, summaryPrompt, recapPrompt);
     }
 
-    function setupShareTabs(modal, summaryPrompt, fullPrompt) {
+    function setupShareTabs(modal, summaryPrompt, recapPrompt) {
       const optionSummary = modal.querySelector('#optionSummary');
-      const optionFull = modal.querySelector('#optionFull');
-      const optionRange = modal.querySelector('#optionRange');
+      const optionRecap = modal.querySelector('#optionRecap');
       
       const summaryInstructions = modal.querySelector('#summaryInstructions');
-      const fullInstructions = modal.querySelector('#fullInstructions');
-      const rangeInstructions = modal.querySelector('#rangeInstructions');
+      const recapInstructions = modal.querySelector('#recapInstructions');
       
       function switchTab(tab) {
-        [optionSummary, optionFull, optionRange].forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
+        [optionSummary, optionRecap].forEach(btn => btn.classList.remove('active'));
         summaryInstructions.style.display = 'none';
-        fullInstructions.style.display = 'none';
-        rangeInstructions.style.display = 'none';
+        recapInstructions.style.display = 'none';
         
         if (tab === 'summary') {
           optionSummary.classList.add('active');
           summaryInstructions.style.display = 'block';
-        } else if (tab === 'full') {
-          optionFull.classList.add('active');
-          fullInstructions.style.display = 'block';
-        } else if (tab === 'range') {
-          optionRange.classList.add('active');
-          rangeInstructions.style.display = 'block';
+        } else if (tab === 'recap') {
+          optionRecap.classList.add('active');
+          recapInstructions.style.display = 'block';
         }
       }
       
       optionSummary.addEventListener('click', () => switchTab('summary'));
-      optionFull.addEventListener('click', () => switchTab('full'));
-      optionRange.addEventListener('click', () => switchTab('range'));
+      optionRecap.addEventListener('click', () => switchTab('recap'));
       
       const copySummaryBtn = modal.querySelector('#copySummaryBtn');
-      const copyFullBtn = modal.querySelector('#copyFullBtn');
-      const copyRangeBtn = modal.querySelector('#copyRangeBtn');
+      const copyRecapBtn = modal.querySelector('#copyRecapBtn');
       
       copySummaryBtn.addEventListener('click', async function() {
         const success = await copyToClipboard(summaryPrompt);
@@ -951,30 +914,14 @@
         }
       });
       
-      copyFullBtn.addEventListener('click', async function() {
-        const success = await copyToClipboard(fullPrompt);
+      copyRecapBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(recapPrompt);
         if (success) {
-          copyFullBtn.textContent = '\u2713 Copied!';
-          copyFullBtn.style.background = '#10b981';
+          copyRecapBtn.textContent = '\u2713 Copied!';
+          copyRecapBtn.style.background = '#10b981';
           setTimeout(function() {
-            copyFullBtn.textContent = '\u{1F4CB} Copy Message';
-            copyFullBtn.style.background = '';
-          }, 2000);
-        }
-      });
-      
-      copyRangeBtn.addEventListener('click', async function() {
-        const startTurn = modal.querySelector('#rangeStart').value;
-        const endTurn = modal.querySelector('#rangeEnd').value;
-        const rangePrompt = `Alo, please provide turns ${startTurn} through ${endTurn} of our conversation in a clean, readable format that I can share.`;
-        
-        const success = await copyToClipboard(rangePrompt);
-        if (success) {
-          copyRangeBtn.textContent = '\u2713 Copied!';
-          copyRangeBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copyRangeBtn.textContent = '\u{1F4CB} Copy Range Message';
-            copyRangeBtn.style.background = '';
+            copyRecapBtn.textContent = '\u{1F4CB} Copy Message';
+            copyRecapBtn.style.background = '';
           }, 2000);
         }
       });
