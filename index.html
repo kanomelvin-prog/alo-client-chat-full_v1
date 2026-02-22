@@ -46,7 +46,10 @@
     </div>
     <div class="header-actions">
       <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
-      <button id="connectBtn" class="btn-primary">Link to Therapist</button>
+      <div id="guestAuthActions" class="guest-auth-actions">
+        <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
+        <button id="connectBtn" class="btn-link" onclick="showConnectModal()">New? Link to Therapist</button>
+      </div>
       <button id="moreBtn" class="more-btn hidden" onclick="toggleMoreMenu()" aria-label="More options" aria-haspopup="true" aria-expanded="false">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></svg>
       </button>
@@ -294,7 +297,9 @@
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
       
-      document.getElementById('connectBtn').classList.remove('hidden');
+      document.getElementById('guestAuthActions').classList.remove('hidden');
+      document.getElementById('signInBtn').classList.add('hidden');
+      document.getElementById('connectBtn').className = 'btn-primary';
       document.getElementById('connectBtn').textContent = 'Link to Therapist';
       document.getElementById('moreBtn').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
@@ -323,7 +328,7 @@
         });
       }
       
-      document.getElementById('connectBtn').classList.add('hidden');
+      document.getElementById('guestAuthActions').classList.add('hidden');
       document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('moreBtn').classList.remove('hidden');
       
@@ -421,8 +426,10 @@
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
       
-      document.getElementById('connectBtn').classList.remove('hidden');
-      document.getElementById('connectBtn').textContent = 'Link to Therapist';
+      document.getElementById('guestAuthActions').classList.remove('hidden');
+      document.getElementById('signInBtn').classList.remove('hidden');
+      document.getElementById('connectBtn').className = 'btn-link';
+      document.getElementById('connectBtn').textContent = 'New? Link to Therapist';
       document.getElementById('shareGuestBtn').classList.remove('hidden');
       document.getElementById('moreBtn').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
@@ -1081,9 +1088,7 @@
       // Privacy bar
       initPrivacyBar();
 
-      // Event listeners
-      document.getElementById('connectBtn').addEventListener('click', showConnectModal);
-      // More menu actions use inline onclick handlers
+      // Sign In and Connect use inline onclick handlers
       // Close more menu on Escape key
       document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
