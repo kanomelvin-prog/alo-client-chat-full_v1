@@ -1,1183 +1,2446 @@
-<!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.4 — Feb 20, 2026 — 16-persona review P0+P1 fixes -->
-<!-- Changes: border-color fix, profiles on signup, homework writes to DB,
-     chat settings enforcement, privacy bar, header warmth, microcopy improvements,
-     homework viewed tracking, inline styles moved to CSS classes -->
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Alo">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#FDFBF7">
-  
-  <!-- Preconnect hints for faster iframe load -->
-  <link rel="preconnect" href="https://cdn.botpress.cloud">
-  <link rel="preconnect" href="https://files.bpcontent.cloud">
-  
-  <!-- Open Graph — link preview when therapist texts URL to client -->
-  <meta property="og:title" content="Alo — Someone to think out loud with">
-  <meta property="og:description" content="A private space to process your thoughts and emotions. Your therapist recommended Alo as a companion between sessions.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://kanomelvin-prog.github.io/alo-client-chat-full_v1/">
-  <meta property="og:image" content="https://kanomelvin-prog.github.io/alo-client-chat-full_v1/og-image.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="description" content="Alo is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
-  
-  <title>Alo — Someone to think out loud with</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-  <header>
-    <div class="brand">
-      <div class="brand-icon">A</div>
-      <div class="brand-text">
-        <h1 class="brand-name">Alo</h1>
-        <span>Someone to think out loud with</span>
-      </div>
-    </div>
-    <div class="header-actions">
-      <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
-      <div id="guestAuthActions" class="guest-auth-actions">
-        <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
-      </div>
-      <div id="connectedActions" class="connected-actions hidden">
-        <div id="trustBadge" class="trust-badge">
-          <span id="trustBadgeText"></span>
-        </div>
-        <button id="moreBtn" class="more-btn" onclick="toggleMoreMenu()" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- More menu (hidden by default) -->
-  <div id="moreMenu" class="more-menu hidden">
-    <div class="more-menu-backdrop" onclick="toggleMoreMenu()"></div>
-    <div class="more-menu-panel" role="menu" aria-label="More options">
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-        Share
-      </button>
-      <button class="more-menu-item" role="menuitem" id="moreMessageBtn" onclick="toggleMoreMenu(); showMessageModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        Message Therapist
-      </button>
-      <div class="more-menu-divider" role="separator"></div>
-      <button class="more-menu-item more-menu-logout" role="menuitem" onclick="toggleMoreMenu(); handleLogout()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Log Out
-      </button>
-    </div>
-  </div>
-
-  <!-- Privacy assurance bar — shown on first visit, dismissible -->
-  <div id="privacyBar" class="privacy-bar">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-    </svg>
-    <span class="privacy-bar-text">Your conversations with Alo are private. Your therapist cannot see what you discuss here.</span>
-    <button class="privacy-bar-dismiss" id="privacyBarDismiss" aria-label="Dismiss">&times;</button>
-  </div>
-
-  <main id="chatMain">
-    <!-- Homework cards (hidden unless client has active homework) -->
-    <div id="homeworkContainer" class="homework-container"></div>
-
-    <!-- Chat iframe -->
-    <div class="chat-container">
-      <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-message">
-          <div class="spinner"></div>
-          <p>Loading Alo...</p>
-        </div>
-      </div>
-      
-      <iframe
-        id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/22/17/20260222174720-BP855SU3.json"
-        allow="clipboard-read; clipboard-write"
-        title="Alo Chat Interface"
-        aria-label="Chatbot Conversation Window"
-      ></iframe>
-    </div>
-  </main>
-
-  <footer>
-    <div class="crisis-notice">
-      Alo helps you think — not a therapist or doctor. <span class="crisis-link">Need help now?</span> <a href="tel:988">988 US</a>.
-    </div>
-    <div class="footer-links">
-      <a href="#" id="termsLink">Terms</a>
-      <a href="#" id="privacyLink">Privacy Policy</a>
-    </div>
-  </footer>
-
-  <!-- Modals container -->
-  <div id="modalsContainer"></div>
-
-  <!-- Toast container -->
-  <div id="toastContainer" class="toast-container"></div>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-  <script>
-    // =====================================================
-    // CONFIG
-    // =====================================================
-    const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MDk1NDUsImV4cCI6MjA3OTE4NTU0NX0.mm1POxfEEoRXyTF08NsUZOau6qA_UdZJnoUH_5bkQas';
-    
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        persistSession: true,
-        storage: window.localStorage,
-        storageKey: 'alo_client_session',
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
-
-    let clientId = null;
-    let therapistLink = null;
-    let chatSettings = {};
-    let connectedTherapistName = '';
-    let activeHomework = [];
-    let currentHomeworkId = null;
-
-    // =====================================================
-    // TOAST NOTIFICATIONS
-    // =====================================================
-    function showToast(message, duration = 3000) {
-      const container = document.getElementById('toastContainer');
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = message;
-      container.appendChild(toast);
-
-      setTimeout(() => toast.classList.add('show'), 10);
-      setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-      }, duration);
-    }
-
-    // =====================================================
-    // MODAL SYSTEM
-    // =====================================================
-    function createModal(title, bodyHTML, options = {}) {
-      const {
-        confirmLabel = 'Confirm',
-        cancelLabel = 'Cancel',
-        onConfirm = null,
-        onCancel = null,
-        showCancel = true,
-        dangerous = false
-      } = options;
-
-      const modalId = 'modal-' + Date.now();
-      const modalHTML = `
-        <div class="modal-overlay" id="${modalId}" role="dialog" aria-modal="true" aria-labelledby="${modalId}-title">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h2 id="${modalId}-title">${title}</h2>
-              <button class="modal-close" aria-label="Close dialog">&times;</button>
-            </div>
-            <div class="modal-body">
-              ${bodyHTML}
-            </div>
-            <div class="modal-footer">
-              ${showCancel ? `<button class="btn-secondary modal-cancel">${cancelLabel}</button>` : ''}
-              <button class="btn-primary modal-confirm ${dangerous ? 'btn-danger' : ''}">${confirmLabel}</button>
-            </div>
-          </div>
-        </div>
-      `;
-
-      const container = document.getElementById('modalsContainer');
-      container.insertAdjacentHTML('beforeend', modalHTML);
-
-      const modal = document.getElementById(modalId);
-      const closeBtn = modal.querySelector('.modal-close');
-      const cancelBtn = modal.querySelector('.modal-cancel');
-      const confirmBtn = modal.querySelector('.modal-confirm');
-
-      const firstInput = modal.querySelector('input, textarea, select');
-      if (firstInput) {
-        setTimeout(() => firstInput.focus(), 100);
-      } else {
-        setTimeout(() => confirmBtn.focus(), 100);
-      }
-
-      function closeModal() {
-        modal.classList.add('closing');
-        setTimeout(() => modal.remove(), 300);
-      }
-
-      closeBtn.addEventListener('click', () => {
-        if (onCancel) onCancel();
-        closeModal();
-      });
-
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-          if (onCancel) onCancel();
-          closeModal();
-        });
-      }
-
-      confirmBtn.addEventListener('click', async () => {
-        if (onConfirm) {
-          const result = await onConfirm();
-          if (result !== false) closeModal();
-        } else {
-          closeModal();
-        }
-      });
-
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          if (onCancel) onCancel();
-          closeModal();
-        }
-      });
-
-      document.addEventListener('keydown', function escHandler(e) {
-        if (e.key === 'Escape' && document.getElementById(modalId)) {
-          if (onCancel) onCancel();
-          closeModal();
-          document.removeEventListener('keydown', escHandler);
-        }
-      });
-
-      setTimeout(() => modal.classList.add('show'), 10);
-
-      return modal;
-    }
-
-    // =====================================================
-    // CONFIRM DIALOG
-    // =====================================================
-    function showConfirm(title, message, options = {}) {
-      return new Promise((resolve) => {
-        createModal(
-          title,
-          `<p>${message}</p>`,
-          {
-            ...options,
-            onConfirm: () => {
-              resolve(true);
-            },
-            onCancel: () => {
-              resolve(false);
-            }
-          }
-        );
-      });
-    }
-
-    // =====================================================
-    // UI STATE MANAGEMENT
-    // =====================================================
-    function showLoggedInNoConnection() {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      badge.className = 'trust-badge';
-      badgeText.textContent = 'Logged in';
-      
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
-      
-      // Repurpose the sign-in button as "Link to Therapist" for logged-in-no-connection state
-      const signInBtn = document.getElementById('signInBtn');
-      signInBtn.textContent = 'Link to Therapist';
-      signInBtn.onclick = showConnectModal;
-      document.getElementById('guestAuthActions').classList.remove('hidden');
-      document.getElementById('connectedActions').classList.add('hidden');
-      document.getElementById('moreMenu').classList.add('hidden');
-    }
-
-    function showConnectedUI(therapistName, clientName) {
-      connectedTherapistName = therapistName;
-      const badge = document.getElementById('trustBadge');
-      
-      badge.className = 'trust-badge connected';
-      
-      const shieldSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
-
-      const withText = (clientName === therapistName) ? 'connected' : 'with ' + therapistName;
-
-      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + clientName + '</span> \u00B7 ' + withText + '</span>';
-      
-      const nameEl = document.getElementById('clientNameEditable');
-      if (nameEl) {
-        nameEl.addEventListener('click', showNameEditModal);
-        nameEl.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            showNameEditModal();
-          }
-        });
-      }
-      
-      document.getElementById('guestAuthActions').classList.add('hidden');
-      document.getElementById('shareGuestBtn').classList.add('hidden');
-      document.getElementById('connectedActions').classList.remove('hidden');
-      
-      // Show/hide message option in more menu
-      const msgItem = document.getElementById('moreMessageBtn');
-      if (msgItem) {
-        msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
-      }
-    }
-
-    function toggleMoreMenu() {
-      const menu = document.getElementById('moreMenu');
-      const btn = document.getElementById('moreBtn');
-      const isHidden = menu.classList.contains('hidden');
-      
-      if (isHidden) {
-        menu.classList.remove('hidden');
-        btn.setAttribute('aria-expanded', 'true');
-        // Focus first visible menu item
-        const firstItem = menu.querySelector('.more-menu-item:not([style*="display: none"])');
-        if (firstItem) firstItem.focus();
-      } else {
-        menu.classList.add('hidden');
-        btn.setAttribute('aria-expanded', 'false');
-        btn.focus(); // Return focus to trigger
-      }
-    }
-
-    // Arrow key navigation for more menu
-    document.addEventListener('keydown', function(e) {
-      const menu = document.getElementById('moreMenu');
-      if (menu.classList.contains('hidden')) return;
-      
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault();
-        const items = Array.from(menu.querySelectorAll('.more-menu-item:not([style*="display: none"])'));
-        const current = document.activeElement;
-        const idx = items.indexOf(current);
-        
-        if (e.key === 'ArrowDown') {
-          const next = idx < items.length - 1 ? idx + 1 : 0;
-          items[next].focus();
-        } else {
-          const prev = idx > 0 ? idx - 1 : items.length - 1;
-          items[prev].focus();
-        }
-      }
-    });
-
-    function showNameEditModal() {
-      const currentName = document.getElementById('clientNameEditable')?.textContent || '';
-      
-      createModal('What should we call you?', `
-        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">This is how you'll appear in Alo. Only you see this.</p>
-        <input type="text" id="nameEditInput" value="${currentName}" 
-          placeholder="Your preferred name"
-          style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;"
-          autocomplete="given-name" maxlength="50" />
-      `, {
-        confirmLabel: 'Save',
-        cancelLabel: 'Cancel',
-        onConfirm: async () => {
-          const newName = document.getElementById('nameEditInput').value.trim();
-          if (!newName) {
-            showToast('Please enter a name');
-            return false;
-          }
-
-          try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return false;
-
-            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
-              display_name: newName
-            });
-
-            // Update badge immediately
-            document.getElementById('clientNameEditable').textContent = newName;
-            showToast('Name updated');
-          } catch (err) {
-            console.error('Name update error:', err);
-            showToast('Could not update name. Please try again.');
-            return false;
-          }
-        }
-      });
-    }
-
-    function resetToGuestUI() {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      badge.className = 'trust-badge guest';
-      badgeText.textContent = '';
-      
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
-      
-      document.getElementById('guestAuthActions').classList.remove('hidden');
-      const signInBtn = document.getElementById('signInBtn');
-      signInBtn.textContent = 'Sign In';
-      signInBtn.onclick = function() { showLoginModal(); };
-      signInBtn.classList.remove('hidden');
-      document.getElementById('shareGuestBtn').classList.remove('hidden');
-      document.getElementById('connectedActions').classList.add('hidden');
-      document.getElementById('moreMenu').classList.add('hidden');
-      document.getElementById('homeworkContainer').classList.remove('show');
-    }
-
-    // =====================================================
-    // HOMEWORK
-    // =====================================================
-    async function loadHomework() {
-      if (chatSettings.allow_homework === false) {
-        return;
-      }
-
-      try {
-        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc`);
-        
-        if (!homework || homework.length === 0) {
-          document.getElementById('homeworkContainer').innerHTML = '';
-          document.getElementById('homeworkContainer').classList.remove('show');
-          return;
-        }
-
-        activeHomework = homework;
-        const container = document.getElementById('homeworkContainer');
-        const therapistName = connectedTherapistName || 'your therapist';
-
-        container.innerHTML = homework.map(function(hw) {
-          return '<div class="homework-card" id="hwCard-' + hw.id + '" data-hw-id="' + hw.id + '">' +
-            '<div class="homework-header">' +
-              '<div>' +
-                '<div class="homework-from">From ' + therapistName + '</div>' +
-                '<h3 class="homework-title">' + (hw.title || 'Practice exercise') + '</h3>' +
-              '</div>' +
-              '<button class="homework-collapse" aria-label="Collapse homework details" aria-expanded="true" data-hw-id="' + hw.id + '">\u2212</button>' +
-            '</div>' +
-            '<div class="homework-body" id="hwBody-' + hw.id + '">' +
-              (hw.homework_type ? '<span class="homework-type-tag">' + hw.homework_type + '</span>' : '') +
-              '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
-              '<div class="homework-actions">' +
-                '<button class="btn-primary homework-done-btn" data-hw-id="' + hw.id + '">Mark complete</button>' +
-                '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Hide for now</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>';
-        }).join('');
-
-        container.classList.add('show');
-
-        // Attach event listeners
-        container.querySelectorAll('.homework-collapse').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var hwId = this.dataset.hwId;
-            var body = document.getElementById('hwBody-' + hwId);
-            var isCollapsed = body.classList.contains('collapsed');
-            body.classList.toggle('collapsed');
-            this.textContent = isCollapsed ? '\u2212' : '+';
-            this.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
-            this.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
-          });
-        });
-
-        container.querySelectorAll('.homework-done-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkDone(this.dataset.hwId);
-          });
-        });
-
-        container.querySelectorAll('.homework-hide-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkHide(this.dataset.hwId);
-          });
-        });
-
-        // Write viewed_at for any homework not yet viewed
-        for (var i = 0; i < homework.length; i++) {
-          if (!homework[i].viewed_at) {
-            try {
-              await api('/rest/v1/homework_cards?id=eq.' + homework[i].id, 'PATCH', {
-                viewed_at: new Date().toISOString()
-              });
-            } catch (viewErr) {
-              console.error('Error writing viewed_at:', viewErr);
-            }
-          }
-        }
-
-      } catch (err) {
-        console.error('Error loading homework:', err);
-      }
-    }
-
-    function handleHomeworkDone(hwId) {
-      showConfirm(
-        'Nice work!',
-        'This will be marked as complete.',
-        {
-          confirmLabel: 'Done',
-          cancelLabel: 'Not yet'
-        }
-      ).then(async function(confirmed) {
-        if (!confirmed) return;
-
-        var card = document.getElementById('hwCard-' + hwId);
-        
-        try {
-          await api('/rest/v1/homework_cards?id=eq.' + hwId, 'PATCH', {
-            is_active: false,
-            completed_at: new Date().toISOString()
-          });
-
-          if (card) {
-            var body = card.querySelector('.homework-body');
-            card.classList.add('completed');
-            if (body) body.innerHTML = '<p class="homework-complete-note">Completed just now</p>';
-            
-            setTimeout(function() {
-              if (body) body.classList.add('collapsed');
-              var collapseBtn = card.querySelector('.homework-collapse');
-              if (collapseBtn) {
-                collapseBtn.textContent = '+';
-                collapseBtn.setAttribute('aria-expanded', 'false');
-              }
-            }, 3000);
-          }
-
-          showToast('Marked complete \u2014 nice work!');
-        } catch (err) {
-          console.error('Error completing homework:', err);
-          showToast('Could not save. Please try again.');
-        }
-      });
-    }
-
-    function handleHomeworkHide(hwId) {
-      var card = document.getElementById('hwCard-' + hwId);
-      if (!card) return;
-
-      var body = card.querySelector('.homework-body');
-      if (body) body.classList.add('collapsed');
-      card.classList.add('minimized');
-      
-      var collapseBtn = card.querySelector('.homework-collapse');
-      if (collapseBtn) {
-        collapseBtn.textContent = '+';
-        collapseBtn.setAttribute('aria-expanded', 'false');
-        collapseBtn.setAttribute('aria-label', 'Expand homework details');
-      }
-    }
-
-    // =====================================================
-    // LOGOUT HANDLER
-    // =====================================================
-    async function handleLogout() {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-        showToast('Error signing out. Please try again.');
-        return;
-      }
-      
-      clientId = null;
-      therapistLink = null;
-      chatSettings = {};
-      currentHomeworkId = null;
-      
-      location.reload();
-    }
-
-    // =====================================================
-    // CONNECT MODAL
-    // =====================================================
-    function showConnectModal() {
-      createModal('Link to Your Therapist', `
-        <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
-        <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
-        <div style="margin-top: 16px;">
-          <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
-          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
-        </div>
-        <p class="modal-sign-in-link">
-          Already have an account? <button onclick="const c=document.getElementById('inviteCodeInput')?.value?.trim(); document.querySelector('.modal-overlay').remove(); showLoginModal(c||null);">Sign in</button>
-        </p>
-      `, {
-        confirmLabel: 'Link',
-        cancelLabel: 'Maybe later',
-        onConfirm: async () => {
-          const code = document.getElementById('inviteCodeInput').value.trim();
-          if (!code) {
-            showToast('Please enter an invite code');
-            return false;
-          }
-          await handleConnectSubmit(code);
-        }
-      });
-    }
-
-    async function handleConnectSubmit(inviteCode) {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        showLoginModal(inviteCode);
-        return;
-      }
-
-      try {
-        const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
-        
-        if (!link || link.length === 0) {
-          showToast('Invalid invite code. Check the code your therapist sent you.');
-          return;
-        }
-
-        const linkId = link[0].id;
-        const therapistDisplayName = link[0].display_name || null;
-
-        await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
-          client_id: user.id,
-          status: 'active'
-        });
-
-        // Seed client profile with therapist's chosen name (client can change later)
-        if (therapistDisplayName) {
-          const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
-          const currentName = existingProfile?.[0]?.display_name;
-          if (!currentName || currentName === user.email?.split('@')[0]) {
-            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
-              display_name: therapistDisplayName
-            });
-          }
-        }
-
-        showToast('Connected successfully!');
-        await loadConnectedState();
-      } catch (err) {
-        console.error('Connection error:', err);
-        showToast('Connection failed. Please try again.');
-      }
-    }
-
-    // =====================================================
-    // LOGIN MODAL
-    // =====================================================
-    function showLoginModal(inviteCode = null) {
-      createModal('Sign In or Create Account', `
-        <p>Create an account or sign in to connect with your therapist.</p>
-        <div style="margin-top: 16px;">
-          <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
-          <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
-          <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
-          <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
-        </div>
-        <p class="modal-sign-in-link" style="margin-top: 12px;">
-          Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
-        </p>
-      `, {
-        confirmLabel: 'Continue',
-        cancelLabel: 'Cancel',
-        onConfirm: async () => {
-          const email = document.getElementById('emailInput').value.trim();
-          const password = document.getElementById('passwordInput').value;
-          
-          if (!email || !password) {
-            showToast('Please enter email and password');
-            return false;
-          }
-
-          // Try sign in first
-          let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          
-          // If sign in fails, try sign up
-          if (error && error.message.includes('Invalid login credentials')) {
-            const signUpResult = await supabase.auth.signUp({ email, password });
-            
-            if (signUpResult.error) {
-              showToast('Authentication failed. Please try again.');
-              return false;
-            }
-            
-            if (!signUpResult.data.session) {
-              showToast('Account created! Check your email to confirm.');
-              return;
-            }
-            
-            data = signUpResult.data;
-            error = null;
-
-            // P0: Create profiles row on sign-up
-            try {
-              const displayName = email.split('@')[0];
-              await api('/rest/v1/profiles', 'POST', {
-                id: data.user.id,
-                role: 'individual',
-                display_name: displayName,
-                email: email
-              });
-            } catch (profileErr) {
-              // Non-blocking — profile creation failure shouldn't break signup
-              console.error('Error creating profile:', profileErr);
-            }
-          }
-
-          if (error) {
-            showToast('Authentication failed. Please try again.');
-            return false;
-          }
-
-          showToast('Signed in successfully');
-
-          if (inviteCode) {
-            await handleConnectSubmit(inviteCode);
-          } else {
-            await loadConnectedState();
-          }
-        }
-      });
-    }
-
-    // =====================================================
-    // MESSAGE MODAL
-    // =====================================================
-    function showMessageModal() {
-      const therapistName = connectedTherapistName || 'your therapist';
-      
-      createModal(`Message ${therapistName}`, `
-        <p class="modal-subtext">
-          ${therapistName} will see this message in their dashboard. They'll respond when they can.
-        </p>
-        <textarea id="messageTextarea" class="modal-textarea" placeholder="Type your message..."></textarea>
-      `, {
-        confirmLabel: 'Send',
-        cancelLabel: 'Cancel',
-        onConfirm: async () => {
-          const messageText = document.getElementById('messageTextarea').value.trim();
-          if (!messageText) {
-            showToast('Please enter a message');
-            return false;
-          }
-
-          try {
-            await api('/rest/v1/client_messages', 'POST', {
-              client_id: clientId,
-              therapist_id: therapistLink.therapist_id,
-              content: messageText,
-              read: false
-            });
-
-            showToast('Message sent');
-          } catch (err) {
-            console.error('Error sending message:', err);
-            showToast('Failed to send message. Please try again.');
-            return false;
-          }
-        }
-      });
-    }
-
-    // =====================================================
-    // PRIVACY MODAL
-    // =====================================================
-    function showPrivacyModal() {
-      const therapistName = connectedTherapistName || 'your therapist';
-      
-      createModal('Your Privacy', `
-        <h3 class="modal-section-title">What ${therapistName} sees</h3>
-        <ul class="modal-list">
-          <li>Whether you're connected to Alo</li>
-          <li>If you completed homework exercises</li>
-          <li>Messages you send them directly</li>
-          <li>How often you use Alo (not what you discuss)</li>
-        </ul>
-        
-        <h3 class="modal-section-title">What they never see</h3>
-        <ul class="modal-list">
-          <li><strong>Your conversations with Alo</strong> — there is no way for them to access these</li>
-          <li>What you talked about or how you're feeling</li>
-          <li>Only you decide what to share with your therapist</li>
-        </ul>
-        
-        <p class="modal-divider">
-          Alo is your space. Your therapist trusts you to share what matters when you're ready.
-        </p>
-      `, {
-        confirmLabel: 'Got it',
-        showCancel: false
-      });
-    }
-
-    // =====================================================
-    // SHARE MODAL (3-option: Summary/Full/Range)
-    // =====================================================
-    function showShareModal() {
-      const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
-      const recapPrompt = `Alo, please reconstruct our conversation as a back-and-forth recap in "You said... Alo said..." format. Keep it concise — paraphrase rather than quoting exactly. Include the key moments and turning points.`;
-      
-      const modal = createModal('Share Your Conversation', `
-        <div class="share-options">
-          <button class="share-option active" id="optionSummary">
-            <span class="share-option-icon">\u{1F4DD}</span>
-            <span class="share-option-label">Summary</span>
-          </button>
-          <button class="share-option" id="optionRecap">
-            <span class="share-option-icon">\u{1F4AC}</span>
-            <span class="share-option-label">Recap</span>
-          </button>
-        </div>
-        
-        <div id="instructionsArea">
-          <div id="summaryInstructions">
-            <p class="share-instructions">
-              Get a 5-bullet summary perfect for sharing with your therapist
-            </p>
-            <ol class="share-steps">
-              <li>Copy the message below</li>
-              <li>Paste it into chat</li>
-              <li>Alo creates a summary</li>
-              <li>Long-press to copy &amp; share</li>
-            </ol>
-            <div class="share-prompt-box">
-              <textarea readonly id="summaryPromptText" class="share-prompt-textarea">${summaryPrompt}</textarea>
-              <button id="copySummaryBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
-            </div>
-          </div>
-          
-          <div id="recapInstructions" style="display: none;">
-            <p class="share-instructions">
-              Get a back-and-forth recap of what you discussed
-            </p>
-            <ol class="share-steps">
-              <li>Copy the message below</li>
-              <li>Paste it into chat</li>
-              <li>Alo reconstructs the conversation</li>
-              <li>Long-press to copy &amp; share</li>
-            </ol>
-            <div class="share-prompt-box">
-              <textarea readonly id="recapPromptText" class="share-prompt-textarea">${recapPrompt}</textarea>
-              <button id="copyRecapBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
-            </div>
-            <p class="share-hint">
-              \u{1F4A1} This is a paraphrased reconstruction, not an exact transcript
-            </p>
-          </div>
-        </div>
-        
-        <p class="share-footer-note">
-          <strong>How to share:</strong> After Alo creates your summary or recap, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
-        </p>
-      `, {
-        confirmLabel: 'Close',
-        showCancel: false
-      });
-      
-      setupShareTabs(modal, summaryPrompt, recapPrompt);
-    }
-
-    function setupShareTabs(modal, summaryPrompt, recapPrompt) {
-      const optionSummary = modal.querySelector('#optionSummary');
-      const optionRecap = modal.querySelector('#optionRecap');
-      
-      const summaryInstructions = modal.querySelector('#summaryInstructions');
-      const recapInstructions = modal.querySelector('#recapInstructions');
-      
-      function switchTab(tab) {
-        [optionSummary, optionRecap].forEach(btn => btn.classList.remove('active'));
-        summaryInstructions.style.display = 'none';
-        recapInstructions.style.display = 'none';
-        
-        if (tab === 'summary') {
-          optionSummary.classList.add('active');
-          summaryInstructions.style.display = 'block';
-        } else if (tab === 'recap') {
-          optionRecap.classList.add('active');
-          recapInstructions.style.display = 'block';
-        }
-      }
-      
-      optionSummary.addEventListener('click', () => switchTab('summary'));
-      optionRecap.addEventListener('click', () => switchTab('recap'));
-      
-      const copySummaryBtn = modal.querySelector('#copySummaryBtn');
-      const copyRecapBtn = modal.querySelector('#copyRecapBtn');
-      
-      copySummaryBtn.addEventListener('click', async function() {
-        const success = await copyToClipboard(summaryPrompt);
-        if (success) {
-          copySummaryBtn.textContent = '\u2713 Copied!';
-          copySummaryBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copySummaryBtn.textContent = '\u{1F4CB} Copy Message';
-            copySummaryBtn.style.background = '';
-          }, 2000);
-        }
-      });
-      
-      copyRecapBtn.addEventListener('click', async function() {
-        const success = await copyToClipboard(recapPrompt);
-        if (success) {
-          copyRecapBtn.textContent = '\u2713 Copied!';
-          copyRecapBtn.style.background = '#10b981';
-          setTimeout(function() {
-            copyRecapBtn.textContent = '\u{1F4CB} Copy Message';
-            copyRecapBtn.style.background = '';
-          }, 2000);
-        }
-      });
-    }
-
-    async function copyToClipboard(text) {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch (err) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.select();
-        const success = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        return success;
-      }
-    }
-
-    // =====================================================
-    // API HELPER
-    // =====================================================
-    async function api(endpoint, method = 'GET', body = null) {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const options = {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': session ? `Bearer ${session.access_token}` : `Bearer ${SUPABASE_ANON_KEY}`
-        }
-      };
-
-      if (body && method !== 'GET') {
-        options.body = JSON.stringify(body);
-      }
-
-      // For POST, add Prefer header to get minimal response
-      if (method === 'POST') {
-        options.headers['Prefer'] = 'return=minimal';
-      }
-
-      const response = await fetch(`${SUPABASE_URL}${endpoint}`, options);
-      
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const text = await response.text();
-      return text ? JSON.parse(text) : null;
-    }
-
-    // =====================================================
-    // LOAD CONNECTED STATE
-    // =====================================================
-    // =====================================================
-    // BOTPRESS BRIDGE — IDs available for future use
-    // Crisis events written directly from Botpress via axios
-    // =====================================================
-
-    async function loadConnectedState() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          resetToGuestUI();
-          return;
-        }
-
-        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
-
-        if (!links || links.length === 0) {
-          showLoggedInNoConnection();
-          return;
-        }
-
-        therapistLink = links[0];
-        clientId = user.id;
-
-        const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
-        const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
-
-        const therapistName = therapist?.[0]?.display_name || 'Your therapist';
-        // Fallback chain: client's own profile name → therapist's label → 'there'
-        const clientProfileName = client?.[0]?.display_name;
-        const therapistLabel = therapistLink.display_name;
-        const clientName = clientProfileName || therapistLabel || 'there';
-
-        // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
-        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history`);
-        chatSettings = settings?.[0] || {};
-
-        showConnectedUI(therapistName, clientName);
-        await loadHomework();
-
-        // Write session start to session_metadata (fire-and-forget)
-        const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-        api('/rest/v1/session_metadata', 'POST', {
-          client_id: clientId,
-          session_id: sessionId
-        }).catch(err => console.error('Session metadata write failed:', err));
-
-      } catch (err) {
-        console.error('Error loading connected state:', err);
-      }
-    }
-
-    // =====================================================
-    // PRIVACY BAR
-    // =====================================================
-    function initPrivacyBar() {
-      const bar = document.getElementById('privacyBar');
-      const dismissBtn = document.getElementById('privacyBarDismiss');
-      
-      // Check if user has dismissed it before
-      if (localStorage.getItem('alo_privacy_bar_dismissed')) {
-        bar.style.display = 'none';
-        return;
-      }
-
-      dismissBtn.addEventListener('click', () => {
-        bar.style.display = 'none';
-        localStorage.setItem('alo_privacy_bar_dismissed', 'true');
-      });
-    }
-
-    // =====================================================
-    // INITIALIZATION
-    // =====================================================
-    document.addEventListener('DOMContentLoaded', async function() {
-      const iframe = document.getElementById('aloFrame');
-      const loadingOverlay = document.getElementById('loadingOverlay');
-      let loadTimeout;
-
-      iframe.addEventListener('load', function() {
-        loadingOverlay.style.display = 'none';
-        clearTimeout(loadTimeout);
-      });
-
-      loadTimeout = setTimeout(function() {
-        loadingOverlay.innerHTML = `
-          <div class="error-message">
-            <p><strong>Still loading...</strong></p>
-            <p>This is taking longer than usual. Let's try again.</p>
-            <button onclick="location.reload()" class="btn-primary">Retry</button>
-            <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
-              Need help now? Call <a href="tel:988" style="color: var(--text-primary);">988</a>
-            </p>
-          </div>
-        `;
-      }, 15000);
-
-      // Privacy bar
-      initPrivacyBar();
-
-      // Sign In and Connect use inline onclick handlers
-      // Close more menu on Escape key
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-          const menu = document.getElementById('moreMenu');
-          if (!menu.classList.contains('hidden')) toggleMoreMenu();
-        }
-      });
-      
-      // Homework event listeners are attached dynamically in loadHomework()
-
-      document.getElementById('termsLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        createModal('Terms of Use', `
-          <p>Alo is a conversational companion, not a replacement for professional mental health care.</p>
-          <p style="margin-top: 12px;"><strong>By using Alo, you agree that:</strong></p>
-          <ul class="modal-list">
-            <li>Alo does not provide medical advice, diagnosis, or treatment</li>
-            <li>You will seek professional help for mental health crises</li>
-            <li>Your therapist does not see your conversations with Alo</li>
-            <li>You are responsible for deciding what to share with your therapist</li>
-          </ul>
-          <p class="modal-divider">
-            If you're in crisis, call <strong>988</strong> (US Suicide & Crisis Lifeline) or go to your nearest emergency room.
-          </p>
-        `, {
-          confirmLabel: 'I understand',
-          showCancel: false
-        });
-      });
-
-      document.getElementById('privacyLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        createModal('Privacy Policy', `
-          <h3 class="modal-section-title">What we store</h3>
-          <ul class="modal-list">
-            <li>Account information (email, password hash)</li>
-            <li>Connection to your therapist</li>
-            <li>Homework completion status</li>
-            <li>Messages you send to your therapist</li>
-          </ul>
-
-          <h3 class="modal-section-title">Your Alo conversations</h3>
-          <ul class="modal-list">
-            <li>Conversations are processed by our chat provider to power the experience</li>
-            <li>Chat data is <strong>not permanently stored</strong> — it is automatically deleted</li>
-            <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
-            <li>Conversations are not used for training, analytics, or advertising</li>
-          </ul>
-
-          <h3 class="modal-section-title">Who sees your data</h3>
-          <ul class="modal-list">
-            <li>Your therapist sees homework status and messages you send them</li>
-            <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
-            <li>We don't sell or share your data with third parties</li>
-          </ul>
-
-          <h3 class="modal-section-title">Security</h3>
-          <ul class="modal-list">
-            <li>All stored data is encrypted at rest (AES-256) and in transit (TLS)</li>
-            <li>Chat data is encrypted at rest and in transit by our chat provider</li>
-            <li>Database access is controlled by row-level security — your therapist can only see their own clients</li>
-          </ul>
-
-          <p class="modal-divider">
-            Questions about your privacy? Ask your therapist.
-          </p>
-        `, {
-          confirmLabel: 'Got it',
-          showCancel: false
-        });
-      });
-
-      // Listen for auth state changes
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN') {
-          loadConnectedState();
-        } else if (event === 'SIGNED_OUT') {
-          resetToGuestUI();
-        }
-      });
-
-      // Check for existing session
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        await loadConnectedState();
-      }
-    });
-  </script>
-</body>
-</html>
+/* ============================================================
+   ALO CLINICAL DASHBOARD v3.0
+   Design: Warm Clinical (cream/sage/charcoal + severity spectrum)
+   ============================================================ */
+
+/* === RESET === */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* === DESIGN TOKENS === */
+:root {
+  --cream: #FDFBF7;
+  --warm-white: #FAF8F5;
+  --sage: #8B9A7D;
+  --sage-light: #E8EDE4;
+  --sage-hover: #7a8a6d;
+  --charcoal: #2D2A26;
+  --stone: #9C9589;
+
+  --bg: var(--cream);
+  --white: #ffffff;
+  --border: rgba(156, 149, 137, 0.2);
+  --border-strong: rgba(156, 149, 137, 0.35);
+
+  --text: var(--charcoal);
+  --text-light: #6b6560;
+  --text-muted: var(--stone);
+
+  --primary: var(--sage);
+  --primary-hover: var(--sage-hover);
+
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #92400e;
+
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+
+  --info: #2563eb;
+  --info-bg: #eff6ff;
+  --info-border: #bfdbfe;
+  --info-text: #1e40af;
+
+  --shadow-sm: 0 1px 3px rgba(45, 42, 38, 0.06), 0 1px 2px rgba(45, 42, 38, 0.04);
+  --shadow-md: 0 4px 12px rgba(45, 42, 38, 0.08);
+  --shadow-lg: 0 8px 24px rgba(45, 42, 38, 0.12);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+}
+
+/* === BASE === */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; }
+
+/* === LOGIN PAGE === */
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(45, 42, 38, 0.06);
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  background: var(--sage);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 24px;
+  margin: 0 auto 16px;
+}
+
+.login-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.login-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.login-trust {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.login-form { text-align: left; }
+
+.login-form .form-group {
+  margin-bottom: 16px;
+}
+
+.login-form label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.login-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: inherit;
+}
+
+.login-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px var(--white) inset;
+  -webkit-text-fill-color: var(--text);
+  border-color: var(--primary);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+
+.login-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  margin-bottom: 16px;
+  display: none;
+}
+
+.login-info {
+  background: var(--sage-light);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: var(--text);
+  margin-bottom: 16px;
+  display: none;
+}
+
+.login-switch {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.login-switch a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-switch a:hover {
+  text-decoration: underline;
+}
+
+/* === HEADER === */
+.header {
+  background: var(--warm-white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.home-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.home-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--sage);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.home-icon svg { width: 20px; height: 20px; }
+
+.logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--text);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+.logout-btn:hover { background: var(--bg); }
+
+/* === DISCLAIMER BANNER === */
+.disclaimer-banner {
+  background: var(--danger-bg);
+  border-bottom: 1px solid var(--danger-border);
+  padding: 6px 24px;
+  font-size: 0.75rem;
+  color: var(--text);
+  text-align: center;
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  z-index: 99;
+}
+
+/* === LAYOUT === */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 80px 24px 24px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* === SECTIONS === */
+.section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-header-danger { }
+.section-header-info { }
+.section-header-warning { }
+
+.section-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-icon.danger { background: var(--danger-bg); color: var(--danger); }
+.section-icon.warning { background: var(--warning-bg); color: var(--warning); }
+.section-icon.info { background: var(--info-bg); color: var(--info); }
+.section-icon svg { width: 18px; height: 18px; }
+
+.section-title { font-size: 0.9375rem; font-weight: 600; }
+
+.section-count {
+  margin-left: auto;
+  background: var(--bg);
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.section-count-danger { background: var(--danger-bg); color: var(--danger); }
+.section-count-info { background: var(--info-bg); color: var(--info); }
+.section-count-warning { background: var(--warning-bg); color: var(--warning); }
+
+.section-body { padding: 8px; }
+
+.section-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.section-view-all {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--sage-dark);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.section-view-all:hover {
+  background: var(--sage-light);
+}
+
+/* === LIST ITEMS === */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.list-item:hover { background: var(--bg); }
+
+.list-item-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.list-item-indicator.danger { background: var(--danger); }
+.list-item-indicator.warning { background: var(--warning); }
+.list-item-indicator.success { background: var(--success); }
+.list-item-indicator.info { background: var(--info); }
+
+.list-item-content { flex: 1; min-width: 0; }
+
+.list-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.list-item-description {
+  font-size: 0.8125rem;
+  color: var(--text-light);
+}
+
+.list-item-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.list-item-action {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.list-item-action:hover { background: var(--border); }
+/* === SIDEBAR === */
+.sidebar {
+  position: sticky;
+  top: 108px;
+  height: fit-content;
+}
+
+.sidebar-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-title { font-size: 0.875rem; font-weight: 600; }
+
+.sidebar-list {
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+}
+
+.client-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--border);
+}
+
+.client-item:last-child { border-bottom: none; }
+.client-item:hover { background: var(--bg); }
+.client-item.active { background: var(--primary); color: white; }
+.client-item.active .client-name { color: white; }
+.client-item.active .client-meta { color: rgba(255,255,255,0.8); }
+
+.client-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-light);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.client-item.active .client-avatar { background: rgba(255,255,255,0.2); color: white; }
+
+.status-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--white);
+}
+
+.client-item.active .status-badge { border-color: var(--primary); }
+.status-badge.crisis { background: var(--danger); animation: pulse 2s infinite; }
+.status-badge.needs-attention { background: var(--warning); }
+.status-badge.stable { background: var(--success); }
+.status-badge.dormant { background: var(--text-muted); }
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+
+.client-info { flex: 1; min-width: 0; }
+
+.client-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.client-meta { font-size: 0.75rem; color: var(--text-muted); }
+
+
+/* Weather Pills */
+.weather-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.weather-crisis { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+.weather-attention { background: var(--warning-bg); color: var(--warning); border-color: var(--warning-border); }
+.weather-stable { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+.weather-dormant { background: var(--bg); color: var(--text-muted); border-color: var(--border); }
+
+/* === CLIENT DETAIL PAGE === */
+.client-page { display: none; }
+.client-page.active { display: grid; }
+
+.page-header { margin-bottom: 8px; }
+
+.page-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.page-meta { font-size: 0.875rem; color: var(--text-light); }
+
+/* === TABS === */
+.tabs {
+  display: flex;
+  gap: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--charcoal); border-bottom-color: var(--sage); font-weight: 600; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* === CARDS === */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 140ms ease-out, box-shadow 140ms ease-out;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-title { font-size: 0.9375rem; font-weight: 600; }
+
+.card-body { padding: 20px; }
+.card-body p { font-size: 0.875rem; margin-bottom: 12px; }
+.card-body p:last-child { margin-bottom: 0; }
+
+.highlight-box {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+/* === PREP SUMMARY STRIP === */
+.prep-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.prep-signal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+}
+
+.prep-signal-value {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  line-height: 1;
+}
+
+.prep-signal-value.danger { color: var(--danger); }
+.prep-signal-value.warning { color: var(--warning); }
+
+.prep-signal-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+/* === MORNING GREETING === */
+.morning-greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--charcoal);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.morning-summary {
+  font-size: 0.9375rem;
+  color: var(--text-light);
+  margin-bottom: 12px;
+}
+
+/* === SESSION PREVIEW & NOTES === */
+.session-preview { padding: 12px 0; }
+.session-preview-border { border-top: 1px solid var(--border); margin-top: 12px; padding-top: 16px; }
+.session-preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.session-preview-date { font-size: 0.875rem; font-weight: 600; }
+.session-preview-type { font-size: 0.75rem; color: var(--text-muted); background: var(--bg); padding: 2px 8px; border-radius: 4px; }
+.session-preview-text { font-size: 0.8125rem; color: var(--text-light); margin-bottom: 4px; line-height: 1.5; }
+.session-preview-text:last-child { margin-bottom: 0; }
+.session-preview-text strong { color: var(--text); }
+
+.note-card { background: var(--bg); border-radius: var(--radius-md); padding: 16px; margin-bottom: 12px; }
+.note-card:last-child { margin-bottom: 0; }
+.note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.note-date { font-size: 0.875rem; font-weight: 600; }
+.note-content p { font-size: 0.8125rem; color: var(--text-light); margin-bottom: 8px; line-height: 1.6; }
+.note-content p:last-child { margin-bottom: 0; }
+.note-content strong { color: var(--text); }
+
+/* === EXCERPTS === */
+.excerpt {
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+.excerpt:last-child { margin-bottom: 0; }
+.excerpt-time { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.excerpt-text { font-size: 0.875rem; font-style: italic; }
+
+/* === HOMEWORK === */
+.homework-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+.homework-item:last-child { margin-bottom: 0; }
+
+.homework-status {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.875rem;
+}
+
+.homework-status.active { background: var(--warning-bg); color: var(--warning); }
+.homework-status.completed { background: var(--success-bg); color: var(--success); }
+
+.homework-content { flex: 1; }
+.homework-type { font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
+.homework-desc { font-size: 0.8125rem; color: var(--text-light); }
+.homework-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
+
+/* === TEMPLATES === */
+.templates { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+
+.template-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: var(--radius-xl);
+  font-size: 0.8125rem;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.template-btn:hover { background: var(--sage); border-color: var(--sage); color: white; }
+
+/* === CRISIS ALERTS === */
+.crisis-alert-item {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.crisis-alert-item:last-child { margin-bottom: 0; }
+.crisis-alert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.crisis-alert-time { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+.crisis-alert-severity { font-size: 0.75rem; font-weight: 600; color: var(--danger); }
+.crisis-alert-detail { font-size: 0.875rem; color: var(--text); line-height: 1.5; }
+
+/* === SIMPLEPRACTICE COPY BUTTONS === */
+.sp-section-buttons { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+
+.sp-section-btn {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sp-section-btn:hover { background: var(--sage-light); border-color: var(--sage); color: var(--sage); }
+.sp-section-btn.copied { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+
+/* === FORMS === */
+.form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 0.8125rem; font-weight: 500; }
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(139, 154, 125, 0.12);
+}
+
+.form-group textarea { min-height: 80px; resize: vertical; }
+.form-hint { font-size: 0.75rem; color: var(--text-muted); }
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* === BUTTONS === */
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn svg { width: 16px; height: 16px; }
+.btn-primary { background: var(--sage); color: white; }
+
+.btn-primary:hover {
+  background: var(--sage-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 154, 125, 0.3);
+}
+
+.btn-secondary { background: var(--warm-white); border: 1px solid var(--border); color: var(--text); }
+.btn-secondary:hover { background: var(--sage-light); border-color: var(--sage); }
+.btn-sm { padding: 6px 12px; font-size: 0.8125rem; }
+.btn-full { width: 100%; justify-content: center; }
+.add-note-btn { white-space: nowrap; }
+
+/* === MODALS === */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(45, 42, 38, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  animation: modalSlideIn 0.2s ease;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-header h3 { font-size: 1.125rem; font-weight: 600; }
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover { color: var(--text); }
+
+.modal-body { padding: 24px; }
+.modal-body .form-group { margin-bottom: 16px; }
+.modal-body .form-group:last-child { margin-bottom: 0; }
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* === SETTINGS & TOGGLES === */
+.settings-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.settings-section-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bg);
+}
+
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 0.8rem; color: var(--text); }
+.setting-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+.toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #ccc;
+  border-radius: 24px;
+  transition: 0.2s;
+}
+
+.toggle-slider:before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.2s;
+}
+
+.toggle input:checked + .toggle-slider { background: var(--sage); }
+.toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+.toggle input:disabled + .toggle-slider { opacity: 0.5; cursor: not-allowed; }
+
+.settings-default-note {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 4px;
+}
+
+/* === TOAST === */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--charcoal);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  z-index: 1100;
+  animation: slideUp 0.3s ease;
+  box-shadow: var(--shadow-lg);
+}
+
+.toast.show { display: flex; }
+.toast svg { width: 18px; height: 18px; color: #4ade80; }
+
+/* === TOOLTIP === */
+.tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.tooltip-icon {
+  width: 16px;
+  height: 16px;
+  background: var(--border);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-light);
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.tooltip-icon:hover { background: var(--stone); color: white; }
+
+.tooltip-content {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--charcoal);
+  color: white;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  width: 260px;
+  z-index: 500;
+  box-shadow: var(--shadow-lg);
+}
+
+.tooltip-content::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--charcoal);
+}
+
+.tooltip-trigger:hover .tooltip-content { display: block; }
+
+/* === INVITE & BADGES === */
+.invite-display {
+  background: var(--bg);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+}
+
+.invite-code {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  margin: 8px 0;
+  cursor: pointer;
+}
+
+.invite-code:hover { color: var(--primary-hover); }
+.invite-hint { font-size: 0.8125rem; color: var(--text-muted); }
+
+.invite-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning-text);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.invite-badge:hover { background: var(--warning-border); }
+
+.pending-label { font-size: 0.7rem; color: var(--warning); font-weight: 500; }
+
+/* === WHAT CHANGED BADGES === */
+.change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.change-badge.new { background: var(--success-bg); color: #166534; }
+.change-badge.changed { background: var(--warning-bg); color: var(--warning-text); }
+.change-badge.alert { background: var(--danger-bg); color: var(--danger-text); }
+.change-badge.unchanged { background: #f3f4f6; color: #6b7280; }
+
+#prepSummary { border-left: 3px solid var(--sage); }
+
+/* === LOADING & COPY BUTTON === */
+.loading { text-align: center; padding: 32px; color: var(--text-muted); }
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 8px;
+}
+
+.copy-btn {
+  background: var(--white);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copy-btn:hover { background: var(--bg); }
+.copy-btn.copied { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+.copy-btn svg { width: 12px; height: 12px; }
+
+/* === SIDEBAR BACKDROP === */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 42, 38, 0.3);
+  z-index: 199;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sidebar-backdrop.show { display: block; opacity: 1; }
+
+/* Hidden on desktop */
+.header-clients-btn { display: none; }
+.sidebar-close-btn { display: none; }
+.homework-mobile-hint { display: none; }
+.note-quick-capture { display: none; }
+
+/* === FOCUS & ACCESSIBILITY === */
+:focus-visible { outline: 3px solid var(--charcoal); outline-offset: 2px; }
+
+/* === UTILITY CLASSES === */
+.text-muted-center { color: var(--text-muted); text-align: center; }
+
+/* === SIDEBAR HEADER LAYOUT === */
+.sidebar-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.sidebar-settings-btn { padding: 4px 8px; font-size: 0.75rem; }
+.sidebar-invite-btn { padding: 4px 10px; font-size: 0.75rem; }
+
+/* === PAGE HEADER LAYOUT === */
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Crisis alert button in page header */
+.crisis-alert-btn {
+  display: none;
+  background: var(--danger);
+  color: white;
+  border: none;
+  animation: pulse 2s infinite;
+}
+
+.crisis-alert-btn.visible { display: inline-flex; }
+
+/* Crisis card header */
+.card-header-danger {
+  background: var(--danger-bg);
+  border-bottom-color: var(--danger-border);
+}
+
+.card-title-danger {
+  color: var(--danger);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crisis-count-badge {
+  background: var(--danger);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Default settings modal intro */
+.modal-intro {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+/* Emergency section title */
+.emergency-title { color: var(--danger); }
+
+/* Danger zone */
+.danger-zone {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.danger-zone-label { color: var(--danger); }
+
+.btn-danger-outline {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  margin-top: 8px;
+}
+
+/* Quick note capture */
+.quick-note-inner {
+  padding: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.quick-note-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.quick-note-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.quick-note-save { margin-top: 8px; }
+
+.quick-note-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.client-signals { display: none; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes modalSlideIn {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* === THIS WEEK GLANCE === */
+.glance-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.glance-row + .glance-row {
+  border-top: 1px solid var(--bg);
+}
+
+.glance-icon {
+  width: 20px;
+  text-align: center;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.glance-icon.danger { color: var(--danger); }
+.glance-icon.warning { color: var(--warning); }
+.glance-icon.success { color: var(--success); }
+.glance-icon.info { color: var(--info); }
+.glance-icon.muted { color: var(--text-muted); }
+
+.glance-text {
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.glance-danger { color: var(--danger); }
+
+.glance-plan .glance-text {
+  color: var(--text-light);
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+.glance-hw-row .glance-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.glance-hw-summary {
+  font-weight: 500;
+}
+
+.glance-hw-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.glance-hw {
+  font-size: 0.8125rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.glance-hw.done {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.glance-hw.open {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+/* === CALENDAR WIDGET === */
+
+/* Sticky client header (all screen sizes) */
+.client-sticky-header {
+  position: sticky;
+  top: 60px;
+  z-index: 51;
+  background: var(--cream, var(--bg));
+  margin-left: -24px;
+  margin-right: -24px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 2px 4px rgba(45, 42, 38, 0.06);
+}
+
+.client-sticky-header .tabs {
+  position: static;
+  top: auto;
+  margin-bottom: 0;
+}
+
+.client-sticky-header .page-header {
+  padding-top: 8px;
+  margin-bottom: 0;
+}
+
+/* Homework zone: 2/3 form + 1/3 sidebar */
+.homework-zone {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.homework-zone-form { min-width: 0; }
+.homework-zone-sidebar { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+
+/* Month calendar */
+.cal-month-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.cal-month-day-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  padding: 4px 0;
+}
+
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-month-cell {
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  min-height: 32px;
+}
+
+.cal-month-cell:hover { background: var(--bg); }
+.cal-month-cell.cal-today { background: var(--bg); border: 2px solid var(--primary); font-weight: 700; }
+.cal-month-cell.cal-future { opacity: 0.4; }
+.cal-month-cell.cal-empty { cursor: default; }
+
+.cal-month-num {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.cal-nav-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 0 8px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.cal-nav-btn:hover { color: var(--text); }
+
+/* Scrollable 7-day strip (Session Prep) */
+.calendar-strip {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.calendar-strip::-webkit-scrollbar { height: 4px; }
+.calendar-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.cal-strip-day {
+  flex: 0 0 56px;
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.cal-strip-day:hover { background: var(--bg); }
+
+.cal-strip-month {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 2px;
+}
+
+.cal-day, .cal-strip-day {
+  min-width: 0;
+}
+
+.cal-today {
+  background: var(--bg);
+  border: 2px solid var(--primary);
+  font-weight: 600;
+}
+
+.cal-label {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cal-num {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 2px 0;
+}
+
+.cal-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  min-height: 6px;
+}
+
+.cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.calendar-detail {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 6px;
+  font-size: 0.8125rem;
+}
+
+.cal-detail-header { font-weight: 600; margin-bottom: 4px; }
+.cal-detail-item { color: var(--text-muted); padding: 2px 0; }
+
+/* Drawer filters */
+.drawer-filters {
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-filters select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  background: var(--white);
+}
+
+/* Calendar day popup */
+.cal-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  padding: 20px;
+  max-width: 400px;
+  width: 90vw;
+  max-height: 70vh;
+  overflow-y: auto;
+  z-index: 500;
+  animation: popIn 0.15s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.cal-popup-header {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 12px;
+  padding-right: 24px;
+}
+
+.cal-popup-section {
+  margin-bottom: 10px;
+}
+
+.cal-popup-label {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  margin-bottom: 4px;
+}
+
+.cal-popup-item {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  padding: 3px 0 3px 16px;
+  border-left: 2px solid var(--border);
+  margin-bottom: 2px;
+}
+
+.cal-popup-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.125rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 4px;
+}
+.cal-popup-close:hover { color: var(--text); }
+
+/* === DRAWER === */
+
+.note-section {
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.note-section .sp-section-btn {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.note-meta {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.note-meta + .note-meta {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 2px;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(440px, 90vw);
+  background: var(--white);
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  z-index: 400;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.drawer-section-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.hw-drawer-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+
+/* === PHONE === */
+@media (max-width: 767px) {
+/* Layout */
+.layout {
+grid-template-columns: 1fr;
+gap: 16px;
+padding: 68px 16px 16px;
+
+}
+.main { gap: 16px; }
+
+/* Header compact */
+.header {
+height: 52px;
+padding: 0 16px;
+}
+.disclaimer-banner {
+top: 52px;
+padding: 4px 16px;
+font-size: 0.6875rem;
+}
+.logo-text { font-size: 1.125rem; }
+.home-icon { width: 32px; height: 32px; font-size: 16px; }
+.home-icon svg { width: 18px; height: 18px; }
+.user-name { display: none; }
+.logout-btn { font-size: 0.6875rem; padding: 4px 8px; }
+
+/* Show clients toggle */
+.header-clients-btn {
+display: inline-flex;
+align-items: center;
+gap: 6px;
+background: none;
+border: 1px solid var(--border);
+padding: 6px 12px;
+border-radius: 8px;
+font-size: 0.8125rem;
+font-weight: 500;
+color: var(--text);
+cursor: pointer;
+min-height: 36px;
+}
+.header-clients-btn.has-alerts::after {
+content: '';
+width: 8px;
+height: 8px;
+background: #DC2626;
+border-radius: 50%;
+}
+
+/* FIX 3: Sidebar - translate3d + visibility */
+.sidebar {
+position: fixed;
+top: 0;
+right: 0;
+bottom: 0;
+left: 0;
+z-index: 300;
+background: var(--bg);
+transform: translate3d(100%, 0, 0);
+transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+overflow-y: auto;
+padding: 0;
+max-width: 100%;
+visibility: hidden;
+pointer-events: none;
+}
+.sidebar.open {
+transform: translate3d(0, 0, 0);
+visibility: visible;
+pointer-events: auto;
+}
+.sidebar-section {
+border-radius: 0;
+border: none;
+min-height: 100vh;
+}
+.sidebar-close-btn {
+display: block;
+background: none;
+border: none;
+font-size: 1.5rem;
+color: var(--text-muted);
+cursor: pointer;
+padding: 4px;
+}
+
+/* Richer client cards on phone */
+.client-item {
+padding: 16px;
+min-height: 64px;
+gap: 14px;
+align-items: flex-start;
+}
+.client-avatar { width: 44px; height: 44px; font-size: 0.875rem; }
+.client-name { font-size: 0.9375rem; font-weight: 600; }
+.client-signals { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.client-signal-chip {
+font-size: 0.6875rem;
+padding: 2px 6px;
+border-radius: 4px;
+font-weight: 600;
+background: var(--bg);
+}
+
+/* Morning greeting compact */
+.morning-greeting {
+font-size: 1.125rem;
+margin-bottom: 2px;
+}
+.morning-summary {
+font-size: 0.8125rem;
+margin-bottom: 16px;
+}
+
+/* Hide empty sections */
+.section.is-empty { display: none; }
+
+/* Prep summary strip: 2x2 grid */
+.prep-summary-strip {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+padding: 12px;
+}
+.prep-summary-strip > * { min-width: 0; }
+.prep-signal {
+padding: 10px 8px;
+background: var(--white);
+border: 1px solid var(--border);
+border-radius: 8px;
+min-height: 44px;
+}
+.prep-signal-value { font-size: 1.125rem; }
+
+/* Tabs: sticky, full-width, larger targets */
+.tabs {
+position: sticky;
+top: 96px;
+z-index: 50;
+background: var(--bg);
+margin-bottom: 16px;
+}
+.tab {
+padding: 14px 8px;
+font-size: 0.8125rem;
+min-height: 44px;
+}
+/* Sticky client header mobile overrides */
+.client-sticky-header {
+  margin-left: -16px;
+  margin-right: -16px;
+  padding: 0 16px;
+}
+
+@media (max-width: 767px) {
+  .client-sticky-header {
+    top: 52px;
+  }
+  .homework-zone {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sections compact */
+
+.section-header { padding: 12px 16px; }
+.section-title { font-size: 0.875rem; }
+
+/* Cards compact */
+.card { margin-bottom: 12px; }
+.card-header { padding: 14px 16px; }
+.card-body { padding: 16px; }
+
+/* Touch targets: all interactive elements */
+.btn {
+min-height: 44px;
+padding: 12px 16px;
+font-size: 0.875rem;
+}
+.btn-sm {
+min-height: 40px;
+padding: 10px 14px;
+}
+.list-item {
+padding: 14px 16px;
+min-height: 52px;
+}
+.homework-item { padding: 16px; }
+.template-btn {
+padding: 10px 16px;
+min-height: 40px;
+font-size: 0.875rem;
+}
+.copy-btn {
+padding: 8px 12px;
+min-height: 36px;
+}
+.change-badge {
+font-size: 0.8125rem;
+padding: 4px 10px;
+}
+.toggle { margin: 4px 0; }
+
+/* Forms: single column, prevent iOS zoom */
+.form-grid { grid-template-columns: 1fr; gap: 12px; }
+.form-group textarea { min-height: 100px; }
+.form-group input,
+.form-group select,
+.form-group textarea {
+font-size: 16px;
+padding: 12px;
+min-height: 44px;
+}
+.form-group label { font-size: 0.875rem; }
+
+/* Sticky save button */
+.form-actions {
+position: sticky;
+bottom: 0;
+background: var(--white);
+padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+margin: 0;
+width: 100%;
+border-top: 1px solid var(--border);
+z-index: 10;
+flex-direction: column-reverse;
+}
+.form-actions .btn { width: 100%; }
+
+/* Note editor: read-only mode */
+.note-quick-capture {
+display: block;
+border: 1px dashed var(--border);
+background: var(--warm-white);
+border-radius: 12px;
+padding: 16px;
+text-align: center;
+color: var(--text-muted);
+font-size: 0.8125rem;
+}
+
+/* Homework: hide custom form, keep templates */
+#homeworkForm .form-grid { display: none; }
+#homeworkForm .form-actions { display: none; }
+.homework-mobile-hint {
+display: block;
+font-size: 0.8125rem;
+color: var(--text-muted);
+text-align: center;
+padding: 12px;
+font-style: italic;
+}
+
+/* Copy-for-EHR: hide on phone */
+.copy-btn:has(svg) { display: none; }
+.ehr-format-menu { display: none; }
+/* Keep delete button visible */
+.note-header .copy-btn:last-child { display: flex; }
+
+/* Modals: convert to bottom sheets */
+.modal-overlay { align-items: flex-end; }
+.modal {
+max-width: 100%;
+border-radius: 16px 16px 0 0;
+max-height: 85vh;
+overflow-y: auto;
+animation: sheetSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.modal-header::before {
+content: '';
+display: block;
+width: 36px;
+height: 4px;
+background: #D1D5DB;
+border-radius: 2px;
+margin: 0 auto 12px;
+}
+.modal-header { padding: 12px 20px 16px; }
+.modal-body { padding: 16px 20px; }
+.modal-footer {
+padding: 12px 20px;
+padding-bottom: calc(12px + env(safe-area-inset-bottom));
+flex-direction: column-reverse;
+}
+.modal-footer .btn { width: 100%; }
+
+/* Toast: move above bottom sheet area */
+.toast { bottom: 16px; right: 16px; left: 16px; }
+
+@keyframes sheetSlideUp {
+from { transform: translateY(100%); }
+to { transform: translateY(0); }
+}
+
+/* Page header compact */
+.page-header { margin-bottom: 16px; }
+.page-title { font-size: 1.125rem; }
+}
+
+/* Hide signal chips on desktop — sidebar too narrow */
+@media (min-width: 768px) {
+.client-signals { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+*, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* === PRODUCTION OVERRIDES v1 === */
+
+/* Fix 1: Header - prevent overlap on phone */
+@media (max-width: 767px) {
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+  }
+  .header-left {
+    flex: 0 0 auto;
+  }
+  .logo-text {
+    display: none;
+  }
+  .header-clients-btn {
+    flex: 0 0 auto;
+    order: 0;
+  }
+  .header-right {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+}
+
+/* Fix 2: Section card shadows */
+.section {
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06), 0 1px 2px rgba(45, 42, 38, 0.04);
+}
+
+/* Fix 3: Reduce section spacing */
+.main {
+  gap: 16px;
+}
+
+/* Fix 4: Prep summary strip */
+.prep-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06);
+}
+
+.prep-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.prep-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.prep-stat-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+/* Fix 5: Morning greeting spacing */
+.morning-greeting {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.morning-summary {
+  font-size: 0.9375rem;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+/* Fix 6: Font fallback (Google Fonts blocked on iOS) */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+}
+
+/* Fix 7: Page header spacing */
+.page-header {
+  margin-bottom: 8px;
+}
+
+/* Fix 8: Sidebar card shadow */
+.sidebar-section {
+  box-shadow: 0 1px 3px rgba(45, 42, 38, 0.06);
+}
+
+/* ============================================================
+   UX HIERARCHY PASS v1.0
+   Purpose: Create clear visual priority tiers for therapist workflow
+   
+   Tier 1 (ACT NOW): Crisis alerts — red accents, elevated shadow
+   Tier 2 (REVIEW): This Week glance, What Changed — prominent cards
+   Tier 3 (REFERENCE): Session Notes, Messages, History — standard cards
+   Tier 4 (TOOLS): Homework form, Settings — recessed/quiet
+   ============================================================ */
+
+/* === HOMEPAGE: DIFFERENTIATED SECTIONS === */
+
+/* Crisis section gets elevated treatment */
+.section#alertsSection {
+  border: 1px solid var(--danger-border);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.08);
+}
+
+.section#alertsSection .section-header {
+  background: var(--danger-bg);
+}
+
+/* Messages section: subtle info tint */
+.section#messagesSection .section-header {
+  background: var(--info-bg);
+}
+
+/* Triage: subtle warning tint */
+.section#triageSection .section-header {
+  background: var(--warning-bg);
+}
+
+/* When alerts count is 0, dial back the urgency */
+.section#alertsSection:has(.section-empty) {
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.section#alertsSection:has(.section-empty) .section-header {
+  background: transparent;
+}
+
+/* === CLIENT DETAIL: TIERED CARD HIERARCHY === */
+
+/* Tier 1: "This Week" glance card — the hero card */
+#weekGlanceCard {
+  border: 1px solid var(--sage);
+  border-left: 4px solid var(--sage);
+  box-shadow: 0 2px 12px rgba(139, 154, 125, 0.12);
+}
+
+#weekGlanceCard .card-header {
+  background: var(--sage-light);
+}
+
+#weekGlanceCard .card-title {
+  color: var(--sage-hover);
+  font-weight: 700;
+}
+
+/* Tier 2: "What Changed" — already has left border, enhance it */
+#prepSummary {
+  border-left: 4px solid var(--sage);
+  padding-left: 16px;
+}
+
+/* Copy Prep Pack: make it a standout action */
+#copyPrepPackBtn {
+  background: var(--charcoal);
+  color: white;
+  font-weight: 600;
+}
+
+#copyPrepPackBtn:hover {
+  background: #1a1815;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(45, 42, 38, 0.2);
+}
+
+/* Tier 4: Open Items and Messages in prep — quieter */
+#prepOpenItems,
+#clientMessagesPrep {
+  font-size: 0.8125rem;
+}
+
+/* === HOMEPAGE GREETING: COMPACT + ACTIONABLE === */
+
+/* Reduce greeting dominance, add summary emphasis */
+.morning-greeting {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.morning-summary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
+
+/* === SESSION TOOLS: GROUP VISUALLY === */
+
+/* Notes card: primary action area */
+.add-note-btn {
+  background: var(--charcoal);
+  color: white;
+}
+
+.add-note-btn:hover {
+  background: #1a1815;
+}
+
+/* Homework templates: warmer background to invite interaction */
+.templates {
+  background: var(--warm-white);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+/* === CRISIS: IMPOSSIBLE TO MISS === */
+
+/* Crisis alerts card in Session Tools — elevated */
+#crisisAlertsCard {
+  border: 2px solid var(--danger);
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.12);
+}
+
+/* Crisis alert button: already pulsing, add glow */
+.crisis-alert-btn.visible {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+/* === SIDEBAR: ACTIVE CLIENT STRONGER === */
+.client-item.active {
+  background: var(--sage);
+  border-left: 3px solid var(--charcoal);
+}
+
+/* Crisis client in sidebar: red left accent */
+.client-item.status-crisis {
+  border-left: 3px solid var(--danger);
+}
+
+.client-item.status-needs-attention {
+  border-left: 3px solid var(--warning);
+}
+
+/* === SPACING: VISUAL GROUPS === */
+
+/* Add subtle group separator between prep cards */
+#tab-prep .card:nth-child(2) {
+  margin-top: 8px;
+}
+
+/* Session Tools: add breathing room between card groups */
+#tab-tools .card + .card {
+  margin-top: 4px;
+}
+
+/* Add stronger separation before crisis card */
+#crisisAlertsCard {
+  margin-top: 24px;
+}
+
+/* === EMPTY STATES: QUIETER === */
+.text-muted-center {
+  font-size: 0.8125rem;
+  padding: 24px 16px;
+  opacity: 0.7;
+}
+
+/* === DISCLAIMER BANNER: LESS DOMINANT === */
+.disclaimer-banner {
+  font-size: 0.6875rem;
+  padding: 4px 24px;
+  background: #fef9ee;
+  border-bottom-color: #fde68a;
+  color: var(--text-muted);
+}
+
+/* === FOCUS STATES FOR KEYBOARD NAV === */
+.tab:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: -2px;
+}
+
+.client-item:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: -2px;
+}
+
+.list-item:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: -2px;
+}
+
+/* === TEXT HIERARCHY: CARD TITLES AS LABELS === */
+
+/* Card titles: lighter, smaller — section labels, not headlines */
+.card-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Section titles on homepage: same treatment */
+.section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Note dates: these ARE the content — make them the loudest */
+.note-date {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+/* SOAP labels inside notes: medium weight, distinct from body */
+.note-content strong {
+  color: var(--charcoal);
+  font-weight: 600;
+}
+
+/* Note body text: slightly lighter so labels pop */
+.note-content p {
+  color: var(--text-light);
+}
+
+/* Session preview dates in prep tab: also loud */
+.session-preview-date {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--charcoal);
+}
+
+/* Keep crisis card title red and loud — exception to the label pattern */
+.card-title-danger {
+  font-size: 0.875rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--danger);
+}
+
+/* This Week card title: sage, not muted — it's the hero */
+#weekGlanceCard .card-title {
+  color: var(--sage-hover);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Homework type name: this is the content, keep it strong */
+.homework-type {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--charcoal);
+}
