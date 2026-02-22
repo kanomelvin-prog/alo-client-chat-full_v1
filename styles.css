@@ -1017,31 +1017,6 @@ footer a {
 }
 
 /* === RANGE INPUTS === */
-.range-inputs {
-  display: flex;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.range-field {
-  flex: 1;
-}
-
-.range-field label {
-  font-size: 12px;
-  font-weight: 600;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.range-field input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--border-visible);
-  border-radius: 6px;
-  font-size: 16px;
-}
-
 /* === HOMEWORK STATES === */
 .homework-card.completed {
   border-left-color: var(--success);
