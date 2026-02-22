@@ -120,6 +120,29 @@ header {
 }
 
 /* === MORE MENU BUTTON === */
+.guest-auth-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guest-auth-actions.hidden { display: none; }
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--sage-dark);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 4px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.btn-link:hover { color: var(--sage); }
+
 .more-btn {
   width: 44px;
   height: 44px;
