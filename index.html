@@ -39,9 +39,6 @@
       <div class="brand-text">
         <h1 class="brand-name">Alo</h1>
         <span>Someone to think out loud with</span>
-        <div id="trustBadge" class="trust-badge guest">
-          <span id="trustBadgeText"></span>
-        </div>
       </div>
     </div>
     <div class="header-actions">
@@ -50,9 +47,14 @@
         <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
         <button id="connectBtn" class="btn-link" onclick="showConnectModal()">New? Link to Therapist</button>
       </div>
-      <button id="moreBtn" class="more-btn hidden" onclick="toggleMoreMenu()" aria-label="More options" aria-haspopup="true" aria-expanded="false">
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><circle cx="4" cy="10" r="2"/><circle cx="10" cy="10" r="2"/><circle cx="16" cy="10" r="2"/></svg>
-      </button>
+      <div id="connectedActions" class="connected-actions hidden">
+        <div id="trustBadge" class="trust-badge">
+          <span id="trustBadgeText"></span>
+        </div>
+        <button id="moreBtn" class="more-btn" onclick="toggleMoreMenu()" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -67,10 +69,6 @@
       <button class="more-menu-item" role="menuitem" id="moreMessageBtn" onclick="toggleMoreMenu(); showMessageModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Message Therapist
-      </button>
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showPrivacyModal()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-        My Privacy
       </button>
       <div class="more-menu-divider" role="separator"></div>
       <button class="more-menu-item more-menu-logout" role="menuitem" onclick="toggleMoreMenu(); handleLogout()">
@@ -292,7 +290,6 @@
       const badgeText = document.getElementById('trustBadgeText');
       badge.className = 'trust-badge';
       badgeText.textContent = 'Logged in';
-      badge.style.display = 'flex';
       
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
@@ -301,7 +298,7 @@
       document.getElementById('signInBtn').classList.add('hidden');
       document.getElementById('connectBtn').className = 'btn-primary';
       document.getElementById('connectBtn').textContent = 'Link to Therapist';
-      document.getElementById('moreBtn').classList.add('hidden');
+      document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
     }
 
@@ -330,7 +327,7 @@
       
       document.getElementById('guestAuthActions').classList.add('hidden');
       document.getElementById('shareGuestBtn').classList.add('hidden');
-      document.getElementById('moreBtn').classList.remove('hidden');
+      document.getElementById('connectedActions').classList.remove('hidden');
       
       // Show/hide message option in more menu
       const msgItem = document.getElementById('moreMessageBtn');
@@ -431,7 +428,7 @@
       document.getElementById('connectBtn').className = 'btn-link';
       document.getElementById('connectBtn').textContent = 'New? Link to Therapist';
       document.getElementById('shareGuestBtn').classList.remove('hidden');
-      document.getElementById('moreBtn').classList.add('hidden');
+      document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
       document.getElementById('homeworkContainer').classList.remove('show');
     }
