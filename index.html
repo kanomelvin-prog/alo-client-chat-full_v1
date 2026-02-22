@@ -45,7 +45,6 @@
       <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
       <div id="guestAuthActions" class="guest-auth-actions">
         <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
-        <button id="connectBtn" class="btn-link" onclick="showConnectModal()">New? Link to Therapist</button>
       </div>
       <div id="connectedActions" class="connected-actions hidden">
         <div id="trustBadge" class="trust-badge">
@@ -294,10 +293,11 @@
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
       
+      // Repurpose the sign-in button as "Link to Therapist" for logged-in-no-connection state
+      const signInBtn = document.getElementById('signInBtn');
+      signInBtn.textContent = 'Link to Therapist';
+      signInBtn.onclick = showConnectModal;
       document.getElementById('guestAuthActions').classList.remove('hidden');
-      document.getElementById('signInBtn').classList.add('hidden');
-      document.getElementById('connectBtn').className = 'btn-primary';
-      document.getElementById('connectBtn').textContent = 'Link to Therapist';
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
     }
@@ -424,9 +424,10 @@
       if (svg) svg.remove();
       
       document.getElementById('guestAuthActions').classList.remove('hidden');
-      document.getElementById('signInBtn').classList.remove('hidden');
-      document.getElementById('connectBtn').className = 'btn-link';
-      document.getElementById('connectBtn').textContent = 'New? Link to Therapist';
+      const signInBtn = document.getElementById('signInBtn');
+      signInBtn.textContent = 'Sign In';
+      signInBtn.onclick = function() { showLoginModal(); };
+      signInBtn.classList.remove('hidden');
       document.getElementById('shareGuestBtn').classList.remove('hidden');
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
@@ -679,6 +680,9 @@
           <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
           <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
         </div>
+        <p class="modal-sign-in-link" style="margin-top: 12px;">
+          Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
+        </p>
       `, {
         confirmLabel: 'Continue',
         cancelLabel: 'Cancel',
