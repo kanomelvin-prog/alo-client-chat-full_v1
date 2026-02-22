@@ -101,7 +101,7 @@
       
       <iframe
         id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/20/16/20260220161212-N5ZPU2UY.json"
+        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/22/17/20260222174720-BP855SU3.json"
         allow="clipboard-read; clipboard-write"
         title="Alo Chat Interface"
         aria-label="Chatbot Conversation Window"
@@ -981,6 +981,11 @@
     // =====================================================
     // LOAD CONNECTED STATE
     // =====================================================
+    // =====================================================
+    // BOTPRESS BRIDGE — IDs available for future use
+    // Crisis events written directly from Botpress via axios
+    // =====================================================
+
     async function loadConnectedState() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
