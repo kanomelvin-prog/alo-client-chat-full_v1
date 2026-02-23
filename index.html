@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.4 — Feb 20, 2026 — 16-persona review P0+P1 fixes -->
-<!-- Changes: border-color fix, profiles on signup, homework writes to DB,
-     chat settings enforcement, privacy bar, header warmth, microcopy improvements,
-     homework viewed tracking, inline styles moved to CSS classes -->
+<!-- ALO CLIENT CHAT v2.5 — Feb 23, 2026 — Color palette + dark mode -->
+<!-- Changes: Teal-blue color palette, light/dark mode toggle,
+     system preference detection, theme persistence via localStorage,
+     WCAG AA contrast compliance, nighttime-optimized dark mode -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -12,7 +12,19 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Alo">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="theme-color" content="#FDFBF7">
+  <meta name="theme-color" content="#F3EDE4" id="metaThemeColor">
+  
+  <!-- Prevent flash of wrong theme — runs before first paint -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('alo_theme');
+      if (saved === 'dark' || saved === 'light') {
+        document.documentElement.setAttribute('data-theme', saved);
+        var meta = document.getElementById('metaThemeColor');
+        if (meta) meta.content = saved === 'dark' ? '#111917' : '#F3EDE4';
+      }
+    })();
+  </script>
   
   <!-- Preconnect hints for faster iframe load -->
   <link rel="preconnect" href="https://cdn.botpress.cloud">
@@ -42,6 +54,10 @@
       </div>
     </div>
     <div class="header-actions">
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
       <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
       <div id="guestAuthActions" class="guest-auth-actions">
         <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
@@ -101,7 +117,7 @@
       
       <iframe
         id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/23/18/20260223182519-48H89VYI.json"
+        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/22/17/20260222174720-BP855SU3.json"
         allow="clipboard-read; clipboard-write"
         title="Alo Chat Interface"
         aria-label="Chatbot Conversation Window"
@@ -149,6 +165,26 @@
     let connectedTherapistName = '';
     let activeHomework = [];
     let currentHomeworkId = null;
+
+    // =====================================================
+    // THEME TOGGLE
+    // =====================================================
+    function getEffectiveTheme() {
+      var saved = localStorage.getItem('alo_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function toggleTheme() {
+      var current = getEffectiveTheme();
+      var next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('alo_theme', next);
+      
+      // Update meta theme-color for mobile browser chrome
+      var meta = document.getElementById('metaThemeColor');
+      if (meta) meta.content = next === 'dark' ? '#111917' : '#F3EDE4';
+    }
 
     // =====================================================
     // TOAST NOTIFICATIONS
@@ -914,7 +950,7 @@
         const success = await copyToClipboard(summaryPrompt);
         if (success) {
           copySummaryBtn.textContent = '\u2713 Copied!';
-          copySummaryBtn.style.background = '#10b981';
+          copySummaryBtn.style.background = 'var(--success)';
           setTimeout(function() {
             copySummaryBtn.textContent = '\u{1F4CB} Copy Message';
             copySummaryBtn.style.background = '';
@@ -926,7 +962,7 @@
         const success = await copyToClipboard(recapPrompt);
         if (success) {
           copyRecapBtn.textContent = '\u2713 Copied!';
-          copyRecapBtn.style.background = '#10b981';
+          copyRecapBtn.style.background = 'var(--success)';
           setTimeout(function() {
             copyRecapBtn.textContent = '\u{1F4CB} Copy Message';
             copyRecapBtn.style.background = '';
