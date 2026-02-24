@@ -1101,7 +1101,28 @@
         localStorage.setItem('alo_privacy_bar_dismissed', 'true');
       });
     }
+// =====================================================
+    // BOTPRESS LAYOUT — position webchat iframe over chat-container
+    // Botpress mounts iframes at <body> level, not inside #aloFrame.
+    // We reposition the webchat iframe to exactly cover .chat-container.
+    // =====================================================
+    function initBotpressLayout() {
+      var container = document.querySelector('.chat-container');
+      var webchat = document.querySelector('.bpWebchat');
+      if (!container || !webchat) return;
 
+      var rect = container.getBoundingClientRect();
+      webchat.style.cssText = 
+        'position: fixed !important;' +
+        'top: ' + rect.top + 'px !important;' +
+        'left: ' + rect.left + 'px !important;' +
+        'width: ' + rect.width + 'px !important;' +
+        'height: ' + rect.height + 'px !important;' +
+        'max-height: ' + rect.height + 'px !important;' +
+        'border-radius: 0 !important;' +
+        'box-shadow: none !important;' +
+        'z-index: 1 !important;';
+    }
     // =====================================================
     // INITIALIZATION
     // =====================================================
@@ -1137,6 +1158,11 @@
         clearTimeout(loadTimeout);
         window.botpress.open();
         console.log('[Alo] Botpress webchat initialized');
+
+        // Position webchat iframe to fill .chat-container
+        // Botpress appends iframes to <body>, so we reposition with JS
+        initBotpressLayout();
+        window.addEventListener('resize', initBotpressLayout);
       });
 
       loadTimeout = setTimeout(function() {
