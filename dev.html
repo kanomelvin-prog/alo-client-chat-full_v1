@@ -26,9 +26,10 @@
     })();
   </script>
   
-  <!-- Preconnect hints for faster iframe load -->
+  <!-- Botpress JS SDK -->
   <link rel="preconnect" href="https://cdn.botpress.cloud">
   <link rel="preconnect" href="https://files.bpcontent.cloud">
+  <script src="https://cdn.botpress.cloud/webchat/v3.6/inject.js"></script>
   
   <!-- Open Graph — link preview when therapist texts URL to client -->
   <meta property="og:title" content="Alo — Someone to think out loud with">
@@ -115,13 +116,7 @@
         </div>
       </div>
       
-      <iframe
-        id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/24/08/20260224080709-WDV8WB8P.json"
-        allow="clipboard-read; clipboard-write"
-        title="Alo Chat Interface"
-        aria-label="Chatbot Conversation Window"
-      ></iframe>
+      <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
     </div>
   </main>
 
