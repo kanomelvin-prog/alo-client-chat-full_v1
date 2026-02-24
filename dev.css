@@ -735,7 +735,7 @@ main {
    so selectors must be global. We position the webchat iframe
    to cover .chat-container using fixed positioning calculated
    by JS (see initBotpressLayout). */
-.bpFab { display: none !important; }
+.bpFab, .bpFabWrapper, .bpMessagePreview { display: none !important; }
 .bpWebchat {
   position: absolute !important;
   top: 0 !important;
