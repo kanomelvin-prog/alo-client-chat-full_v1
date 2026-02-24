@@ -736,6 +736,19 @@ main {
    to cover .chat-container using fixed positioning calculated
    by JS (see initBotpressLayout). */
 .bpFab { display: none !important; }
+.bpWebchat {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  max-width: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 
 /* === LOADING === */
 .loading-overlay {
