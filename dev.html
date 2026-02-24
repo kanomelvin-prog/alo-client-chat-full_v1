@@ -1156,6 +1156,10 @@
         }
       });
 
+window.botpress.on('webchat:closed', function() {
+        window.botpress.open();
+      });
+         
       loadTimeout = setTimeout(function() {
         loadingOverlay.innerHTML = `
           <div class="error-message">
