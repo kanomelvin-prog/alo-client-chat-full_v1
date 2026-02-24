@@ -1137,7 +1137,11 @@
         }
       });
 
+      var botpressReady = false;
       window.botpress.on('webchat:initialized', function() {
+        if (botpressReady) return;
+        botpressReady = true;
+
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
         window.botpress.open();
