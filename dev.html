@@ -1108,11 +1108,23 @@
     // =====================================================
     function initBotpressLayout() {
       var container = document.querySelector('.chat-container');
-      var webchat = document.querySelector('.bpWebchat');
-      if (!container || !webchat) return;
+      var fabRoot = document.getElementById('fab-root');
+      if (!container || !fabRoot || !fabRoot.shadowRoot) return;
 
+      var sr = fabRoot.shadowRoot;
+      var webchat = sr.querySelector('.bpWebchat');
+      var fabWrap = sr.querySelector('.bpFabWrapper');
+      var preview = sr.querySelector('.bpMessagePreview');
+
+      // Hide FAB button and message preview
+      if (fabWrap) fabWrap.style.cssText = 'display: none !important;';
+      if (preview) preview.style.cssText = 'display: none !important;';
+
+      if (!webchat) return;
+
+      // Position webchat to exactly cover .chat-container
       var rect = container.getBoundingClientRect();
-      webchat.style.cssText = 
+      webchat.style.cssText =
         'position: fixed !important;' +
         'top: ' + rect.top + 'px !important;' +
         'left: ' + rect.left + 'px !important;' +
