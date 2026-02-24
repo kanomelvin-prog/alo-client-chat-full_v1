@@ -750,6 +750,11 @@ main {
   box-shadow: none !important;
 }
 
+.bpHeaderCloseButton,
+.bpCloseButton {
+  display: none !important;
+}
+
 /* === LOADING === */
 .loading-overlay {
   position: absolute;
