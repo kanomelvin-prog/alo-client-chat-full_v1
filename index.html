@@ -26,9 +26,10 @@
     })();
   </script>
   
-  <!-- Preconnect hints for faster iframe load -->
+  <!-- Botpress JS SDK -->
   <link rel="preconnect" href="https://cdn.botpress.cloud">
   <link rel="preconnect" href="https://files.bpcontent.cloud">
+  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
   
   <!-- Open Graph — link preview when therapist texts URL to client -->
   <meta property="og:title" content="Alo — Someone to think out loud with">
@@ -41,7 +42,7 @@
   <meta name="description" content="Alo is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alo — Someone to think out loud with</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dev.css">
 </head>
 
 <body>
@@ -115,13 +116,7 @@
         </div>
       </div>
       
-      <iframe
-        id="aloFrame"
-        src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/02/24/08/20260224080709-WDV8WB8P.json"
-        allow="clipboard-read; clipboard-write"
-        title="Alo Chat Interface"
-        aria-label="Chatbot Conversation Window"
-      ></iframe>
+      <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
     </div>
   </main>
 
@@ -161,6 +156,7 @@
 
     let clientId = null;
     let therapistLink = null;
+    let sessionNonce = null;
     let chatSettings = {};
     let connectedTherapistName = '';
     let activeHomework = [];
@@ -1065,11 +1061,21 @@
         showConnectedUI(therapistName, clientName);
         await loadHomework();
 
-        // Write session start to session_metadata (fire-and-forget)
+        // Generate nonce, write session start, and send identity to Botpress
         const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        sessionNonce = crypto.randomUUID();
         api('/rest/v1/session_metadata', 'POST', {
           client_id: clientId,
-          session_id: sessionId
+          session_id: sessionId,
+          nonce: sessionNonce
+        }).then(() => {
+          // Send identity to Botpress after nonce is written to DB
+          if (window.botpress) {
+            window.botpress.updateUser({
+              data: { sessionNonce: sessionNonce, clientId: clientId }
+            });
+            console.log('[Alo] Identity sent to Botpress via updateUser');
+          }
         }).catch(err => console.error('Session metadata write failed:', err));
 
       } catch (err) {
@@ -1095,20 +1101,65 @@
         localStorage.setItem('alo_privacy_bar_dismissed', 'true');
       });
     }
-
+// =====================================================
+    // BOTPRESS LAYOUT — position webchat iframe over chat-container
+    // Botpress mounts iframes at <body> level, not inside #aloFrame.
+    // We reposition the webchat iframe to exactly cover .chat-container.
+    // =====================================================
+    
     // =====================================================
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
-      const iframe = document.getElementById('aloFrame');
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
 
-      iframe.addEventListener('load', function() {
-        loadingOverlay.style.display = 'none';
-        clearTimeout(loadTimeout);
+      // Initialize Botpress JS SDK immediately (guest mode)
+      // userData will be sent later via updateUser() once auth resolves
+      window.botpress.init({
+        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+        selector: '#aloFrame',
+        configuration: {
+          version: 'v2',
+          botName: ' ',
+          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+          botDescription: '',
+          color: '#3A7C86',
+          variant: 'soft',
+          headerVariant: 'glass',
+          themeMode: 'light',
+          fontFamily: 'inter',
+          radius: 1,
+          feedbackEnabled: false,
+          soundEnabled: false,
+          conversationHistory: false
+        }
       });
 
+      var botpressReady = false;
+      window.botpress.on('webchat:initialized', function() {
+        if (botpressReady) return;
+        botpressReady = true;
+
+        loadingOverlay.style.display = 'none';
+        clearTimeout(loadTimeout);
+        window.botpress.open();
+        console.log('[Alo] Botpress webchat initialized');
+
+        // Move Botpress webchat iframe into .chat-container so CSS positioning works
+        var chatContainer = document.querySelector('.chat-container');
+        var webchatIframe = document.querySelector('.bpWebchat');
+        if (chatContainer && webchatIframe) {
+          chatContainer.appendChild(webchatIframe);
+          console.log('[Alo] Moved webchat iframe into .chat-container');
+        }
+      });
+
+window.botpress.on('webchat:closed', function() {
+        window.botpress.open();
+      });
+         
       loadTimeout = setTimeout(function() {
         loadingOverlay.innerHTML = `
           <div class="error-message">
