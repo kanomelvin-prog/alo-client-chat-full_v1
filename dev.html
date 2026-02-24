@@ -1143,8 +1143,13 @@
         window.botpress.open();
         console.log('[Alo] Botpress webchat initialized');
 
-        // Position webchat iframe to fill .chat-container
-        // Botpress appends iframes to <body>, so we reposition with JS
+        // Move Botpress container into .chat-container so CSS positioning works
+        var chatContainer = document.querySelector('.chat-container');
+        var bpContainer = document.querySelector('.bpChatContainer');
+        if (chatContainer && bpContainer) {
+          chatContainer.appendChild(bpContainer);
+          console.log('[Alo] Moved Botpress into .chat-container');
+        }
       });
 
       loadTimeout = setTimeout(function() {
