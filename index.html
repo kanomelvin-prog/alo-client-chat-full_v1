@@ -4,120 +4,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Alo</title>
+  <title>Alo — Someone to think out loud with</title>
   <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      background: #F3EDE4;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      flex-shrink: 0;
-      padding: 14px 20px;
-      border-bottom: 1px solid rgba(58,124,134,0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .icon {
-      width: 36px; height: 36px;
-      background: #3A7C86;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 700; font-size: 16px;
-    }
-    h1 { font-size: 18px; color: #1D3539; }
-    .sub { font-size: 12px; color: #6B8085; }
-    #chat {
-      flex: 1;
-      min-height: 0;
-      height: 0;
-      position: relative;
-      overflow: hidden;
-    }
-    footer {
-      flex-shrink: 0;
-      padding: 10px 16px;
-      text-align: center;
-      font-size: 11px;
-      color: #6B8085;
-      background: rgba(243,237,228,0.98);
-    }
-    footer a { color: #1D3539; }
-    .bpFab, .bpFabWrapper, .bpMessagePreview { display: none !important; }
-    .bpWebchat,
-    #chat > iframe,
-    #chat > div > iframe {
-      position: absolute !important;
-      top: 0 !important; left: 0 !important;
-      right: 0 !important; bottom: 0 !important;
-      width: 100% !important; height: 100% !important;
-      max-height: 100% !important; max-width: 100% !important;
-      border-radius: 0 !important; box-shadow: none !important;
-    }
-    .bpHeaderCloseButton, .bpCloseButton { display: none !important; }
-  </style>
 </head>
-<body>
-  <header>
-    <div class="icon">A</div>
-    <div><h1>Alo</h1><div class="sub">Someone to think out loud with</div></div>
-  </header>
-  <div id="chat"></div>
-  <footer>
-    Alo helps you think — not a therapist or doctor. Need help now? <a href="tel:988">988 US</a>.
-  </footer>
+<body style="margin:0; background:#F3EDE4; font-family:system-ui,sans-serif;">
   <script>
     window.botpress.init({
       botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
       clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
-      selector: '#chat',
       configuration: {
         version: 'v2',
-        botName: ' ',
+        botName: 'Alo',
         botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
-        botDescription: '',
+        botDescription: 'Someone to think out loud with',
         color: '#3A7C86',
         variant: 'soft',
-        headerVariant: 'glass',
         themeMode: 'light',
         fontFamily: 'inter',
-        radius: 1,
-        feedbackEnabled: false,
-        soundEnabled: false,
-        conversationHistory: false
+        radius: 1
       }
     });
-
-```
-window.botpress.on('webchat:initialized', function() {
-  window.botpress.open();
-  // Move webchat into #chat container
-  var container = document.getElementById('chat');
-  var el = document.querySelector('.bpWebchat')
-    || document.querySelector('[class*="bpWebchat"]')
-    || document.querySelector('iframe[title*="otpress"]');
-  if (container && el) {
-    container.appendChild(el);
-  } else {
-    setTimeout(function() {
-      el = document.querySelector('.bpWebchat')
-        || document.querySelector('[class*="bpWebchat"]')
-        || document.querySelector('iframe[title*="otpress"]');
-      if (container && el) container.appendChild(el);
-    }, 500);
-  }
-});
-
-window.botpress.on('webchat:closed', function() {
-  window.botpress.open();
-});
-```
-
+    window.botpress.on('webchat:initialized', function() {
+      window.botpress.open();
+    });
+    window.botpress.on('webchat:closed', function() {
+      window.botpress.open();
+    });
   </script>
 </body>
 </html>
