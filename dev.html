@@ -1143,12 +1143,12 @@
         window.botpress.open();
         console.log('[Alo] Botpress webchat initialized');
 
-        // Move Botpress container into .chat-container so CSS positioning works
+        // Move Botpress webchat iframe into .chat-container so CSS positioning works
         var chatContainer = document.querySelector('.chat-container');
-        var bpContainer = document.querySelector('.bpChatContainer');
-        if (chatContainer && bpContainer) {
-          chatContainer.appendChild(bpContainer);
-          console.log('[Alo] Moved Botpress into .chat-container');
+        var webchatIframe = document.querySelector('.bpWebchat');
+        if (chatContainer && webchatIframe) {
+          chatContainer.appendChild(webchatIframe);
+          console.log('[Alo] Moved webchat iframe into .chat-container');
         }
       });
 
