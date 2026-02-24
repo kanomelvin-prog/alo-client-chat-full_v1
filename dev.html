@@ -1106,58 +1106,7 @@
     // Botpress mounts iframes at <body> level, not inside #aloFrame.
     // We reposition the webchat iframe to exactly cover .chat-container.
     // =====================================================
-    function initBotpressLayout() {
-      var container = document.querySelector('.chat-container');
-      var fabRoot = document.getElementById('fab-root');
-      if (!container || !fabRoot || !fabRoot.shadowRoot) return;
-
-      var sr = fabRoot.shadowRoot;
-      var webchat = sr.querySelector('.bpWebchat');
-      var fabWrap = sr.querySelector('.bpFabWrapper');
-      var preview = sr.querySelector('.bpMessagePreview');
-
-      // Hide FAB button and message preview
-      if (fabWrap) fabWrap.style.cssText = 'display: none !important;';
-      if (preview) preview.style.cssText = 'display: none !important;';
-
-      if (!webchat) return;
-
-      // Position webchat to exactly cover .chat-container
-      var rect = container.getBoundingClientRect();
-      var cssText =
-        'position: fixed !important;' +
-        'top: ' + rect.top + 'px !important;' +
-        'left: ' + rect.left + 'px !important;' +
-        'width: ' + rect.width + 'px !important;' +
-        'height: ' + rect.height + 'px !important;' +
-        'max-height: ' + rect.height + 'px !important;' +
-        'max-width: ' + rect.width + 'px !important;' +
-        'border-radius: 0 !important;' +
-        'box-shadow: none !important;' +
-        'z-index: 1 !important;';
-
-      webchat.style.cssText = cssText;
-
-      // Override children that constrain the size
-      var fillCss =
-        'width: 100% !important;' +
-        'height: 100% !important;' +
-        'max-width: 100% !important;' +
-        'max-height: 100% !important;' +
-        'border-radius: 0 !important;' +
-        'box-shadow: none !important;';
-
-      var heightFull = webchat.querySelector('.bpHeightFull');
-      if (heightFull) heightFull.style.cssText = fillCss;
-
-      // The unnamed div between bpHeightFull and bpContainer
-      if (heightFull && heightFull.firstElementChild) {
-        heightFull.firstElementChild.style.cssText = fillCss;
-      }
-
-      var bpContainer = webchat.querySelector('.bpContainer');
-      if (bpContainer) bpContainer.style.cssText = fillCss;
-    }
+    
     // =====================================================
     // INITIALIZATION
     // =====================================================
@@ -1196,8 +1145,6 @@
 
         // Position webchat iframe to fill .chat-container
         // Botpress appends iframes to <body>, so we reposition with JS
-        initBotpressLayout();
-        window.addEventListener('resize', initBotpressLayout);
       });
 
       loadTimeout = setTimeout(function() {
