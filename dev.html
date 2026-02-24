@@ -156,6 +156,7 @@
 
     let clientId = null;
     let therapistLink = null;
+    let sessionNonce = null;
     let chatSettings = {};
     let connectedTherapistName = '';
     let activeHomework = [];
@@ -1060,11 +1061,21 @@
         showConnectedUI(therapistName, clientName);
         await loadHomework();
 
-        // Write session start to session_metadata (fire-and-forget)
+        // Generate nonce, write session start, and send identity to Botpress
         const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        sessionNonce = crypto.randomUUID();
         api('/rest/v1/session_metadata', 'POST', {
           client_id: clientId,
-          session_id: sessionId
+          session_id: sessionId,
+          nonce: sessionNonce
+        }).then(() => {
+          // Send identity to Botpress after nonce is written to DB
+          if (window.botpress) {
+            window.botpress.updateUser({
+              data: { sessionNonce: sessionNonce, clientId: clientId }
+            });
+            console.log('[Alo] Identity sent to Botpress via updateUser');
+          }
         }).catch(err => console.error('Session metadata write failed:', err));
 
       } catch (err) {
@@ -1095,13 +1106,37 @@
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
-      const iframe = document.getElementById('aloFrame');
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
 
-      iframe.addEventListener('load', function() {
+      // Initialize Botpress JS SDK immediately (guest mode)
+      // userData will be sent later via updateUser() once auth resolves
+      window.botpress.init({
+        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+        selector: '#aloFrame',
+        configuration: {
+          version: 'v2',
+          botName: ' ',
+          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+          botDescription: '',
+          color: '#00b894',
+          variant: 'solid',
+          headerVariant: 'glass',
+          themeMode: 'light',
+          fontFamily: 'inter',
+          radius: 4,
+          feedbackEnabled: false,
+          soundEnabled: false,
+          conversationHistory: false
+        }
+      });
+
+      window.botpress.on('webchat:initialized', function() {
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
+        window.botpress.open();
+        console.log('[Alo] Botpress webchat initialized');
       });
 
       loadTimeout = setTimeout(function() {
