@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alo — Someone to think out loud with</title>
+  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
+</head>
+<body style="margin:0; background:#F3EDE4; font-family:system-ui,sans-serif;">
+  <script>
+    window.botpress.init({
+      botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+      clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+      configuration: {
+        version: 'v2',
+        botName: 'Alo',
+        botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+        botDescription: 'Someone to think out loud with',
+        color: '#3A7C86',
+        variant: 'soft',
+        themeMode: 'light',
+        fontFamily: 'inter',
+        radius: 1
+      }
+    });
+    window.botpress.on('webchat:initialized', function() {
+      window.botpress.open();
+    });
+    window.botpress.on('webchat:closed', function() {
+      window.botpress.open();
+    });
+  </script>
+</body>
+</html>
