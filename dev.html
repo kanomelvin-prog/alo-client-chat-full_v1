@@ -1355,13 +1355,9 @@
       if (!user) return;
 
       try {
-        const { data: existing } = await supabase
-          .from('client_settings')
-          .select('client_id')
-          .eq('client_id', user.id)
-          .maybeSingle();
+        const existing = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=client_id`);
 
-        if (existing) {
+        if (existing && existing.length > 0) {
           await api(`/rest/v1/client_settings?client_id=eq.${user.id}`, 'PATCH', {
             memory_enabled: enabled,
             updated_at: new Date().toISOString()
