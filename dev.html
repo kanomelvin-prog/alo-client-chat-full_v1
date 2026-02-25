@@ -163,6 +163,16 @@
     let currentHomeworkId = null;
 
     // =====================================================
+    // UTILITY
+    // =====================================================
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // =====================================================
     // THEME TOGGLE
     // =====================================================
     function getEffectiveTheme() {
@@ -342,9 +352,11 @@
       
       const shieldSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
 
-      const withText = (clientName === therapistName) ? 'connected' : 'with ' + therapistName;
+      const safeClient = esc(clientName);
+      const safeTherapist = esc(therapistName);
+      const withText = (clientName === therapistName) ? 'connected' : 'with ' + safeTherapist;
 
-      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + clientName + '</span> \u00B7 ' + withText + '</span>';
+      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + safeClient + '</span> \u00B7 ' + withText + '</span>';
       
       const nameEl = document.getElementById('clientNameEditable');
       if (nameEl) {
@@ -470,7 +482,7 @@
     // HOMEWORK
     // =====================================================
     async function loadHomework() {
-      if (chatSettings.allow_homework === false) {
+      if (chatSettings.allow_homework === false || !clientId) {
         return;
       }
 
@@ -501,7 +513,7 @@
               '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
               '<div class="homework-actions">' +
                 '<button class="btn-primary homework-done-btn" data-hw-id="' + hw.id + '">Mark complete</button>' +
-                '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Hide for now</button>' +
+                '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Collapse</button>' +
               '</div>' +
             '</div>' +
           '</div>';
@@ -706,6 +718,7 @@
     function showLoginModal(inviteCode = null) {
       createModal('Sign In or Create Account', `
         <p>Create an account or sign in to connect with your therapist.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Signing in does not share your past conversations.</p>
         <div style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
@@ -1071,10 +1084,17 @@
         }).then(() => {
           // Send identity to Botpress after nonce is written to DB
           if (window.botpress) {
+            const hwSummary = activeHomework.length > 0
+              ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
+              : [];
             window.botpress.updateUser({
-              data: { sessionNonce: sessionNonce, clientId: clientId }
+              data: {
+                sessionNonce: sessionNonce,
+                clientId: clientId,
+                homeworkActive: hwSummary
+              }
             });
-            console.log('[Alo] Identity sent to Botpress via updateUser');
+            console.log('[Alo] Identity + homework sent to Botpress via updateUser');
           }
         }).catch(err => console.error('Session metadata write failed:', err));
 
@@ -1128,7 +1148,7 @@
           color: '#3A7C86',
           variant: 'soft',
           headerVariant: 'glass',
-          themeMode: 'light',
+          themeMode: getEffectiveTheme(),
           fontFamily: 'inter',
           radius: 1,
           feedbackEnabled: false,
