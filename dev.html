@@ -1528,13 +1528,29 @@
 
         function positionWebchat() {
           var rect = chatContainer.getBoundingClientRect();
+          var top = rect.top;
+          var height = rect.height;
+          
+          // iOS keyboard fix: when visualViewport shrinks (keyboard open),
+          // clamp the webchat to the visible area
+          if (window.visualViewport) {
+            var vv = window.visualViewport;
+            var visibleBottom = vv.offsetTop + vv.height;
+            if (top + height > visibleBottom) {
+              height = Math.max(0, visibleBottom - Math.max(top, vv.offsetTop));
+            }
+            if (top < vv.offsetTop) {
+              top = vv.offsetTop;
+            }
+          }
+          
           webchatEl.style.cssText = 
             'position:fixed!important;' +
-            'top:' + rect.top + 'px!important;' +
+            'top:' + top + 'px!important;' +
             'left:' + rect.left + 'px!important;' +
             'width:' + rect.width + 'px!important;' +
-            'height:' + rect.height + 'px!important;' +
-            'max-height:' + rect.height + 'px!important;' +
+            'height:' + height + 'px!important;' +
+            'max-height:' + height + 'px!important;' +
             'max-width:' + rect.width + 'px!important;' +
             'border-radius:0!important;' +
             'box-shadow:none!important;' +
