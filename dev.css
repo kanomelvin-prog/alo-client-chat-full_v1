@@ -738,6 +738,7 @@ main {
 .bpFab, .bpFabWrapper, .bpMessagePreview { display: none !important; }
 /* bpWebchat positioning handled by JS overlay (positionWebchat) */
 
+.bpHeaderContentTitle,
 .bpHeaderCloseButton,
 .bpCloseButton {
   display: none !important;
