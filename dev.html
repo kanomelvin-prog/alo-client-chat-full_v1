@@ -1235,12 +1235,15 @@
         insertData.botpress_msg_id = botpressMessageId;
       }
 
+      console.log('[Persistence] Saving ' + role + ':', content.substring(0, 40), 'msgId:', botpressMessageId);
       var { error } = await supabase
         .from('conversation_messages')
         .upsert(insertData, { onConflict: 'botpress_msg_id' });
 
       if (error) {
-        console.error('[Persistence] Failed to save ' + role + ' message:', error.message);
+        console.error('[Persistence] FAILED ' + role + ':', error.message, error.details, error.hint);
+      } else {
+        console.log('[Persistence] Saved ' + role + ' message OK');
       }
     }
 
