@@ -204,6 +204,11 @@
     let activeHomework = [];
     let currentHomeworkId = null;
 
+    // Conversation persistence state
+    let currentSupabaseConvId = null;
+    let seenMessageIds = new Set();
+    let persistenceTurnCounter = 0;
+
     // =====================================================
     // UTILITY
     // =====================================================
@@ -1158,6 +1163,94 @@
     }
 
     // =====================================================
+    // CONVERSATION PERSISTENCE
+    // =====================================================
+    async function ensureConversation(botpressConvId) {
+      if (!clientId || !botpressConvId) return null;
+
+      var storageKey = 'alo_conv_' + botpressConvId;
+      var existingId = localStorage.getItem(storageKey);
+
+      if (existingId) {
+        currentSupabaseConvId = existingId;
+        try {
+          var { data } = await supabase
+            .from('conversations')
+            .select('turn_count')
+            .eq('id', existingId)
+            .single();
+          persistenceTurnCounter = data?.turn_count || 0;
+        } catch (e) {
+          persistenceTurnCounter = 0;
+        }
+        console.log('[Persistence] Resumed conversation:', existingId);
+        return existingId;
+      }
+
+      var now = new Date();
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var hrs = now.getHours();
+      var mins = String(now.getMinutes()).padStart(2, '0');
+      var ampm = hrs >= 12 ? 'PM' : 'AM';
+      var hr12 = hrs % 12 || 12;
+      var title = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear() + ' · ' + hr12 + ':' + mins + ' ' + ampm;
+
+      var { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          client_id: clientId,
+          title: title,
+          botpress_conversation_id: botpressConvId,
+          turn_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[Persistence] Failed to create conversation:', error.message);
+        return null;
+      }
+
+      currentSupabaseConvId = data.id;
+      localStorage.setItem(storageKey, data.id);
+      persistenceTurnCounter = 0;
+      console.log('[Persistence] Created conversation:', data.id);
+      return data.id;
+    }
+
+    async function saveMessage(role, content, botpressMessageId) {
+      if (!currentSupabaseConvId || !content) return;
+      if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
+      if (botpressMessageId) seenMessageIds.add(botpressMessageId);
+
+      persistenceTurnCounter++;
+
+      var insertData = {
+        conversation_id: currentSupabaseConvId,
+        role: role,
+        content: content,
+        turn_number: persistenceTurnCounter
+      };
+      if (botpressMessageId) {
+        insertData.botpress_msg_id = botpressMessageId;
+      }
+
+      var { error } = await supabase
+        .from('conversation_messages')
+        .upsert(insertData, { onConflict: 'botpress_msg_id' });
+
+      if (error) {
+        console.error('[Persistence] Failed to save ' + role + ' message:', error.message);
+      }
+    }
+
+    function resetPersistenceState() {
+      currentSupabaseConvId = null;
+      seenMessageIds.clear();
+      persistenceTurnCounter = 0;
+    }
+
+    // =====================================================
     // PRIVACY BAR
     // =====================================================
     function initPrivacyBar() {
@@ -1398,6 +1491,7 @@
       );
       if (!confirmed) return;
 
+      resetPersistenceState();
       toggleThreadSidebar();
       
       const aloFrame = document.getElementById('aloFrame');
@@ -1595,11 +1689,33 @@ window.botpress.on('webchat:closed', function() {
         return msg;
       });
 
-      // Track guest turns for memory prompt
-      window.botpress.on('message', function() {
+      // Message capture: persistence for signed-in users + guest turn tracking
+      window.botpress.on('message', async function(msg) {
         if (!clientId) {
           checkGuestMemoryPrompt();
+          return;
         }
+
+        // Ensure Supabase conversation exists
+        if (!currentSupabaseConvId) {
+          var bpConvId = msg.conversationId || 'conv_' + Date.now();
+          await ensureConversation(bpConvId);
+        }
+
+        // Extract text content — skip non-text messages
+        var content = '';
+        if (msg.payload && msg.payload.text) {
+          content = msg.payload.text;
+        } else if (typeof msg.text === 'string') {
+          content = msg.text;
+        }
+        if (!content) return;
+
+        // Determine role
+        var isUser = (msg.authorId === 'user' || msg.direction === 'outgoing');
+        var role = isUser ? 'user' : 'assistant';
+
+        await saveMessage(role, content, msg.id || null);
       });
          
       loadTimeout = setTimeout(function() {
@@ -1698,7 +1814,10 @@ window.botpress.on('webchat:closed', function() {
         if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
+          resetPersistenceState();
           resetToGuestUI();
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[Auth] Token refreshed');
         }
       });
 
