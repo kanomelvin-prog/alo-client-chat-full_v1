@@ -1683,13 +1683,16 @@ window.botpress.on('webchat:closed', function() {
         }
       });
 
-      // Inject identity into outgoing messages for signed-in users
-      window.botpress.on('beforeMessage', function(msg) {
-        if (clientId && sessionNonce && msg.payload) {
-          msg.payload.sessionNonce = sessionNonce;
-          msg.payload.clientId = clientId;
+      // Inject identity into every outgoing message for signed-in users
+      window.botpress.on('messageSent', function(msg) {
+        if (clientId && sessionNonce) {
+          window.botpress.updateUser({
+            data: {
+              sessionNonce: sessionNonce,
+              clientId: clientId
+            }
+          });
         }
-        return msg;
       });
 
       // Message capture: persistence for signed-in users + guest turn tracking
