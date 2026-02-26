@@ -1694,10 +1694,12 @@ window.botpress.on('webchat:closed', function() {
 
       // Message capture: persistence for signed-in users + guest turn tracking
       window.botpress.on('message', async function(msg) {
+        console.log('[Persistence] Message event fired, clientId:', clientId, 'block:', msg.block?.text?.substring(0, 30));
         if (!clientId) {
           checkGuestMemoryPrompt();
           return;
         }
+          
 
         // Ensure Supabase conversation exists
         if (!currentSupabaseConvId) {
