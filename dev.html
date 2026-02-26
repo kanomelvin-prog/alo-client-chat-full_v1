@@ -1574,6 +1574,18 @@ window.botpress.on('webchat:closed', function() {
         window.botpress.open();
       });
       
+      // Inject identity into every outgoing message for signed-in users
+      window.botpress.on('messageSent', function(msg) {
+        if (clientId && sessionNonce) {
+          window.botpress.updateUser({
+            data: {
+              sessionNonce: sessionNonce,
+              clientId: clientId
+            }
+          });
+        }
+      });
+
       // Track guest turns for memory prompt
       window.botpress.on('message', function() {
         if (!clientId) {
