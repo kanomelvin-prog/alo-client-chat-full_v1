@@ -1704,15 +1704,15 @@ window.botpress.on('webchat:closed', function() {
 
         // Extract text content — skip non-text messages
         var content = '';
-        if (msg.payload && msg.payload.text) {
+        if (msg.block && msg.block.text) {
+          content = msg.block.text;
+        } else if (msg.payload && msg.payload.text) {
           content = msg.payload.text;
-        } else if (typeof msg.text === 'string') {
-          content = msg.text;
         }
         if (!content) return;
 
-        // Determine role
-        var isUser = (msg.authorId === 'user' || msg.direction === 'outgoing');
+        // Determine role — user messages have clientMessageId in metadata
+        var isUser = !!(msg.metadata && msg.metadata.clientMessageId);
         var role = isUser ? 'user' : 'assistant';
 
         await saveMessage(role, content, msg.id || null);
