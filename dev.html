@@ -1693,34 +1693,50 @@ window.botpress.on('webchat:closed', function() {
       });
 
       // Message capture: persistence for signed-in users + guest turn tracking
-      window.botpress.on('message', async function(msg) {
-        console.log('[Persistence] Message event fired, clientId:', clientId, 'block:', msg.block?.text?.substring(0, 30));
+      // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
+      window.botpress.on('message', function(msg) {
         if (!clientId) {
           checkGuestMemoryPrompt();
           return;
         }
-          
 
-        // Ensure Supabase conversation exists
-        if (!currentSupabaseConvId) {
-          var bpConvId = msg.conversationId || 'conv_' + Date.now();
-          await ensureConversation(bpConvId);
-        }
-
-        // Extract text content — skip non-text messages
+        // Extract text — try all known paths
         var content = '';
-        if (msg.block && msg.block.text) {
-          content = msg.block.text;
-        } else if (msg.payload && msg.payload.text) {
-          content = msg.payload.text;
+        try { content = msg.block.text; } catch(e) {}
+        if (!content) try { content = msg.payload.text; } catch(e) {}
+        if (!content && typeof msg.text === 'string') content = msg.text;
+        if (!content) {
+          // Last resort: stringify and extract
+          try {
+            var raw = JSON.stringify(msg);
+            var match = raw.match(/"text":"([^"]+)"/);
+            if (match) content = match[1];
+          } catch(e) {}
         }
         if (!content) return;
 
-        // Determine role — user messages have clientMessageId in metadata
-        var isUser = !!(msg.metadata && msg.metadata.clientMessageId);
+        // Determine role
+        var isUser = false;
+        try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
         var role = isUser ? 'user' : 'assistant';
+        var msgId = null;
+        try { msgId = msg.id; } catch(e) {}
+        var bpConvId = null;
+        try { bpConvId = msg.conversationId; } catch(e) {}
 
-        await saveMessage(role, content, msg.id || null);
+        console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
+
+        // Fire-and-forget: create conversation if needed, then save
+        (async function() {
+          try {
+            if (!currentSupabaseConvId) {
+              await ensureConversation(bpConvId || 'conv_' + Date.now());
+            }
+            await saveMessage(role, content, msgId);
+          } catch (err) {
+            console.error('[Persistence] Error:', err.message);
+          }
+        })();
       });
          
       loadTimeout = setTimeout(function() {
