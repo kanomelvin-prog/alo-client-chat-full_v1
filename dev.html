@@ -1105,6 +1105,7 @@
         const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
 
         if (!links || links.length === 0) {
+          clientId = user.id;
           showLoggedInNoConnection();
           return;
         }
@@ -1671,18 +1672,6 @@ window.botpress.on('webchat:closed', function() {
         window.botpress.open();
       });
       
-      // Inject identity into every outgoing message for signed-in users
-      window.botpress.on('messageSent', function(msg) {
-        if (clientId && sessionNonce) {
-          window.botpress.updateUser({
-            data: {
-              sessionNonce: sessionNonce,
-              clientId: clientId
-            }
-          });
-        }
-      });
-
       // Inject identity into every outgoing message for signed-in users
       window.botpress.on('messageSent', function(msg) {
         if (clientId && sessionNonce) {
