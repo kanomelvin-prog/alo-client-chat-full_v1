@@ -1152,7 +1152,7 @@
               data: {
                 sessionNonce: sessionNonce,
                 clientId: clientId,
-                homeworkActive: hwSummary
+                homeworkActive: JSON.stringify(hwSummary)
               }
             });
             console.log('[Alo] Identity + homework sent to Botpress via updateUser');
@@ -1572,7 +1572,7 @@
                 data: {
                   sessionNonce: sessionNonce,
                   clientId: clientId,
-                  homeworkActive: hwSummary
+                  homeworkActive: JSON.stringify(hwSummary)
                 }
               });
             }
