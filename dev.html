@@ -1277,7 +1277,10 @@
     setTimeout(sendAuthBridge, 1000);
   }
       try {
-        window.botpress.updateUser({ userKey: clientId });
+        window.botpress.updateUser({
+          userKey: clientId,
+          data: { clientId: clientId }
+        });
       } catch (e) {}
     }
 
