@@ -208,6 +208,7 @@
     let currentSupabaseConvId = null;
     let seenMessageIds = new Set();
     let persistenceTurnCounter = 0;
+    let authBridgeSent = false;
 
     // =====================================================
     // UTILITY
@@ -1158,6 +1159,9 @@
           }
         }).catch(err => console.error('Session metadata write failed:', err));
 
+        // Send identity to Botpress via Custom Trigger (auth bridge)
+        sendAuthBridge();
+
       } catch (err) {
         console.error('Error loading connected state:', err);
       }
@@ -1252,6 +1256,28 @@
       currentSupabaseConvId = null;
       seenMessageIds.clear();
       persistenceTurnCounter = 0;
+    }
+
+    function sendAuthBridge() {
+      if (authBridgeSent || !clientId) return;
+      if (!window.botpress || typeof window.botpress.sendEvent !== 'function') {
+        setTimeout(sendAuthBridge, 500);
+        return;
+      }
+      authBridgeSent = true;
+      try {
+        window.botpress.sendEvent({
+          bp_event: 'alo_auth_bridge_v1',
+          clientId: clientId
+        });
+        console.log('[Alo] Auth bridge sent to Botpress');
+      } catch (e) {
+        console.warn('[Alo] Auth bridge sendEvent failed:', e);
+        authBridgeSent = false;
+      }
+      try {
+        window.botpress.updateUser({ userKey: clientId });
+      } catch (e) {}
     }
 
     // =====================================================
@@ -1496,6 +1522,7 @@
       if (!confirmed) return;
 
       resetPersistenceState();
+      authBridgeSent = false;
       toggleThreadSidebar();
       
       const aloFrame = document.getElementById('aloFrame');
@@ -1545,6 +1572,7 @@
                 }
               });
             }
+            sendAuthBridge();
             clearInterval(reinitCheck);
           } catch (e) {
             // Not ready yet
@@ -1817,6 +1845,7 @@ window.botpress.on('webchat:closed', function() {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
           resetPersistenceState();
+          authBridgeSent = false;
           resetToGuestUI();
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('[Auth] Token refreshed');
