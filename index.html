@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- ALO CLIENT CHAT v2.5 — Feb 23, 2026 — Color palette + dark mode -->
+<!-- v3.0 — Feb 27, 2026 — Conversation persistence + thread sidebar -->
 <!-- Changes: Teal-blue color palette, light/dark mode toggle,
      system preference detection, theme persistence via localStorage,
      WCAG AA contrast compliance, nighttime-optimized dark mode -->
@@ -33,13 +33,13 @@
   
   <!-- Open Graph — link preview when therapist texts URL to client -->
   <meta property="og:title" content="Alowen — Someone to think out loud with">
-  <meta property="og:description" content="A private space to process your thoughts and emotions. Your therapist recommended Alo as a companion between sessions.">
+  <meta property="og:description" content="A private space to process your thoughts and emotions. Your therapist recommended Alowen as a companion between sessions.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://alowen.ai/">
   <meta property="og:image" content="https://alowen.ai/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta name="description" content="Alo is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
+  <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
   <link rel="stylesheet" href="styles.css">
@@ -55,6 +55,9 @@
       </div>
     </div>
     <div class="header-actions">
+      <button id="threadsBtn" class="threads-btn hidden" onclick="toggleThreadSidebar()" aria-label="Conversation history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
       <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -78,6 +81,10 @@
   <div id="moreMenu" class="more-menu hidden">
     <div class="more-menu-backdrop" onclick="toggleMoreMenu()"></div>
     <div class="more-menu-panel" role="menu" aria-label="More options">
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleThreadSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Conversations
+      </button>
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Share
@@ -92,6 +99,41 @@
         Log Out
       </button>
     </div>
+  </div>
+
+  <!-- Thread sidebar (slide-in panel) -->
+  <div id="threadSidebar" class="thread-sidebar" aria-label="Conversation history">
+    <div class="thread-sidebar-header">
+      <h2>Conversations</h2>
+      <button class="thread-sidebar-close" onclick="toggleThreadSidebar()" aria-label="Close sidebar">&times;</button>
+    </div>
+    <button class="thread-new-btn" onclick="startNewConversation()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New conversation
+    </button>
+    <div id="threadList" class="thread-list">
+      <div class="thread-list-empty">No conversations yet.<br>Start chatting and they'll appear here.</div>
+    </div>
+    <div class="thread-sidebar-footer">
+      <div class="memory-toggle-row">
+        <div>
+          <div class="memory-toggle-label">Alo remembers context</div>
+          <span class="memory-toggle-sublabel">Past conversations inform new ones</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="memoryToggle" checked onchange="handleMemoryToggle(this.checked)">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
+
+  <!-- Memory save prompt bar (shown to guests after conversation depth) -->
+  <div id="memoryPromptBar" class="memory-prompt-bar">
+    <span class="memory-prompt-text">Want Alo to remember your conversations?</span>
+    <button class="memory-prompt-btn" onclick="showLoginModal(); hideMemoryPrompt();">Create Account</button>
+    <button class="memory-prompt-dismiss" onclick="hideMemoryPrompt()" aria-label="Dismiss">&times;</button>
   </div>
 
   <!-- Privacy assurance bar — shown on first visit, dismissible -->
@@ -161,6 +203,11 @@
     let connectedTherapistName = '';
     let activeHomework = [];
     let currentHomeworkId = null;
+
+    // Conversation persistence state
+    let currentSupabaseConvId = null;
+    let seenMessageIds = new Set();
+    let persistenceTurnCounter = 0;
 
     // =====================================================
     // UTILITY
@@ -332,6 +379,10 @@
       badge.className = 'trust-badge';
       badgeText.textContent = 'Logged in';
       
+      // Show threads button for any logged-in user
+      document.getElementById('threadsBtn').classList.remove('hidden');
+      loadMemorySettings();
+      
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
       
@@ -463,6 +514,9 @@
       const badgeText = document.getElementById('trustBadgeText');
       badge.className = 'trust-badge guest';
       badgeText.textContent = '';
+      
+      // Hide threads button for guests
+      document.getElementById('threadsBtn').classList.add('hidden');
       
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
@@ -717,8 +771,8 @@
     // =====================================================
     function showLoginModal(inviteCode = null) {
       createModal('Sign In or Create Account', `
-        <p>Create an account or sign in to connect with your therapist.</p>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Signing in does not share your past conversations.</p>
+        <p>Create an account to save your conversations and let Alo remember what you've discussed.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. Signing in does not share anything.</p>
         <div style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
@@ -1051,6 +1105,7 @@
         const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
 
         if (!links || links.length === 0) {
+          clientId = user.id;
           showLoggedInNoConnection();
           return;
         }
@@ -1072,6 +1127,11 @@
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
+        
+        // Show threads button and load memory settings
+        document.getElementById('threadsBtn').classList.remove('hidden');
+        await loadMemorySettings();
+        
         await loadHomework();
 
         // Generate nonce, write session start, and send identity to Botpress
@@ -1104,6 +1164,97 @@
     }
 
     // =====================================================
+    // CONVERSATION PERSISTENCE
+    // =====================================================
+    async function ensureConversation(botpressConvId) {
+      if (!clientId || !botpressConvId) return null;
+
+      var storageKey = 'alo_conv_' + botpressConvId;
+      var existingId = localStorage.getItem(storageKey);
+
+      if (existingId) {
+        currentSupabaseConvId = existingId;
+        try {
+          var { data } = await supabase
+            .from('conversations')
+            .select('turn_count')
+            .eq('id', existingId)
+            .single();
+          persistenceTurnCounter = data?.turn_count || 0;
+        } catch (e) {
+          persistenceTurnCounter = 0;
+        }
+        console.log('[Persistence] Resumed conversation:', existingId);
+        return existingId;
+      }
+
+      var now = new Date();
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var hrs = now.getHours();
+      var mins = String(now.getMinutes()).padStart(2, '0');
+      var ampm = hrs >= 12 ? 'PM' : 'AM';
+      var hr12 = hrs % 12 || 12;
+      var title = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear() + ' · ' + hr12 + ':' + mins + ' ' + ampm;
+
+      var { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          client_id: clientId,
+          title: title,
+          botpress_conversation_id: botpressConvId,
+          turn_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[Persistence] Failed to create conversation:', error.message);
+        return null;
+      }
+
+      currentSupabaseConvId = data.id;
+      localStorage.setItem(storageKey, data.id);
+      persistenceTurnCounter = 0;
+      console.log('[Persistence] Created conversation:', data.id);
+      return data.id;
+    }
+
+    async function saveMessage(role, content, botpressMessageId) {
+      if (!currentSupabaseConvId || !content) return;
+      if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
+      if (botpressMessageId) seenMessageIds.add(botpressMessageId);
+
+      persistenceTurnCounter++;
+
+      var insertData = {
+        conversation_id: currentSupabaseConvId,
+        role: role,
+        content: content,
+        turn_number: persistenceTurnCounter
+      };
+      if (botpressMessageId) {
+        insertData.botpress_msg_id = botpressMessageId;
+      }
+
+      console.log('[Persistence] Saving ' + role + ':', content.substring(0, 40), 'msgId:', botpressMessageId);
+      var { error } = await supabase
+        .from('conversation_messages')
+        .upsert(insertData, { onConflict: 'botpress_msg_id' });
+
+      if (error) {
+        console.error('[Persistence] FAILED ' + role + ':', error.message, error.details, error.hint);
+      } else {
+        console.log('[Persistence] Saved ' + role + ' message OK');
+      }
+    }
+
+    function resetPersistenceState() {
+      currentSupabaseConvId = null;
+      seenMessageIds.clear();
+      persistenceTurnCounter = 0;
+    }
+
+    // =====================================================
     // PRIVACY BAR
     // =====================================================
     function initPrivacyBar() {
@@ -1122,6 +1273,303 @@
       });
     }
 // =====================================================
+    // THREAD SIDEBAR + MEMORY FEATURES
+    // =====================================================
+    
+    let allThreads = [];
+    let guestTurnCount = 0;
+
+    function toggleThreadSidebar() {
+      const sidebar = document.getElementById('threadSidebar');
+      const backdrop = document.getElementById('threadBackdrop');
+      const isOpen = sidebar.classList.contains('open');
+      
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('show');
+        document.getElementById('threadsBtn').focus();
+      } else {
+        sidebar.classList.add('open');
+        backdrop.classList.add('show');
+        loadThreads();
+        const firstBtn = sidebar.querySelector('button');
+        if (firstBtn) firstBtn.focus();
+      }
+    }
+
+    async function loadThreads() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&order=updated_at.desc&limit=50`);
+        allThreads = threads || [];
+        renderThreadList();
+      } catch (err) {
+        console.error('Error loading threads:', err);
+      }
+    }
+
+    function renderThreadList() {
+      const container = document.getElementById('threadList');
+      
+      if (!allThreads || allThreads.length === 0) {
+        container.innerHTML = '<div class="thread-list-empty">No conversations yet.<br>Start chatting and they\'ll appear here.</div>';
+        return;
+      }
+
+      container.innerHTML = allThreads.map(function(thread) {
+        const turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
+        return '<div class="thread-item" data-id="' + thread.id + '">' +
+          '<div class="thread-item-content">' +
+            '<div class="thread-item-title">' + esc(thread.title || 'Untitled') + '</div>' +
+            '<div class="thread-item-meta">' + turnText + '</div>' +
+          '</div>' +
+          '<div class="thread-item-actions">' +
+            '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + esc(thread.title || '') + '" aria-label="Rename">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+            '</button>' +
+            '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      container.querySelectorAll('.thread-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          viewTranscript(this.dataset.id);
+        });
+      });
+      container.querySelectorAll('[data-action="rename"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          renameThread(this.dataset.id, this.dataset.title);
+        });
+      });
+      container.querySelectorAll('[data-action="delete"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          deleteThread(this.dataset.id);
+        });
+      });
+    }
+
+    async function viewTranscript(conversationId) {
+      try {
+        const messages = await api(`/rest/v1/conversation_messages?conversation_id=eq.${conversationId}&order=turn_number.asc,created_at.asc`);
+        
+        const thread = allThreads.find(t => t.id === conversationId);
+        const title = thread ? thread.title : 'Conversation';
+
+        let bodyHTML = '<div class="transcript-container">';
+        
+        if (!messages || messages.length === 0) {
+          bodyHTML += '<div class="transcript-empty">No messages in this conversation.</div>';
+        } else {
+          for (var i = 0; i < messages.length; i++) {
+            const msg = messages[i];
+            const roleClass = msg.role === 'user' ? 'user' : 'assistant';
+            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + esc(msg.content) + '</div>';
+          }
+        }
+        
+        bodyHTML += '</div>';
+
+        toggleThreadSidebar();
+        createModal(esc(title), bodyHTML, {
+          confirmLabel: 'Close',
+          showCancel: false
+        });
+      } catch (err) {
+        console.error('Error loading transcript:', err);
+        showToast('Could not load conversation');
+      }
+    }
+
+    function renameThread(conversationId, currentTitle) {
+      createModal('Rename Conversation', `
+        <input type="text" id="renameInput" value="${currentTitle}" 
+          placeholder="Give this conversation a name"
+          style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text-primary);"
+          maxlength="200" />
+      `, {
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const newTitle = document.getElementById('renameInput').value.trim();
+          if (!newTitle) {
+            showToast('Please enter a name');
+            return false;
+          }
+
+          try {
+            await api(`/rest/v1/conversations?id=eq.${conversationId}`, 'PATCH', {
+              title: newTitle
+            });
+
+            const thread = allThreads.find(t => t.id === conversationId);
+            if (thread) thread.title = newTitle;
+            renderThreadList();
+            showToast('Renamed');
+          } catch (err) {
+            console.error('Error renaming:', err);
+            showToast('Could not rename. Try again.');
+            return false;
+          }
+        }
+      });
+    }
+
+    async function deleteThread(conversationId) {
+      const confirmed = await showConfirm(
+        'Delete conversation?',
+        'This permanently deletes this conversation and its messages. This can\'t be undone.',
+        {
+          confirmLabel: 'Delete',
+          cancelLabel: 'Keep',
+          dangerous: true
+        }
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await api(`/rest/v1/conversations?id=eq.${conversationId}`, 'DELETE');
+        
+        allThreads = allThreads.filter(t => t.id !== conversationId);
+        renderThreadList();
+        showToast('Conversation deleted');
+      } catch (err) {
+        console.error('Error deleting:', err);
+        showToast('Could not delete. Try again.');
+      }
+    }
+
+    async function handleMemoryToggle(enabled) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const existing = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=client_id`);
+
+        if (existing && existing.length > 0) {
+          await api(`/rest/v1/client_settings?client_id=eq.${user.id}`, 'PATCH', {
+            memory_enabled: enabled,
+            updated_at: new Date().toISOString()
+          });
+        } else {
+          await api('/rest/v1/client_settings', 'POST', {
+            client_id: user.id,
+            memory_enabled: enabled
+          });
+        }
+
+        showToast(enabled ? 'Memory enabled' : 'Memory turned off');
+      } catch (err) {
+        console.error('Error updating memory setting:', err);
+        showToast('Could not update setting');
+        document.getElementById('memoryToggle').checked = !enabled;
+      }
+    }
+
+    async function loadMemorySettings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const settings = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=memory_enabled`);
+        if (settings && settings.length > 0) {
+          document.getElementById('memoryToggle').checked = settings[0].memory_enabled !== false;
+        }
+      } catch (err) {
+        document.getElementById('memoryToggle').checked = true;
+      }
+    }
+
+    async function startNewConversation() {
+      const confirmed = await showConfirm(
+        'Start new conversation?',
+        'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
+        { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
+      );
+      if (!confirmed) return;
+
+      resetPersistenceState();
+      toggleThreadSidebar();
+      
+      const aloFrame = document.getElementById('aloFrame');
+      const chatContainer = document.querySelector('.chat-container');
+      
+      const existingWebchat = document.querySelector('.bpWebchat');
+      if (existingWebchat) existingWebchat.remove();
+      
+      window.botpress.init({
+        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+        selector: '#aloFrame',
+        configuration: {
+          version: 'v2',
+          botName: ' ',
+          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+          botDescription: '',
+          color: '#3A7C86',
+          variant: 'soft',
+          headerVariant: 'glass',
+          themeMode: getEffectiveTheme(),
+          fontFamily: 'inter',
+          radius: 1,
+          feedbackEnabled: false,
+          soundEnabled: false,
+          conversationHistory: false
+        }
+      });
+
+      var reinitCheck = setInterval(function() {
+        if (window.botpress) {
+          try {
+            window.botpress.open();
+            var webchatIframe = document.querySelector('.bpWebchat');
+            if (chatContainer && webchatIframe) {
+              chatContainer.appendChild(webchatIframe);
+            }
+            if (clientId) {
+              var hwSummary = activeHomework.length > 0
+                ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
+                : [];
+              window.botpress.updateUser({
+                data: {
+                  sessionNonce: sessionNonce,
+                  clientId: clientId,
+                  homeworkActive: hwSummary
+                }
+              });
+            }
+            clearInterval(reinitCheck);
+          } catch (e) {
+            // Not ready yet
+          }
+        }
+      }, 200);
+
+      setTimeout(function() { clearInterval(reinitCheck); }, 5000);
+    }
+
+    function checkGuestMemoryPrompt() {
+      guestTurnCount++;
+      if (guestTurnCount >= 5 && !clientId && !localStorage.getItem('alo_memory_prompt_dismissed')) {
+        const bar = document.getElementById('memoryPromptBar');
+        if (bar) bar.classList.add('show');
+      }
+    }
+
+    function hideMemoryPrompt() {
+      const bar = document.getElementById('memoryPromptBar');
+      if (bar) bar.classList.remove('show');
+      localStorage.setItem('alo_memory_prompt_dismissed', 'true');
+    }
+
+    // =====================================================
     // BOTPRESS LAYOUT — position webchat iframe over chat-container
     // Botpress mounts iframes at <body> level, not inside #aloFrame.
     // We reposition the webchat iframe to exactly cover .chat-container.
@@ -1178,13 +1626,29 @@
 
         function positionWebchat() {
           var rect = chatContainer.getBoundingClientRect();
+          var top = rect.top;
+          var height = rect.height;
+          
+          // iOS keyboard fix: when visualViewport shrinks (keyboard open),
+          // clamp the webchat to the visible area
+          if (window.visualViewport) {
+            var vv = window.visualViewport;
+            var visibleBottom = vv.offsetTop + vv.height;
+            if (top + height > visibleBottom) {
+              height = Math.max(0, visibleBottom - Math.max(top, vv.offsetTop));
+            }
+            if (top < vv.offsetTop) {
+              top = vv.offsetTop;
+            }
+          }
+          
           webchatEl.style.cssText = 
             'position:fixed!important;' +
-            'top:' + rect.top + 'px!important;' +
+            'top:' + top + 'px!important;' +
             'left:' + rect.left + 'px!important;' +
             'width:' + rect.width + 'px!important;' +
-            'height:' + rect.height + 'px!important;' +
-            'max-height:' + rect.height + 'px!important;' +
+            'height:' + height + 'px!important;' +
+            'max-height:' + height + 'px!important;' +
             'max-width:' + rect.width + 'px!important;' +
             'border-radius:0!important;' +
             'box-shadow:none!important;' +
@@ -1206,6 +1670,54 @@
 
 window.botpress.on('webchat:closed', function() {
         window.botpress.open();
+      });
+      
+
+      // Message capture: persistence for signed-in users + guest turn tracking
+      // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
+      window.botpress.on('message', function(msg) {
+        if (!clientId) {
+          checkGuestMemoryPrompt();
+          return;
+        }
+
+        // Extract text — try all known paths
+        var content = '';
+        try { content = msg.block.text; } catch(e) {}
+        if (!content) try { content = msg.payload.text; } catch(e) {}
+        if (!content && typeof msg.text === 'string') content = msg.text;
+        if (!content) {
+          // Last resort: stringify and extract
+          try {
+            var raw = JSON.stringify(msg);
+            var match = raw.match(/"text":"([^"]+)"/);
+            if (match) content = match[1];
+          } catch(e) {}
+        }
+        if (!content) return;
+
+        // Determine role
+        var isUser = false;
+        try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
+        var role = isUser ? 'user' : 'assistant';
+        var msgId = null;
+        try { msgId = msg.id; } catch(e) {}
+        var bpConvId = null;
+        try { bpConvId = msg.conversationId; } catch(e) {}
+
+        console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
+
+        // Fire-and-forget: create conversation if needed, then save
+        (async function() {
+          try {
+            if (!currentSupabaseConvId) {
+              await ensureConversation(bpConvId || 'conv_' + Date.now());
+            }
+            await saveMessage(role, content, msgId);
+          } catch (err) {
+            console.error('[Persistence] Error:', err.message);
+          }
+        })();
       });
          
       loadTimeout = setTimeout(function() {
@@ -1268,8 +1780,10 @@ window.botpress.on('webchat:closed', function() {
 
           <h3 class="modal-section-title">Your Alo conversations</h3>
           <ul class="modal-list">
-            <li>Conversations are processed by our chat provider to power the experience</li>
-            <li>Chat data is <strong>not permanently stored</strong> — it is automatically deleted</li>
+            <li>If you have an account, conversations are saved so Alo can provide continuity</li>
+            <li>You can delete any conversation at any time from the sidebar</li>
+            <li>You can turn off memory in settings — Alo will treat each chat as new</li>
+            <li>Guest conversations (no account) are not stored permanently</li>
             <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
             <li>Conversations are not used for training, analytics, or advertising</li>
           </ul>
@@ -1302,7 +1816,10 @@ window.botpress.on('webchat:closed', function() {
         if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
+          resetPersistenceState();
           resetToGuestUI();
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[Auth] Token refreshed');
         }
       });
 
