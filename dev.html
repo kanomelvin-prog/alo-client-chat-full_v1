@@ -1273,8 +1273,9 @@
         console.log('[Alo] Auth bridge sent to Botpress');
       } catch (e) {
         console.warn('[Alo] Auth bridge sendEvent failed:', e);
-        authBridgeSent = false;
-      }
+    authBridgeSent = false;
+    setTimeout(sendAuthBridge, 1000);
+  }
       try {
         window.botpress.updateUser({ userKey: clientId });
       } catch (e) {}
