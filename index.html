@@ -208,6 +208,7 @@
     let currentSupabaseConvId = null;
     let seenMessageIds = new Set();
     let persistenceTurnCounter = 0;
+    let authBridgeSent = false;
 
     // =====================================================
     // UTILITY
@@ -1151,12 +1152,15 @@
               data: {
                 sessionNonce: sessionNonce,
                 clientId: clientId,
-                homeworkActive: hwSummary
+                homeworkActive: JSON.stringify(hwSummary)
               }
             });
             console.log('[Alo] Identity + homework sent to Botpress via updateUser');
           }
         }).catch(err => console.error('Session metadata write failed:', err));
+
+        // Send identity to Botpress via Custom Trigger (auth bridge)
+        sendAuthBridge();
 
       } catch (err) {
         console.error('Error loading connected state:', err);
@@ -1253,6 +1257,32 @@
       seenMessageIds.clear();
       persistenceTurnCounter = 0;
     }
+
+    function sendAuthBridge() {
+      if (authBridgeSent || !clientId) return;
+      if (!window.botpress || typeof window.botpress.sendEvent !== 'function') {
+        setTimeout(sendAuthBridge, 500);
+        return;
+      }
+      authBridgeSent = true;
+      try {
+        window.botpress.sendEvent({
+          bp_event: 'alo_auth_bridge_v1',
+          clientId: clientId
+        });
+        console.log('[Alo] Auth bridge sent to Botpress');
+      } catch (e) {
+        console.warn('[Alo] Auth bridge sendEvent failed:', e);
+    authBridgeSent = false;
+    setTimeout(sendAuthBridge, 1000);
+  }
+      try {
+        window.botpress.updateUser({
+          userKey: clientId,
+          data: { clientId: clientId }
+        });
+      } catch (e) {}
+    } 
 
     // =====================================================
     // PRIVACY BAR
@@ -1496,6 +1526,7 @@
       if (!confirmed) return;
 
       resetPersistenceState();
+      authBridgeSent = false;
       toggleThreadSidebar();
       
       const aloFrame = document.getElementById('aloFrame');
@@ -1541,10 +1572,11 @@
                 data: {
                   sessionNonce: sessionNonce,
                   clientId: clientId,
-                  homeworkActive: hwSummary
+                  homeworkActive: JSON.stringify(hwSummary)
                 }
               });
             }
+            sendAuthBridge();
             clearInterval(reinitCheck);
           } catch (e) {
             // Not ready yet
@@ -1817,6 +1849,7 @@ window.botpress.on('webchat:closed', function() {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
           resetPersistenceState();
+          authBridgeSent = false;
           resetToGuestUI();
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('[Auth] Token refreshed');
