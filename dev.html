@@ -1672,17 +1672,6 @@ window.botpress.on('webchat:closed', function() {
         window.botpress.open();
       });
       
-      // Inject identity into every outgoing message for signed-in users
-      window.botpress.on('messageSent', function(msg) {
-        if (clientId && sessionNonce) {
-          window.botpress.updateUser({
-            data: {
-              sessionNonce: sessionNonce,
-              clientId: clientId
-            }
-          });
-        }
-      });
 
       // Message capture: persistence for signed-in users + guest turn tracking
       // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
