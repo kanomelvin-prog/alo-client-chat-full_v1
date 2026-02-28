@@ -179,6 +179,10 @@
       <div class="thread-list-empty">No conversations yet.<br>Start chatting and they'll appear here.</div>
     </div>
     <div class="thread-sidebar-footer">
+      <button class="clear-history-btn" onclick="clearHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Clear unpinned conversations
+      </button>
       <button class="thread-sidebar-settings-link" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         Memory settings
@@ -1271,7 +1275,8 @@
           title: title,
           botpress_conversation_id: botpressConvId,
           turn_count: 0,
-          is_private: isPrivateSession || false
+          is_private: isPrivateSession || false,
+          pinned: false
         })
         .select('id')
         .single();
@@ -1399,7 +1404,7 @@
       if (!user) return;
 
       try {
-        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&order=updated_at.desc&limit=50`);
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
         allThreads = threads || [];
         renderThreadList();
       } catch (err) {
@@ -1407,35 +1412,75 @@
       }
     }
 
+    function renderThreadRow(thread) {
+      var turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
+      var isPinned = !!thread.pinned;
+      var pinFill = isPinned ? 'currentColor' : 'none';
+      var pinClass = isPinned ? 'thread-pin-btn pinned' : 'thread-pin-btn';
+      var pinLabel = isPinned ? 'Unpin' : 'Save this conversation';
+
+      return '<div class="thread-item" data-id="' + thread.id + '">' +
+        '<button class="' + pinClass + '" data-action="pin" data-id="' + thread.id + '" aria-label="' + pinLabel + '" title="' + pinLabel + '">' +
+          '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+        '</button>' +
+        '<div class="thread-item-content">' +
+          '<div class="thread-item-title">' + esc(thread.title || 'Untitled') + '</div>' +
+          '<div class="thread-item-meta">' + turnText + '</div>' +
+        '</div>' +
+        '<div class="thread-item-actions">' +
+          '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + esc(thread.title || '') + '" aria-label="Rename">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+          '</button>' +
+          '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    }
+
     function renderThreadList() {
-      const container = document.getElementById('threadList');
+      var container = document.getElementById('threadList');
       
       if (!allThreads || allThreads.length === 0) {
         container.innerHTML = '<div class="thread-list-empty">No conversations yet.<br>Start chatting and they\'ll appear here.</div>';
         return;
       }
 
-      container.innerHTML = allThreads.map(function(thread) {
-        const turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
-        return '<div class="thread-item" data-id="' + thread.id + '">' +
-          '<div class="thread-item-content">' +
-            '<div class="thread-item-title">' + esc(thread.title || 'Untitled') + '</div>' +
-            '<div class="thread-item-meta">' + turnText + '</div>' +
-          '</div>' +
-          '<div class="thread-item-actions">' +
-            '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + esc(thread.title || '') + '" aria-label="Rename">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-            '</button>' +
-            '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
-            '</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+      var pinned = allThreads.filter(function(t) { return t.pinned; })
+        .sort(function(a, b) { return new Date(b.pinned_at || b.created_at) - new Date(a.pinned_at || a.created_at); });
+
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; })
+        .sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+
+      var html = '';
+
+      if (pinned.length > 0) {
+        html += '<div class="thread-section-label">Saved</div>';
+        for (var pi = 0; pi < pinned.length; pi++) { html += renderThreadRow(pinned[pi]); }
+        if (unpinned.length > 0) {
+          html += '<div class="thread-divider"></div>';
+        }
+      }
+
+      var visibleUnpinned = unpinned.slice(0, 30);
+      for (var ui = 0; ui < visibleUnpinned.length; ui++) { html += renderThreadRow(visibleUnpinned[ui]); }
+
+      if (unpinned.length > 30) {
+        html += '<button class="thread-load-more" onclick="loadMoreThreads()">Load older conversations</button>';
+      }
+
+      container.innerHTML = html;
 
       container.querySelectorAll('.thread-item').forEach(function(item) {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+          if (e.target.closest('[data-action]')) return;
           viewTranscript(this.dataset.id);
+        });
+      });
+      container.querySelectorAll('[data-action="pin"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          togglePin(this.dataset.id);
         });
       });
       container.querySelectorAll('[data-action="rename"]').forEach(function(btn) {
@@ -1519,12 +1564,20 @@
     }
 
     async function deleteThread(conversationId) {
-      const confirmed = await showConfirm(
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      var isPinned = thread && thread.pinned;
+
+      var message = 'This permanently removes the conversation and Alo\'s memory of it. This can\'t be undone.';
+      if (!isPinned) {
+        message += ' If you want to keep it, you can save it instead.';
+      }
+
+      var confirmed = await showConfirm(
         'Delete conversation?',
-        'This permanently deletes this conversation and its messages. This can\'t be undone.',
+        message,
         {
           confirmLabel: 'Delete',
-          cancelLabel: 'Keep',
+          cancelLabel: isPinned ? 'Keep' : 'Cancel',
           dangerous: true
         }
       );
@@ -1532,9 +1585,10 @@
       if (!confirmed) return;
 
       try {
-        await api(`/rest/v1/conversations?id=eq.${conversationId}`, 'DELETE');
+        await api('/rest/v1/conversation_summaries?conversation_id=eq.' + conversationId, 'DELETE');
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'DELETE');
         
-        allThreads = allThreads.filter(t => t.id !== conversationId);
+        allThreads = allThreads.filter(function(t) { return t.id !== conversationId; });
         renderThreadList();
         showToast('Conversation deleted');
       } catch (err) {
@@ -1542,7 +1596,76 @@
         showToast('Could not delete. Try again.');
       }
     }
+async function togglePin(conversationId) {
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      if (!thread) return;
 
+      var newPinned = !thread.pinned;
+
+      try {
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'PATCH', {
+          pinned: newPinned,
+          pinned_at: newPinned ? new Date().toISOString() : null
+        });
+
+        thread.pinned = newPinned;
+        thread.pinned_at = newPinned ? new Date().toISOString() : null;
+        renderThreadList();
+        showToast(newPinned ? 'Conversation saved' : 'Conversation unpinned');
+      } catch (err) {
+        console.error('Pin toggle failed:', err);
+        showToast('Could not update. Try again.');
+      }
+    }
+
+    async function clearHistory() {
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; });
+      var pinnedCount = allThreads.filter(function(t) { return t.pinned; }).length;
+
+      if (unpinned.length === 0) {
+        showToast('No unpinned conversations to clear');
+        return;
+      }
+
+      var message = 'This will delete ' + unpinned.length + ' unpinned conversation' +
+        (unpinned.length > 1 ? 's' : '') + '.';
+      if (pinnedCount > 0) {
+        message += ' Your ' + pinnedCount + ' saved conversation' +
+          (pinnedCount > 1 ? 's' : '') + ' won\'t be affected.';
+      }
+      message += ' Alo will still remember themes from recent sessions. This can\'t be undone.';
+
+      var confirmed = await showConfirm('Clear conversation history?', message, {
+        confirmLabel: 'Clear History',
+        cancelLabel: 'Keep',
+        dangerous: true
+      });
+
+      if (!confirmed) return;
+
+      try {
+        var { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        var unpinnedIds = unpinned.map(function(t) { return '"' + t.id + '"'; }).join(',');
+        
+        if (unpinnedIds) {
+          await api('/rest/v1/conversation_summaries?conversation_id=in.(' + unpinnedIds + ')', 'PATCH', {
+            source_expired: true,
+            last_referenced_at: new Date().toISOString()
+          });
+
+          await api('/rest/v1/conversations?client_id=eq.' + user.id + '&pinned=eq.false', 'DELETE');
+        }
+
+        allThreads = allThreads.filter(function(t) { return t.pinned; });
+        renderThreadList();
+        showToast('History cleared');
+      } catch (err) {
+        console.error('Error clearing history:', err);
+        showToast('Could not clear history. Try again.');
+      }
+    }
     async function handleMemoryToggle(enabled) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
