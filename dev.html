@@ -286,6 +286,10 @@
       return div.innerHTML;
     }
 
+    function escAttr(str) {
+      return esc(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     // =====================================================
     // THEME TOGGLE
     // =====================================================
@@ -333,10 +337,19 @@
         onConfirm = null,
         onCancel = null,
         showCancel = true,
+        showFooter = true,
         dangerous = false
       } = options;
 
       const modalId = 'modal-' + Date.now();
+      var footerHTML = '';
+      if (showFooter) {
+        footerHTML = '<div class="modal-footer">' +
+          (showCancel ? '<button class="btn-secondary modal-cancel">' + cancelLabel + '</button>' : '') +
+          '<button class="btn-primary modal-confirm ' + (dangerous ? 'btn-danger' : '') + '">' + confirmLabel + '</button>' +
+        '</div>';
+      }
+
       const modalHTML = `
         <div class="modal-overlay" id="${modalId}" role="dialog" aria-modal="true" aria-labelledby="${modalId}-title">
           <div class="modal-content">
@@ -347,10 +360,7 @@
             <div class="modal-body">
               ${bodyHTML}
             </div>
-            <div class="modal-footer">
-              ${showCancel ? `<button class="btn-secondary modal-cancel">${cancelLabel}</button>` : ''}
-              <button class="btn-primary modal-confirm ${dangerous ? 'btn-danger' : ''}">${confirmLabel}</button>
-            </div>
+            ${footerHTML}
           </div>
         </div>
       `;
@@ -366,8 +376,10 @@
       const firstInput = modal.querySelector('input, textarea, select');
       if (firstInput) {
         setTimeout(() => firstInput.focus(), 100);
-      } else {
+      } else if (confirmBtn) {
         setTimeout(() => confirmBtn.focus(), 100);
+      } else {
+        setTimeout(() => closeBtn.focus(), 100);
       }
 
       function closeModal() {
@@ -387,7 +399,7 @@
         });
       }
 
-      confirmBtn.addEventListener('click', async () => {
+      if (confirmBtn) confirmBtn.addEventListener('click', async () => {
         if (onConfirm) {
           const result = await onConfirm();
           if (result !== false) closeModal();
@@ -1294,6 +1306,7 @@
     }
 
     async function saveMessage(role, content, botpressMessageId) {
+      if (isPrivateSession) return;
       if (!currentSupabaseConvId || !content) return;
       if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
       if (botpressMessageId) seenMessageIds.add(botpressMessageId);
@@ -1418,17 +1431,18 @@
       var pinFill = isPinned ? 'currentColor' : 'none';
       var pinClass = isPinned ? 'thread-pin-btn pinned' : 'thread-pin-btn';
       var pinLabel = isPinned ? 'Unpin' : 'Save this conversation';
+      var safeTitle = escAttr(thread.title || 'Untitled');
 
       return '<div class="thread-item" data-id="' + thread.id + '">' +
         '<button class="' + pinClass + '" data-action="pin" data-id="' + thread.id + '" aria-label="' + pinLabel + '" title="' + pinLabel + '">' +
           '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
         '</button>' +
         '<div class="thread-item-content">' +
-          '<div class="thread-item-title">' + esc(thread.title || 'Untitled') + '</div>' +
+          '<div class="thread-item-title">' + safeTitle + '</div>' +
           '<div class="thread-item-meta">' + turnText + '</div>' +
         '</div>' +
         '<div class="thread-item-actions">' +
-          '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + esc(thread.title || '') + '" aria-label="Rename">' +
+          '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + escAttr(thread.title || '') + '" aria-label="Rename">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
           '</button>' +
           '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
@@ -1499,30 +1513,158 @@
 
     async function viewTranscript(conversationId) {
       try {
-        const messages = await api(`/rest/v1/conversation_messages?conversation_id=eq.${conversationId}&order=turn_number.asc,created_at.asc`);
+        var messages = await api('/rest/v1/conversation_messages?conversation_id=eq.' + conversationId + '&order=turn_number.asc,created_at.asc');
         
-        const thread = allThreads.find(t => t.id === conversationId);
-        const title = thread ? thread.title : 'Conversation';
+        var thread = allThreads.find(function(t) { return t.id === conversationId; });
+        var title = thread ? (thread.title || 'Conversation') : 'Conversation';
+        var isPinned = thread ? !!thread.pinned : false;
+        var threadDate = thread ? new Date(thread.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        var msgCount = (messages && messages.length) || 0;
 
-        let bodyHTML = '<div class="transcript-container">';
+        // Build transcript body
+        var bodyHTML = '<div class="transcript-container">';
         
         if (!messages || messages.length === 0) {
           bodyHTML += '<div class="transcript-empty">No messages in this conversation.</div>';
         } else {
           for (var i = 0; i < messages.length; i++) {
-            const msg = messages[i];
-            const roleClass = msg.role === 'user' ? 'user' : 'assistant';
-            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + esc(msg.content) + '</div>';
+            var msg = messages[i];
+            var roleClass = msg.role === 'user' ? 'user' : 'assistant';
+            var cleaned = esc(msg.content).replace(/\\n\\n/g, '<br><br>').replace(/\\n/g, '<br>');
+            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + cleaned + '</div>';
           }
         }
         
         bodyHTML += '</div>';
 
+        // Share bottom sheet (hidden by default, slides up inside modal)
+        bodyHTML += '<div id="transcriptShareSheet" class="transcript-share-sheet hidden">' +
+          '<div class="transcript-share-header">Share Transcript</div>' +
+          '<div class="transcript-share-meta">' + msgCount + ' messages · Nothing is sent until you choose where.</div>' +
+          '<label class="transcript-share-toggle">' +
+            '<input type="checkbox" id="shareIncludeAlo" checked> Include Alo\'s responses' +
+          '</label>' +
+          '<div class="transcript-share-actions">' +
+            '<button class="btn-primary transcript-share-btn" id="transcriptCopyBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+              ' Copy to clipboard' +
+            '</button>' +
+            (navigator.share ? '<button class="btn-secondary transcript-share-btn" id="transcriptNativeShareBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+              ' Share via\u2026' +
+            '</button>' : '') +
+          '</div>' +
+          '<button class="btn-link transcript-share-cancel" id="transcriptShareCancel">Cancel</button>' +
+        '</div>';
+
         toggleThreadSidebar();
-        createModal(esc(title), bodyHTML, {
-          confirmLabel: 'Close',
-          showCancel: false
+
+        // Build custom header: [Star] Title [Share ↗] [✕ handled by createModal]
+        var pinFill = isPinned ? 'currentColor' : 'none';
+        var pinClass = isPinned ? 'transcript-pin pinned' : 'transcript-pin';
+
+        var customTitle = '<div class="transcript-header-row">' +
+          '<button class="' + pinClass + '" id="transcriptPinBtn" aria-label="' + (isPinned ? 'Unpin' : 'Pin') + ' conversation" title="' + (isPinned ? 'Unpin' : 'Save this conversation') + '">' +
+            '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</button>' +
+          '<div class="transcript-title-block">' +
+            '<span class="transcript-title-text">' + escAttr(title) + '</span>' +
+            (threadDate ? '<span class="transcript-title-date">' + threadDate + '</span>' : '') +
+          '</div>' +
+          '<button class="transcript-share-icon" id="transcriptShareToggle" aria-label="Share transcript" title="Share">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+          '</button>' +
+        '</div>';
+
+        // No footer — close via ✕ only (more transcript space on mobile)
+        var modal = createModal(customTitle, bodyHTML, {
+          showFooter: false
         });
+
+        // Store messages ref for share formatting
+        var transcriptMessages = messages || [];
+
+        // --- Wire up pin button ---
+        var pinBtn = modal.querySelector('#transcriptPinBtn');
+        if (pinBtn) {
+          pinBtn.addEventListener('click', function() {
+            togglePin(conversationId);
+            var newPinned = !isPinned;
+            isPinned = newPinned;
+            pinBtn.className = newPinned ? 'transcript-pin pinned' : 'transcript-pin';
+            var svg = pinBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', newPinned ? 'currentColor' : 'none');
+            pinBtn.setAttribute('aria-label', (newPinned ? 'Unpin' : 'Pin') + ' conversation');
+            pinBtn.setAttribute('title', newPinned ? 'Unpin' : 'Save this conversation');
+          });
+        }
+
+        // --- Wire up share sheet toggle ---
+        var shareToggle = modal.querySelector('#transcriptShareToggle');
+        var shareSheet = modal.querySelector('#transcriptShareSheet');
+        var shareCancel = modal.querySelector('#transcriptShareCancel');
+
+        if (shareToggle && shareSheet) {
+          shareToggle.addEventListener('click', function() {
+            shareSheet.classList.toggle('hidden');
+            if (!shareSheet.classList.contains('hidden')) {
+              shareSheet.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+        }
+        if (shareCancel) {
+          shareCancel.addEventListener('click', function() {
+            shareSheet.classList.add('hidden');
+          });
+        }
+
+        // --- Format transcript for sharing ---
+        function buildShareText(includeAlo) {
+          var dateLine = threadDate ? 'Alo Conversation \u2014 ' + threadDate : 'Alo Conversation';
+          var lines = [dateLine, '\u2500'.repeat(36), ''];
+          for (var si = 0; si < transcriptMessages.length; si++) {
+            var m = transcriptMessages[si];
+            if (!includeAlo && m.role !== 'user') continue;
+            var label = m.role === 'user' ? 'You' : 'Alo';
+            var text = (m.content || '').replace(/\\n/g, '\n');
+            lines.push(label + ': ' + text);
+            lines.push('');
+          }
+          return lines.join('\n').trim();
+        }
+
+        // --- Wire up copy button ---
+        var copyBtn = modal.querySelector('#transcriptCopyBtn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            var ok = await copyToClipboard(text);
+            if (ok) {
+              var origHTML = copyBtn.innerHTML;
+              copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+              setTimeout(function() { copyBtn.innerHTML = origHTML; }, 2000);
+            }
+          });
+        }
+
+        // --- Wire up native share button ---
+        var nativeBtn = modal.querySelector('#transcriptNativeShareBtn');
+        if (nativeBtn) {
+          nativeBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            try {
+              await navigator.share({ title: 'Alo \u2014 ' + (threadDate || 'Conversation'), text: text });
+            } catch (e) {
+              if (e.name !== 'AbortError') {
+                await copyToClipboard(text);
+                showToast('Copied to clipboard');
+              }
+            }
+          });
+        }
+
       } catch (err) {
         console.error('Error loading transcript:', err);
         showToast('Could not load conversation');
@@ -1531,7 +1673,7 @@
 
     function renameThread(conversationId, currentTitle) {
       createModal('Rename Conversation', `
-        <input type="text" id="renameInput" value="${currentTitle}" 
+        <input type="text" id="renameInput" value="${escAttr(currentTitle)}" 
           placeholder="Give this conversation a name"
           style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text-primary);"
           maxlength="200" />
@@ -1647,7 +1789,7 @@ async function togglePin(conversationId) {
         var { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        var unpinnedIds = unpinned.map(function(t) { return '"' + t.id + '"'; }).join(',');
+        var unpinnedIds = unpinned.map(function(t) { return t.id; }).join(',');
         
         if (unpinnedIds) {
           await api('/rest/v1/conversation_summaries?conversation_id=in.(' + unpinnedIds + ')', 'PATCH', {
