@@ -2040,6 +2040,18 @@ async function togglePin(conversationId) {
         positionWebchat();
         console.log('[Alo] Positioned webchat overlay on .chat-container');
 
+        // Fight Botpress re-positioning: re-apply for first 3 seconds
+        var posRetries = 0;
+        var posInterval = setInterval(function() {
+          positionWebchat();
+          posRetries++;
+          if (posRetries >= 15) clearInterval(posInterval);
+        }, 200);
+
+        // Watch for Botpress resetting our styles
+        var observer = new MutationObserver(function() { positionWebchat(); });
+        observer.observe(webchatEl, { attributes: true, attributeFilter: ['style'] });
+
         // Keep in sync on resize, orientation change, iOS keyboard
         var ro = new ResizeObserver(positionWebchat);
         ro.observe(chatContainer);
