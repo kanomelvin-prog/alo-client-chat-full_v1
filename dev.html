@@ -2190,17 +2190,10 @@ async function togglePin(conversationId) {
           if (posRetries >= 15) clearInterval(posInterval);
         }, 200);
 
-                // Watch for Botpress resetting our styles (guarded to prevent infinite loop)
-        var positioningNow = false;
-        var origPositionWebchat = positionWebchat;
-        positionWebchat = function() {
-          if (positioningNow) return;
-          positioningNow = true;
-          origPositionWebchat();
-          positioningNow = false;
-        };
-        var observer = new MutationObserver(function() { positionWebchat(); });
-        observer.observe(webchatEl, { attributes: true, attributeFilter: ['style'] });
+                        // Note: MutationObserver removed — it caused infinite loop
+        // (setting style triggers observer, which sets style again).
+        // setInterval + ResizeObserver + window resize cover repositioning.
+
 
 
         // Keep in sync on resize, orientation change, iOS keyboard
