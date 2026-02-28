@@ -436,7 +436,7 @@
     // =====================================================
     // UI STATE MANAGEMENT
     // =====================================================
-    function showLoggedInNoConnection() {
+    async function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
       const badgeText = document.getElementById('trustBadgeText');
       badge.className = 'trust-badge';
@@ -1192,8 +1192,9 @@
 
         showConnectedUI(therapistName, clientName);
         
-        // Show threads button and load memory settings
+        // Show threads button and memory icon, load memory settings
         document.getElementById('threadsBtn').classList.remove('hidden');
+        document.getElementById('memoryIconBtn').classList.remove('hidden');
         await loadMemorySettings();
         
         await loadHomework();
