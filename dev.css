@@ -2291,3 +2291,158 @@ footer a {
 .thread-load-more:hover {
   background: rgba(0,0,0,0.03);
 }
+/* ============================================================
+   TRANSCRIPT MODAL — Pin + Share header, share bottom sheet
+   Added: Feb 28, 2026
+   ============================================================ */
+
+/* Custom header row replaces default h2 in transcript modal */
+.transcript-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-right: 36px; /* leave room for ✕ close button */
+}
+
+.transcript-title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.transcript-title-text {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transcript-title-date {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Pin + Share icon buttons in transcript header */
+.transcript-pin,
+.transcript-share-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.transcript-pin:hover,
+.transcript-share-icon:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.transcript-pin:active,
+.transcript-share-icon:active {
+  background: var(--primary-light);
+}
+
+.transcript-pin.pinned {
+  color: var(--primary);
+}
+
+/* Share bottom sheet — appears inside modal body */
+.transcript-share-sheet {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--warm-bg);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  animation: shareSlideUp 0.2s ease-out;
+}
+
+@keyframes shareSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.transcript-share-sheet.hidden {
+  display: none;
+}
+
+.transcript-share-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.transcript-share-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.transcript-share-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.transcript-share-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.transcript-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.transcript-share-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  min-height: 44px;
+}
+
+.transcript-share-cancel {
+  width: 100%;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: none;
+}
+
+.transcript-share-cancel:hover {
+  color: var(--text-primary);
+}
