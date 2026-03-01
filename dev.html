@@ -659,30 +659,7 @@
 
         container.classList.add('show');
 
-        // Attach event listeners
-        container.querySelectorAll('.homework-collapse').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var hwId = this.dataset.hwId;
-            var body = document.getElementById('hwBody-' + hwId);
-            var isCollapsed = body.classList.contains('collapsed');
-            body.classList.toggle('collapsed');
-            this.textContent = isCollapsed ? '\u2212' : '+';
-            this.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
-            this.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
-          });
-        });
-
-        container.querySelectorAll('.homework-done-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkDone(this.dataset.hwId);
-          });
-        });
-
-        container.querySelectorAll('.homework-hide-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkHide(this.dataset.hwId);
-          });
-        });
+        
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -696,6 +673,34 @@
             }
           }
         }
+
+        // Event delegation — survives re-renders
+        container.onclick = function(e) {
+          var collapseBtn = e.target.closest('.homework-collapse');
+          if (collapseBtn) {
+            var hwId = collapseBtn.dataset.hwId;
+            var body = document.getElementById('hwBody-' + hwId);
+            if (!body) return;
+            var isCollapsed = body.classList.contains('collapsed');
+            body.classList.toggle('collapsed');
+            collapseBtn.textContent = isCollapsed ? '\u2212' : '+';
+            collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+            collapseBtn.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
+            return;
+          }
+
+          var doneBtn = e.target.closest('.homework-done-btn');
+          if (doneBtn) {
+            handleHomeworkDone(doneBtn.dataset.hwId);
+            return;
+          }
+
+          var hideBtn = e.target.closest('.homework-hide-btn');
+          if (hideBtn) {
+            handleHomeworkHide(hideBtn.dataset.hwId);
+            return;
+          }
+        };
 
       } catch (err) {
         console.error('Error loading homework:', err);
