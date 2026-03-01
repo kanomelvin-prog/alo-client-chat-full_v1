@@ -199,7 +199,7 @@
   </div>
 
   <!-- Privacy assurance bar — shown on first visit, dismissible -->
-  <div id="privacyBar" class="privacy-bar">
+  <div id="privacyBar" class="privacy-bar hidden">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
@@ -509,6 +509,8 @@
       if (msgItem) {
         msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
       }
+
+      showPrivacyBarIfConnected();
     }
 
     function toggleMoreMenu() {
@@ -1373,19 +1375,16 @@
     // PRIVACY BAR
     // =====================================================
     function initPrivacyBar() {
-      const bar = document.getElementById('privacyBar');
       const dismissBtn = document.getElementById('privacyBarDismiss');
-      
-      // Check if user has dismissed it before
-      if (localStorage.getItem('alo_privacy_bar_dismissed')) {
-        bar.style.display = 'none';
-        return;
-      }
-
       dismissBtn.addEventListener('click', () => {
-        bar.style.display = 'none';
+        document.getElementById('privacyBar').classList.add('hidden');
         localStorage.setItem('alo_privacy_bar_dismissed', 'true');
       });
+    }
+
+    function showPrivacyBarIfConnected() {
+      if (localStorage.getItem('alo_privacy_bar_dismissed')) return;
+      document.getElementById('privacyBar').classList.remove('hidden');
     }
 // =====================================================
     // THREAD SIDEBAR + MEMORY FEATURES
