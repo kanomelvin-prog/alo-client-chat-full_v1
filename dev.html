@@ -1,0 +1,2420 @@
+<!DOCTYPE html>
+<!-- v3.0 — Feb 27, 2026 — Conversation persistence + thread sidebar -->
+<!-- Changes: Teal-blue color palette, light/dark mode toggle,
+     system preference detection, theme persistence via localStorage,
+     WCAG AA contrast compliance, nighttime-optimized dark mode -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Alowen">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#F3EDE4" id="metaThemeColor">
+  
+  <!-- Prevent flash of wrong theme — runs before first paint --> 
+  <script>
+    (function() {
+      var saved = localStorage.getItem('alo_theme');
+      if (saved === 'dark' || saved === 'light') {
+        document.documentElement.setAttribute('data-theme', saved);
+        var meta = document.getElementById('metaThemeColor');
+        if (meta) meta.content = saved === 'dark' ? '#111917' : '#F3EDE4';
+      }
+    })();
+  </script>
+  
+  <!-- Botpress JS SDK -->
+  <link rel="preconnect" href="https://cdn.botpress.cloud">
+  <link rel="preconnect" href="https://files.bpcontent.cloud">
+  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
+  
+  <!-- Open Graph — link preview when therapist texts URL to client -->
+  <meta property="og:title" content="Alowen — Someone to think out loud with">
+  <meta property="og:description" content="A private space to process your thoughts and emotions. Your therapist recommended Alowen as a companion between sessions.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://alowen.ai/">
+  <meta property="og:image" content="https://alowen.ai/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
+  
+  <title>Alowen — Someone to think out loud with</title>
+  <link rel="stylesheet" href="dev.css">
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">A</div>
+      <div class="brand-text">
+        <h1 class="brand-name">Alowen</h1>
+        <span>Someone to think out loud with</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="threadsBtn" class="threads-btn hidden" onclick="toggleThreadSidebar()" aria-label="Conversation history" title="Conversations">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      </button>
+      <button id="memoryIconBtn" class="memory-icon-btn hidden" onclick="toggleMemoryPopover()" aria-label="Memory settings" aria-haspopup="true" aria-expanded="false" title="Memory settings">
+        <svg class="mem-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="mem-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <span class="mem-status-dot"></span>
+      </button>
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
+      <div id="guestAuthActions" class="guest-auth-actions">
+        <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
+      </div>
+      <div id="connectedActions" class="connected-actions hidden">
+        <div id="trustBadge" class="trust-badge">
+          <span id="trustBadgeText"></span>
+        </div>
+        <button id="moreBtn" class="more-btn" onclick="toggleMoreMenu()" aria-label="Menu" aria-haspopup="true" aria-expanded="false" title="Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- More menu (hidden by default) -->
+  <div id="moreMenu" class="more-menu hidden">
+    <div class="more-menu-backdrop" onclick="toggleMoreMenu()"></div>
+    <div class="more-menu-panel" role="menu" aria-label="More options">
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleThreadSidebar()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Conversations
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleTheme()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <span id="moreMenuThemeLabel">Dark Mode</span>
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        Share
+      </button>
+      <button class="more-menu-item" role="menuitem" id="moreMessageBtn" onclick="toggleMoreMenu(); showMessageModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Message Therapist
+      </button>
+      <div class="more-menu-divider" role="separator"></div>
+      <div class="more-menu-settings" id="moreMenuMemory">
+        <div class="more-menu-settings-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Memory
+          <label class="toggle-switch">
+            <input type="checkbox" id="memoryToggle" onchange="handleMemoryToggle(this.checked)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="more-menu-settings-detail">
+          Alo keeps short summaries of recent conversations (not full transcripts) for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
+        </div>
+      </div>
+      <div class="more-menu-divider" role="separator"></div>
+      <button class="more-menu-item more-menu-logout" role="menuitem" onclick="toggleMoreMenu(); handleLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
+  </div>
+
+  <!-- Thread sidebar (slide-in panel) -->
+  <div id="memoryPopover" class="memory-popover hidden" role="dialog" aria-label="Memory settings">
+    <div class="memory-popover-backdrop" onclick="toggleMemoryPopover()"></div>
+    <div class="memory-popover-panel">
+      <div class="memory-popover-status" id="memPopoverStatus">
+        <span class="mem-pop-dot mem-pop-dot-on"></span>
+        <span class="mem-pop-label">Memory is on</span>
+      </div>
+      <p class="memory-popover-desc">Alo uses short summaries from recent conversations for continuity. Your therapist cannot see this.</p>
+      <div class="memory-popover-actions">
+        <button class="mem-pop-action" id="memPopPrivateBtn" onclick="startPrivateSession()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          Start private session
+        </button>
+        <button class="mem-pop-action" id="memPopToggleBtn" onclick="toggleMemoryGlobal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span id="memPopToggleLabel">Turn off memory</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Private session banner (shown when memory paused for this conversation) -->
+  <div id="privateSessionBanner" class="private-session-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+    <span>Private session — Alo won't remember this conversation</span>
+    <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
+  </div>
+
+  <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
+  <div id="memoryOnboardCard" class="memory-onboard-card">
+    <div class="memory-onboard-content">
+      <div class="memory-onboard-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div>
+        <div class="memory-onboard-title">Want Alo to remember context?</div>
+        <div class="memory-onboard-desc">Alo can use short summaries from past conversations so you don't have to re-explain. Your therapist can't see any of this.</div>
+      </div>
+    </div>
+    <div class="memory-onboard-actions">
+      <button class="btn-primary memory-onboard-enable" onclick="enableMemoryFromOnboard()">Enable</button>
+      <button class="btn-secondary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Not now</button>
+    </div>
+  </div>
+
+  <div id="threadSidebar" class="thread-sidebar" aria-label="Conversation history">
+    <div class="thread-sidebar-header">
+      <h2>Conversations</h2>
+      <button class="thread-sidebar-close" onclick="toggleThreadSidebar()" aria-label="Close sidebar">&times;</button>
+    </div>
+    <button class="thread-new-btn" onclick="startNewConversation()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New conversation
+    </button>
+    <div id="threadList" class="thread-list">
+      <div class="thread-list-empty">No conversations yet.<br>Start chatting and they'll appear here.</div>
+    </div>
+    <div class="thread-sidebar-footer">
+      <button class="clear-history-btn" onclick="clearHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Clear unpinned conversations
+      </button>
+      <button class="thread-sidebar-settings-link" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Memory settings
+      </button>
+    </div>
+  </div>
+  <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
+
+  <!-- Memory save prompt bar (shown to guests after conversation depth) -->
+  <div id="memoryPromptBar" class="memory-prompt-bar">
+    <span class="memory-prompt-text">Want Alo to remember your conversations?</span>
+    <button class="memory-prompt-btn" onclick="showLoginModal(); hideMemoryPrompt();">Create Account</button>
+    <button class="memory-prompt-dismiss" onclick="hideMemoryPrompt()" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <!-- Privacy assurance bar — shown on first visit, dismissible -->
+  <div id="privacyBar" class="privacy-bar hidden">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+    </svg>
+    <span class="privacy-bar-text">Your conversations with Alo are private. Your therapist cannot see what you discuss here.</span>
+    <button class="privacy-bar-dismiss" id="privacyBarDismiss" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <main id="chatMain">
+    <!-- Homework cards (hidden unless client has active homework) -->
+    <div id="homeworkContainer" class="homework-container"></div>
+
+    <!-- Chat iframe -->
+    <div class="chat-container">
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-message">
+          <div class="spinner"></div>
+          <p>Loading Alo...</p>
+        </div>
+      </div>
+      
+      <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="crisis-notice">
+      Alo helps you think — not a therapist or doctor. <span class="crisis-link">Need help now?</span> <a href="tel:988">988 US</a>.
+    </div>
+    <div class="footer-links">
+      <a href="#" id="termsLink">Terms</a>
+      <a href="#" id="privacyLink">Privacy Policy</a>
+    </div>
+  </footer>
+
+  <!-- Modals container -->
+  <div id="modalsContainer"></div>
+
+  <!-- Toast container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+  <script>
+    // =====================================================
+    // CONFIG
+    // =====================================================
+    const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MDk1NDUsImV4cCI6MjA3OTE4NTU0NX0.mm1POxfEEoRXyTF08NsUZOau6qA_UdZJnoUH_5bkQas';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        storage: window.localStorage,
+        storageKey: 'alo_client_session',
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    let clientId = null;
+    let therapistLink = null;
+    let sessionNonce = null;
+    let chatSettings = {};
+    let connectedTherapistName = '';
+    let activeHomework = [];
+    let currentHomeworkId = null;
+
+    // Conversation persistence state
+    let currentSupabaseConvId = null;
+    let seenMessageIds = new Set();
+    let persistenceTurnCounter = 0;
+
+    // Memory & private session state
+    let memoryGlobalEnabled = false;  // opt-in: default OFF
+    let isPrivateSession = false;
+    let authBridgeSent = false;
+
+    // =====================================================
+    // UTILITY
+    // =====================================================
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function escAttr(str) {
+      return esc(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // =====================================================
+    // THEME TOGGLE
+    // =====================================================
+    function getEffectiveTheme() {
+      var saved = localStorage.getItem('alo_theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function toggleTheme() {
+      var current = getEffectiveTheme();
+      var next = current === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('alo_theme', next);
+      
+      // Reload page so Botpress re-initializes with correct themeMode
+      window.location.reload();
+    }
+
+    // =====================================================
+    // TOAST NOTIFICATIONS
+    // =====================================================
+    function showToast(message, duration = 3000) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    // =====================================================
+    // MODAL SYSTEM
+    // =====================================================
+    function createModal(title, bodyHTML, options = {}) {
+      const {
+        confirmLabel = 'Confirm',
+        cancelLabel = 'Cancel',
+        onConfirm = null,
+        onCancel = null,
+        showCancel = true,
+        showFooter = true,
+        dangerous = false
+      } = options;
+
+      const modalId = 'modal-' + Date.now();
+      var footerHTML = '';
+      if (showFooter) {
+        footerHTML = '<div class="modal-footer">' +
+          (showCancel ? '<button class="btn-secondary modal-cancel">' + cancelLabel + '</button>' : '') +
+          '<button class="btn-primary modal-confirm ' + (dangerous ? 'btn-danger' : '') + '">' + confirmLabel + '</button>' +
+        '</div>';
+      }
+
+      const modalHTML = `
+        <div class="modal-overlay" id="${modalId}" role="dialog" aria-modal="true" aria-labelledby="${modalId}-title">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2 id="${modalId}-title">${title}</h2>
+              <button class="modal-close" aria-label="Close dialog">&times;</button>
+            </div>
+            <div class="modal-body">
+              ${bodyHTML}
+            </div>
+            ${footerHTML}
+          </div>
+        </div>
+      `;
+
+      const container = document.getElementById('modalsContainer');
+      container.insertAdjacentHTML('beforeend', modalHTML);
+
+      const modal = document.getElementById(modalId);
+      const closeBtn = modal.querySelector('.modal-close');
+      const cancelBtn = modal.querySelector('.modal-cancel');
+      const confirmBtn = modal.querySelector('.modal-confirm');
+
+      const firstInput = modal.querySelector('input, textarea, select');
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+      } else if (confirmBtn) {
+        setTimeout(() => confirmBtn.focus(), 100);
+      } else {
+        setTimeout(() => closeBtn.focus(), 100);
+      }
+
+      function closeModal() {
+        modal.classList.add('closing');
+        setTimeout(() => modal.remove(), 300);
+      }
+
+      closeBtn.addEventListener('click', () => {
+        if (onCancel) onCancel();
+        closeModal();
+      });
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+          if (onCancel) onCancel();
+          closeModal();
+        });
+      }
+
+      if (confirmBtn) confirmBtn.addEventListener('click', async () => {
+        if (onConfirm) {
+          const result = await onConfirm();
+          if (result !== false) closeModal();
+        } else {
+          closeModal();
+        }
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          if (onCancel) onCancel();
+          closeModal();
+        }
+      });
+
+      document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape' && document.getElementById(modalId)) {
+          if (onCancel) onCancel();
+          closeModal();
+          document.removeEventListener('keydown', escHandler);
+        }
+      });
+
+      setTimeout(() => modal.classList.add('show'), 10);
+
+      return modal;
+    }
+
+    // =====================================================
+    // CONFIRM DIALOG
+    // =====================================================
+    function showConfirm(title, message, options = {}) {
+      return new Promise((resolve) => {
+        createModal(
+          title,
+          `<p>${message}</p>`,
+          {
+            ...options,
+            onConfirm: () => {
+              resolve(true);
+            },
+            onCancel: () => {
+              resolve(false);
+            }
+          }
+        );
+      });
+    }
+
+    // =====================================================
+    // UI STATE MANAGEMENT
+    // =====================================================
+    async function showLoggedInNoConnection() {
+      const badge = document.getElementById('trustBadge');
+      const badgeText = document.getElementById('trustBadgeText');
+      badge.className = 'trust-badge';
+      badgeText.textContent = 'Logged in';
+      
+      // Show threads button and memory icon, load memory settings
+        document.getElementById('threadsBtn').classList.remove('hidden');
+        document.getElementById('memoryIconBtn').classList.remove('hidden');
+        await loadMemorySettings();
+      
+      const svg = badge.querySelector('svg');
+      if (svg) svg.remove();
+      
+      // Repurpose the sign-in button as "Link to Therapist" for logged-in-no-connection state
+      const signInBtn = document.getElementById('signInBtn');
+      signInBtn.textContent = 'Link to Therapist';
+      signInBtn.onclick = showConnectModal;
+      document.getElementById('guestAuthActions').classList.remove('hidden');
+      document.getElementById('connectedActions').classList.add('hidden');
+      document.getElementById('moreMenu').classList.add('hidden');
+    }
+
+    function showConnectedUI(therapistName, clientName) {
+      connectedTherapistName = therapistName;
+      const badge = document.getElementById('trustBadge');
+      
+      badge.className = 'trust-badge connected';
+      
+      const shieldSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
+
+      const safeClient = esc(clientName);
+      const safeTherapist = esc(therapistName);
+      const withText = (clientName === therapistName) ? 'connected' : 'with ' + safeTherapist;
+
+      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + safeClient + '</span> \u00B7 ' + withText + '</span>';
+      
+      const nameEl = document.getElementById('clientNameEditable');
+      if (nameEl) {
+        nameEl.addEventListener('click', showNameEditModal);
+        nameEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showNameEditModal();
+          }
+        });
+      }
+      
+      document.getElementById('guestAuthActions').classList.add('hidden');
+      document.getElementById('shareGuestBtn').classList.add('hidden');
+      document.getElementById('connectedActions').classList.remove('hidden');
+      
+      // Show/hide message option in more menu
+      const msgItem = document.getElementById('moreMessageBtn');
+      if (msgItem) {
+        msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
+      }
+
+      showPrivacyBarIfConnected();
+    }
+
+    function toggleMoreMenu() {
+      const menu = document.getElementById('moreMenu');
+      const btn = document.getElementById('moreBtn');
+      const isHidden = menu.classList.contains('hidden');
+      
+      if (isHidden) {
+        menu.classList.remove('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        // Focus first visible menu item
+        const firstItem = menu.querySelector('.more-menu-item:not([style*="display: none"])');
+        if (firstItem) firstItem.focus();
+      } else {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.focus(); // Return focus to trigger
+      }
+    }
+
+    // Arrow key navigation for more menu
+    document.addEventListener('keydown', function(e) {
+      const menu = document.getElementById('moreMenu');
+      if (menu.classList.contains('hidden')) return;
+      
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = Array.from(menu.querySelectorAll('.more-menu-item:not([style*="display: none"])'));
+        const current = document.activeElement;
+        const idx = items.indexOf(current);
+        
+        if (e.key === 'ArrowDown') {
+          const next = idx < items.length - 1 ? idx + 1 : 0;
+          items[next].focus();
+        } else {
+          const prev = idx > 0 ? idx - 1 : items.length - 1;
+          items[prev].focus();
+        }
+      }
+    });
+
+    function showNameEditModal() {
+      const currentName = document.getElementById('clientNameEditable')?.textContent || '';
+      
+      createModal('What should we call you?', `
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">This is how you'll appear in Alo. Only you see this.</p>
+        <input type="text" id="nameEditInput" value="${currentName}" 
+          placeholder="Your preferred name"
+          style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;"
+          autocomplete="given-name" maxlength="50" />
+      `, {
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const newName = document.getElementById('nameEditInput').value.trim();
+          if (!newName) {
+            showToast('Please enter a name');
+            return false;
+          }
+
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return false;
+
+            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
+              display_name: newName
+            });
+
+            // Update badge immediately
+            document.getElementById('clientNameEditable').textContent = newName;
+            showToast('Name updated');
+          } catch (err) {
+            console.error('Name update error:', err);
+            showToast('Could not update name. Please try again.');
+            return false;
+          }
+        }
+      });
+    }
+
+    function resetToGuestUI() {
+      const badge = document.getElementById('trustBadge');
+      const badgeText = document.getElementById('trustBadgeText');
+      badge.className = 'trust-badge guest';
+      badgeText.textContent = '';
+      
+      // Hide threads button for guests
+      document.getElementById('threadsBtn').classList.add('hidden');
+      
+      const svg = badge.querySelector('svg');
+      if (svg) svg.remove();
+      
+      document.getElementById('guestAuthActions').classList.remove('hidden');
+      const signInBtn = document.getElementById('signInBtn');
+      signInBtn.textContent = 'Sign In';
+      signInBtn.onclick = function() { showLoginModal(); };
+      signInBtn.classList.remove('hidden');
+      document.getElementById('shareGuestBtn').classList.remove('hidden');
+      document.getElementById('connectedActions').classList.add('hidden');
+      document.getElementById('moreMenu').classList.add('hidden');
+      document.getElementById('homeworkContainer').classList.remove('show');
+    }
+
+    // =====================================================
+    // HOMEWORK
+    // =====================================================
+    async function loadHomework() {
+      if (chatSettings.allow_homework === false || !clientId) {
+        return;
+      }
+
+      try {
+        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc`);
+        
+        if (!homework || homework.length === 0) {
+          document.getElementById('homeworkContainer').innerHTML = '';
+          document.getElementById('homeworkContainer').classList.remove('show');
+          return;
+        }
+
+        activeHomework = homework;
+        const container = document.getElementById('homeworkContainer');
+        const therapistName = connectedTherapistName || 'your therapist';
+
+        container.innerHTML = homework.map(function(hw) {
+          return '<div class="homework-card" id="hwCard-' + hw.id + '" data-hw-id="' + hw.id + '">' +
+            '<div class="homework-header">' +
+              '<div>' +
+                '<div class="homework-from">From ' + therapistName + '</div>' +
+                '<h3 class="homework-title">' + (hw.title || 'Practice exercise') + '</h3>' +
+              '</div>' +
+              '<button class="homework-collapse" aria-label="Expand homework details" aria-expanded="false" data-hw-id="' + hw.id + '">+</button>' +
+            '</div>' +
+            '<div class="homework-body collapsed" id="hwBody-' + hw.id + '">' +
+              (hw.homework_type ? '<span class="homework-type-tag">' + hw.homework_type + '</span>' : '') +
+              '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
+              '<div class="homework-actions">' +
+                '<button class="btn-primary homework-done-btn" data-hw-id="' + hw.id + '">Mark complete</button>' +
+                '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Collapse</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+
+        container.classList.add('show');
+
+        
+
+        // Write viewed_at for any homework not yet viewed
+        for (var i = 0; i < homework.length; i++) {
+          if (!homework[i].viewed_at) {
+            try {
+              await api('/rest/v1/homework_cards?id=eq.' + homework[i].id, 'PATCH', {
+                viewed_at: new Date().toISOString()
+              });
+            } catch (viewErr) {
+              console.error('Error writing viewed_at:', viewErr);
+            }
+          }
+        }
+
+        // Event delegation — survives re-renders
+        container.onclick = function(e) {
+          var collapseBtn = e.target.closest('.homework-collapse');
+          if (collapseBtn) {
+            var hwId = collapseBtn.dataset.hwId;
+            var body = document.getElementById('hwBody-' + hwId);
+            if (!body) return;
+            var isCollapsed = body.classList.contains('collapsed');
+            body.classList.toggle('collapsed');
+            collapseBtn.textContent = isCollapsed ? '\u2212' : '+';
+            collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+            collapseBtn.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
+            return;
+          }
+
+          var doneBtn = e.target.closest('.homework-done-btn');
+          if (doneBtn) {
+            handleHomeworkDone(doneBtn.dataset.hwId);
+            return;
+          }
+
+          var hideBtn = e.target.closest('.homework-hide-btn');
+          if (hideBtn) {
+            handleHomeworkHide(hideBtn.dataset.hwId);
+            return;
+          }
+        };
+
+      } catch (err) {
+        console.error('Error loading homework:', err);
+      }
+    }
+
+    function handleHomeworkDone(hwId) {
+      showConfirm(
+        'Nice work!',
+        'This will be marked as complete.',
+        {
+          confirmLabel: 'Done',
+          cancelLabel: 'Not yet'
+        }
+      ).then(async function(confirmed) {
+        if (!confirmed) return;
+
+        var card = document.getElementById('hwCard-' + hwId);
+        
+        try {
+          await api('/rest/v1/homework_cards?id=eq.' + hwId, 'PATCH', {
+            is_active: false,
+            completed_at: new Date().toISOString()
+          });
+
+          if (card) {
+            var body = card.querySelector('.homework-body');
+            card.classList.add('completed');
+            if (body) body.innerHTML = '<p class="homework-complete-note">Completed just now</p>';
+            
+            setTimeout(function() {
+              if (body) body.classList.add('collapsed');
+              var collapseBtn = card.querySelector('.homework-collapse');
+              if (collapseBtn) {
+                collapseBtn.textContent = '+';
+                collapseBtn.setAttribute('aria-expanded', 'false');
+              }
+            }, 3000);
+          }
+
+          showToast('Marked complete \u2014 nice work!');
+        } catch (err) {
+          console.error('Error completing homework:', err);
+          showToast('Could not save. Please try again.');
+        }
+      });
+    }
+
+    function handleHomeworkHide(hwId) {
+      var card = document.getElementById('hwCard-' + hwId);
+      if (!card) return;
+
+      var body = card.querySelector('.homework-body');
+      if (body) body.classList.add('collapsed');
+      card.classList.add('minimized');
+      
+      var collapseBtn = card.querySelector('.homework-collapse');
+      if (collapseBtn) {
+        collapseBtn.textContent = '+';
+        collapseBtn.setAttribute('aria-expanded', 'false');
+        collapseBtn.setAttribute('aria-label', 'Expand homework details');
+      }
+    }
+
+    // =====================================================
+    // LOGOUT HANDLER
+    // =====================================================
+    async function handleLogout() {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Error signing out:', error);
+        showToast('Error signing out. Please try again.');
+        return;
+      }
+      
+      clientId = null;
+      therapistLink = null;
+      chatSettings = {};
+      currentHomeworkId = null;
+      
+      location.reload();
+    }
+
+    // =====================================================
+    // CONNECT MODAL
+    // =====================================================
+    function showConnectModal() {
+      createModal('Link to Your Therapist', `
+        <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
+        <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
+        <div style="margin-top: 16px;">
+          <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
+          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
+        </div>
+        <p class="modal-sign-in-link">
+          Already have an account? <button onclick="const c=document.getElementById('inviteCodeInput')?.value?.trim(); document.querySelector('.modal-overlay').remove(); showLoginModal(c||null);">Sign in</button>
+        </p>
+      `, {
+        confirmLabel: 'Link',
+        cancelLabel: 'Maybe later',
+        onConfirm: async () => {
+          const code = document.getElementById('inviteCodeInput').value.trim();
+          if (!code) {
+            showToast('Please enter an invite code');
+            return false;
+          }
+          await handleConnectSubmit(code);
+        }
+      });
+    }
+
+    async function handleConnectSubmit(inviteCode) {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        showLoginModal(inviteCode);
+        return;
+      }
+
+      try {
+        const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
+        
+        if (!link || link.length === 0) {
+          showToast('Invalid invite code. Check the code your therapist sent you.');
+          return;
+        }
+
+        const linkId = link[0].id;
+        const therapistDisplayName = link[0].display_name || null;
+
+        await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
+          client_id: user.id,
+          status: 'active'
+        });
+
+        // Seed client profile with therapist's chosen name (client can change later)
+        if (therapistDisplayName) {
+          const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
+          const currentName = existingProfile?.[0]?.display_name;
+          if (!currentName || currentName === user.email?.split('@')[0]) {
+            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
+              display_name: therapistDisplayName
+            });
+          }
+        }
+
+        showToast('Connected successfully!');
+        await loadConnectedState();
+      } catch (err) {
+        console.error('Connection error:', err);
+        showToast('Connection failed. Please try again.');
+      }
+    }
+
+    // =====================================================
+    // LOGIN MODAL
+    // =====================================================
+    function showLoginModal(inviteCode = null) {
+      createModal('Sign In or Create Account', `
+        <p>Create an account to save your conversations and let Alo remember what you've discussed.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. Signing in does not share anything.</p>
+        <div style="margin-top: 16px;">
+          <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
+          <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
+          <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
+          <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
+        </div>
+        <p class="modal-sign-in-link" style="margin-top: 12px;">
+          Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
+        </p>
+      `, {
+        confirmLabel: 'Continue',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const email = document.getElementById('emailInput').value.trim();
+          const password = document.getElementById('passwordInput').value;
+          
+          if (!email || !password) {
+            showToast('Please enter email and password');
+            return false;
+          }
+
+          // Try sign in first
+          let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          
+          // If sign in fails, try sign up
+          if (error && error.message.includes('Invalid login credentials')) {
+            const signUpResult = await supabase.auth.signUp({ email, password });
+            
+            if (signUpResult.error) {
+              showToast('Authentication failed. Please try again.');
+              return false;
+            }
+            
+            if (!signUpResult.data.session) {
+              showToast('Account created! Check your email to confirm.');
+              return;
+            }
+            
+            data = signUpResult.data;
+            error = null;
+
+            // P0: Create profiles row on sign-up
+            try {
+              const displayName = email.split('@')[0];
+              await api('/rest/v1/profiles', 'POST', {
+                id: data.user.id,
+                role: 'individual',
+                display_name: displayName,
+                email: email
+              });
+            } catch (profileErr) {
+              // Non-blocking — profile creation failure shouldn't break signup
+              console.error('Error creating profile:', profileErr);
+            }
+          }
+
+          if (error) {
+            showToast('Authentication failed. Please try again.');
+            return false;
+          }
+
+          showToast('Signed in successfully');
+
+          if (inviteCode) {
+            await handleConnectSubmit(inviteCode);
+          } else {
+            await loadConnectedState();
+          }
+        }
+      });
+    }
+
+    // =====================================================
+    // MESSAGE MODAL
+    // =====================================================
+    function showMessageModal() {
+      const therapistName = connectedTherapistName || 'your therapist';
+      
+      createModal(`Message ${therapistName}`, `
+        <p class="modal-subtext">
+          ${therapistName} will see this message in their dashboard. They'll respond when they can.
+        </p>
+        <textarea id="messageTextarea" class="modal-textarea" placeholder="Type your message..."></textarea>
+      `, {
+        confirmLabel: 'Send',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const messageText = document.getElementById('messageTextarea').value.trim();
+          if (!messageText) {
+            showToast('Please enter a message');
+            return false;
+          }
+
+          try {
+            await api('/rest/v1/client_messages', 'POST', {
+              client_id: clientId,
+              therapist_id: therapistLink.therapist_id,
+              content: messageText,
+              read: false
+            });
+
+            showToast('Message sent');
+          } catch (err) {
+            console.error('Error sending message:', err);
+            showToast('Failed to send message. Please try again.');
+            return false;
+          }
+        }
+      });
+    }
+
+    // =====================================================
+    // PRIVACY MODAL
+    // =====================================================
+    function showPrivacyModal() {
+      const therapistName = connectedTherapistName || 'your therapist';
+      
+      createModal('Your Privacy', `
+        <h3 class="modal-section-title">What ${therapistName} sees</h3>
+        <ul class="modal-list">
+          <li>Whether you're connected to Alo</li>
+          <li>If you completed homework exercises</li>
+          <li>Messages you send them directly</li>
+          <li>How often you use Alo (not what you discuss)</li>
+        </ul>
+        
+        <h3 class="modal-section-title">What they never see</h3>
+        <ul class="modal-list">
+          <li><strong>Your conversations with Alo</strong> — there is no way for them to access these</li>
+          <li>What you talked about or how you're feeling</li>
+          <li>Only you decide what to share with your therapist</li>
+        </ul>
+        
+        <p class="modal-divider">
+          Alo is your space. Your therapist trusts you to share what matters when you're ready.
+        </p>
+      `, {
+        confirmLabel: 'Got it',
+        showCancel: false
+      });
+    }
+
+    // =====================================================
+    // SHARE MODAL (3-option: Summary/Full/Range)
+    // =====================================================
+    function showShareModal() {
+      const summaryPrompt = `Alo, please create a 5-bullet summary of our conversation for me to share with my therapist or someone I trust. Include key insights and one suggested next step.`;
+      const recapPrompt = `Alo, please reconstruct our conversation as a back-and-forth recap in "You said... Alo said..." format. Keep it concise — paraphrase rather than quoting exactly. Include the key moments and turning points.`;
+      
+      const modal = createModal('Share Your Conversation', `
+        <div class="share-options">
+          <button class="share-option active" id="optionSummary">
+            <span class="share-option-icon">\u{1F4DD}</span>
+            <span class="share-option-label">Summary</span>
+          </button>
+          <button class="share-option" id="optionRecap">
+            <span class="share-option-icon">\u{1F4AC}</span>
+            <span class="share-option-label">Recap</span>
+          </button>
+        </div>
+        
+        <div id="instructionsArea">
+          <div id="summaryInstructions">
+            <p class="share-instructions">
+              Get a 5-bullet summary perfect for sharing with your therapist
+            </p>
+            <ol class="share-steps">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo creates a summary</li>
+              <li>Long-press to copy &amp; share</li>
+            </ol>
+            <div class="share-prompt-box">
+              <textarea readonly id="summaryPromptText" class="share-prompt-textarea">${summaryPrompt}</textarea>
+              <button id="copySummaryBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
+            </div>
+          </div>
+          
+          <div id="recapInstructions" style="display: none;">
+            <p class="share-instructions">
+              Get a back-and-forth recap of what you discussed
+            </p>
+            <ol class="share-steps">
+              <li>Copy the message below</li>
+              <li>Paste it into chat</li>
+              <li>Alo reconstructs the conversation</li>
+              <li>Long-press to copy &amp; share</li>
+            </ol>
+            <div class="share-prompt-box">
+              <textarea readonly id="recapPromptText" class="share-prompt-textarea">${recapPrompt}</textarea>
+              <button id="copyRecapBtn" class="btn-primary" style="width: 100%; margin-top: 8px;">\u{1F4CB} Copy Message</button>
+            </div>
+            <p class="share-hint">
+              \u{1F4A1} This is a paraphrased reconstruction, not an exact transcript
+            </p>
+          </div>
+        </div>
+        
+        <p class="share-footer-note">
+          <strong>How to share:</strong> After Alo creates your summary or recap, long-press on it and select "Copy". Then paste into Messages, Email, or Notes.
+        </p>
+      `, {
+        confirmLabel: 'Close',
+        showCancel: false
+      });
+      
+      setupShareTabs(modal, summaryPrompt, recapPrompt);
+    }
+
+    function setupShareTabs(modal, summaryPrompt, recapPrompt) {
+      const optionSummary = modal.querySelector('#optionSummary');
+      const optionRecap = modal.querySelector('#optionRecap');
+      
+      const summaryInstructions = modal.querySelector('#summaryInstructions');
+      const recapInstructions = modal.querySelector('#recapInstructions');
+      
+      function switchTab(tab) {
+        [optionSummary, optionRecap].forEach(btn => btn.classList.remove('active'));
+        summaryInstructions.style.display = 'none';
+        recapInstructions.style.display = 'none';
+        
+        if (tab === 'summary') {
+          optionSummary.classList.add('active');
+          summaryInstructions.style.display = 'block';
+        } else if (tab === 'recap') {
+          optionRecap.classList.add('active');
+          recapInstructions.style.display = 'block';
+        }
+      }
+      
+      optionSummary.addEventListener('click', () => switchTab('summary'));
+      optionRecap.addEventListener('click', () => switchTab('recap'));
+      
+      const copySummaryBtn = modal.querySelector('#copySummaryBtn');
+      const copyRecapBtn = modal.querySelector('#copyRecapBtn');
+      
+      copySummaryBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(summaryPrompt);
+        if (success) {
+          copySummaryBtn.textContent = '\u2713 Copied!';
+          copySummaryBtn.style.background = 'var(--success)';
+          setTimeout(function() {
+            copySummaryBtn.textContent = '\u{1F4CB} Copy Message';
+            copySummaryBtn.style.background = '';
+          }, 2000);
+        }
+      });
+      
+      copyRecapBtn.addEventListener('click', async function() {
+        const success = await copyToClipboard(recapPrompt);
+        if (success) {
+          copyRecapBtn.textContent = '\u2713 Copied!';
+          copyRecapBtn.style.background = 'var(--success)';
+          setTimeout(function() {
+            copyRecapBtn.textContent = '\u{1F4CB} Copy Message';
+            copyRecapBtn.style.background = '';
+          }, 2000);
+        }
+      });
+    }
+
+    async function copyToClipboard(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (err) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        return success;
+      }
+    }
+
+    // =====================================================
+    // API HELPER
+    // =====================================================
+    async function api(endpoint, method = 'GET', body = null) {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': session ? `Bearer ${session.access_token}` : `Bearer ${SUPABASE_ANON_KEY}`
+        }
+      };
+
+      if (body && method !== 'GET') {
+        options.body = JSON.stringify(body);
+      }
+
+      // For POST, add Prefer header to get minimal response
+      if (method === 'POST') {
+        options.headers['Prefer'] = 'return=minimal';
+      }
+
+      const response = await fetch(`${SUPABASE_URL}${endpoint}`, options);
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const text = await response.text();
+      return text ? JSON.parse(text) : null;
+    }
+
+    // =====================================================
+    // LOAD CONNECTED STATE
+    // =====================================================
+    // =====================================================
+    // BOTPRESS BRIDGE — IDs available for future use
+    // Crisis events written directly from Botpress via axios
+    // =====================================================
+
+    async function loadConnectedState() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          resetToGuestUI();
+          return;
+        }
+
+        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
+
+        if (!links || links.length === 0) {
+          clientId = user.id;
+          showLoggedInNoConnection();
+          return;
+        }
+
+        therapistLink = links[0];
+        clientId = user.id;
+
+        const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
+        const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
+
+        const therapistName = therapist?.[0]?.display_name || 'Your therapist';
+        // Fallback chain: client's own profile name → therapist's label → 'there'
+        const clientProfileName = client?.[0]?.display_name;
+        const therapistLabel = therapistLink.display_name;
+        const clientName = clientProfileName || therapistLabel || 'there';
+
+        // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
+        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history`);
+        chatSettings = settings?.[0] || {};
+
+        showConnectedUI(therapistName, clientName);
+        
+        // Show threads button and memory icon, load memory settings
+        document.getElementById('threadsBtn').classList.remove('hidden');
+        document.getElementById('memoryIconBtn').classList.remove('hidden');
+        await loadMemorySettings();
+        
+        await loadHomework();
+
+        // Generate nonce, write session start, and send identity to Botpress
+        const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        sessionNonce = crypto.randomUUID();
+        api('/rest/v1/session_metadata', 'POST', {
+          client_id: clientId,
+          session_id: sessionId,
+          nonce: sessionNonce
+        }).then(() => {
+          // Send identity to Botpress after nonce is written to DB
+          if (window.botpress) {
+            const hwSummary = activeHomework.length > 0
+              ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
+              : [];
+            window.botpress.updateUser({
+              data: {
+                sessionNonce: sessionNonce,
+                clientId: clientId,
+                homeworkActive: JSON.stringify(hwSummary)
+              }
+            });
+            console.log('[Alo] Identity + homework sent to Botpress via updateUser');
+          }
+        }).catch(err => console.error('Session metadata write failed:', err));
+
+        // Send identity to Botpress via Custom Trigger (auth bridge)
+        sendAuthBridge();
+
+      } catch (err) {
+        console.error('Error loading connected state:', err);
+      }
+    }
+
+    // =====================================================
+    // CONVERSATION PERSISTENCE
+    // =====================================================
+    async function ensureConversation(botpressConvId) {
+      if (!clientId || !botpressConvId) return null;
+
+      var storageKey = 'alo_conv_' + botpressConvId;
+      var existingId = localStorage.getItem(storageKey);
+
+      if (existingId) {
+        currentSupabaseConvId = existingId;
+        try {
+          var { data } = await supabase
+            .from('conversations')
+            .select('turn_count')
+            .eq('id', existingId)
+            .single();
+          persistenceTurnCounter = data?.turn_count || 0;
+        } catch (e) {
+          persistenceTurnCounter = 0;
+        }
+        console.log('[Persistence] Resumed conversation:', existingId);
+        return existingId;
+      }
+
+      var now = new Date();
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var hrs = now.getHours();
+      var mins = String(now.getMinutes()).padStart(2, '0');
+      var ampm = hrs >= 12 ? 'PM' : 'AM';
+      var hr12 = hrs % 12 || 12;
+      var title = months[now.getMonth()] + ' ' + now.getDate() + ', ' + now.getFullYear() + ' · ' + hr12 + ':' + mins + ' ' + ampm;
+
+      var { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          client_id: clientId,
+          title: title,
+          botpress_conversation_id: botpressConvId,
+          turn_count: 0,
+          is_private: isPrivateSession || false,
+          pinned: false
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[Persistence] Failed to create conversation:', error.message);
+        return null;
+      }
+
+      currentSupabaseConvId = data.id;
+      localStorage.setItem(storageKey, data.id);
+      persistenceTurnCounter = 0;
+      console.log('[Persistence] Created conversation:', data.id);
+      return data.id;
+    }
+
+    async function saveMessage(role, content, botpressMessageId) {
+      if (isPrivateSession) return;
+      if (!currentSupabaseConvId || !content) return;
+      if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
+      if (botpressMessageId) seenMessageIds.add(botpressMessageId);
+
+      persistenceTurnCounter++;
+
+      var insertData = {
+        conversation_id: currentSupabaseConvId,
+        role: role,
+        content: content,
+        turn_number: persistenceTurnCounter
+      };
+      if (botpressMessageId) {
+        insertData.botpress_msg_id = botpressMessageId;
+      }
+
+      console.log('[Persistence] Saving ' + role + ':', content.substring(0, 40), 'msgId:', botpressMessageId);
+      var { error } = await supabase
+        .from('conversation_messages')
+        .upsert(insertData, { onConflict: 'botpress_msg_id' });
+
+      if (error) {
+        console.error('[Persistence] FAILED ' + role + ':', error.message, error.details, error.hint);
+      } else {
+        console.log('[Persistence] Saved ' + role + ' message OK');
+        // Update turn_count on conversation row so memory can filter short convos
+        supabase.from('conversations').update({ turn_count: persistenceTurnCounter, updated_at: new Date().toISOString() }).eq('id', currentSupabaseConvId).then(function() {});
+      }
+    }
+
+    function resetPersistenceState() {
+      currentSupabaseConvId = null;
+      seenMessageIds.clear();
+      persistenceTurnCounter = 0;
+    }
+
+    function sendAuthBridge() {
+      if (authBridgeSent || !clientId) return;
+      if (!window.botpress || typeof window.botpress.sendEvent !== 'function') {
+        setTimeout(sendAuthBridge, 500);
+        return;
+      }
+      authBridgeSent = true;
+      try {
+        window.botpress.sendEvent({
+          bp_event: 'alo_auth_bridge_v1',
+          clientId: clientId
+        });
+        console.log('[Alo] Auth bridge sent to Botpress');
+      } catch (e) {
+        console.warn('[Alo] Auth bridge sendEvent failed:', e);
+    authBridgeSent = false;
+    setTimeout(sendAuthBridge, 1000);
+  }
+      try {
+        window.botpress.updateUser({
+          userKey: clientId,
+          data: { clientId: clientId }
+        });
+      } catch (e) {}
+    } 
+
+    // =====================================================
+    // PRIVACY BAR
+    // =====================================================
+    function initPrivacyBar() {
+      const dismissBtn = document.getElementById('privacyBarDismiss');
+      dismissBtn.addEventListener('click', () => {
+        document.getElementById('privacyBar').classList.add('hidden');
+        localStorage.setItem('alo_privacy_bar_dismissed', 'true');
+      });
+    }
+
+    function showPrivacyBarIfConnected() {
+      if (localStorage.getItem('alo_privacy_bar_dismissed')) return;
+      document.getElementById('privacyBar').classList.remove('hidden');
+    }
+// =====================================================
+    // THREAD SIDEBAR + MEMORY FEATURES
+    // =====================================================
+    
+    let allThreads = [];
+    let guestTurnCount = 0;
+
+    function toggleThreadSidebar() {
+      const sidebar = document.getElementById('threadSidebar');
+      const backdrop = document.getElementById('threadBackdrop');
+      const isOpen = sidebar.classList.contains('open');
+      
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('show');
+        document.getElementById('threadsBtn').focus();
+      } else {
+        sidebar.classList.add('open');
+        backdrop.classList.add('show');
+        loadThreads();
+        const firstBtn = sidebar.querySelector('button');
+        if (firstBtn) firstBtn.focus();
+      }
+    }
+
+    async function loadThreads() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
+        allThreads = threads || [];
+        renderThreadList();
+      } catch (err) {
+        console.error('Error loading threads:', err);
+      }
+    }
+
+    function renderThreadRow(thread) {
+      var turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
+      var isPinned = !!thread.pinned;
+      var pinFill = isPinned ? 'currentColor' : 'none';
+      var pinClass = isPinned ? 'thread-pin-btn pinned' : 'thread-pin-btn';
+      var pinLabel = isPinned ? 'Unpin' : 'Save this conversation';
+      var safeTitle = escAttr(thread.title || 'Untitled');
+
+      return '<div class="thread-item" data-id="' + thread.id + '">' +
+        '<button class="' + pinClass + '" data-action="pin" data-id="' + thread.id + '" aria-label="' + pinLabel + '" title="' + pinLabel + '">' +
+          '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+        '</button>' +
+        '<div class="thread-item-content">' +
+          '<div class="thread-item-title">' + safeTitle + '</div>' +
+          '<div class="thread-item-meta">' + turnText + '</div>' +
+        '</div>' +
+        '<div class="thread-item-actions">' +
+          '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + escAttr(thread.title || '') + '" aria-label="Rename">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+          '</button>' +
+          '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    }
+
+    function renderThreadList() {
+      var container = document.getElementById('threadList');
+      
+      if (!allThreads || allThreads.length === 0) {
+        container.innerHTML = '<div class="thread-list-empty">No conversations yet.<br>Start chatting and they\'ll appear here.</div>';
+        return;
+      }
+
+      var pinned = allThreads.filter(function(t) { return t.pinned; })
+        .sort(function(a, b) { return new Date(b.pinned_at || b.created_at) - new Date(a.pinned_at || a.created_at); });
+
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; })
+        .sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+
+      var html = '';
+
+      if (pinned.length > 0) {
+        html += '<div class="thread-section-label">Saved</div>';
+        for (var pi = 0; pi < pinned.length; pi++) { html += renderThreadRow(pinned[pi]); }
+        if (unpinned.length > 0) {
+          html += '<div class="thread-divider"></div>';
+        }
+      }
+
+      var visibleUnpinned = unpinned.slice(0, 30);
+      for (var ui = 0; ui < visibleUnpinned.length; ui++) { html += renderThreadRow(visibleUnpinned[ui]); }
+
+      if (unpinned.length > 30) {
+        html += '<button class="thread-load-more" onclick="loadMoreThreads()">Load older conversations</button>';
+      }
+
+      container.innerHTML = html;
+
+      container.querySelectorAll('.thread-item').forEach(function(item) {
+        item.addEventListener('click', function(e) {
+          if (e.target.closest('[data-action]')) return;
+          viewTranscript(this.dataset.id);
+        });
+      });
+      container.querySelectorAll('[data-action="pin"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          togglePin(this.dataset.id);
+        });
+      });
+      container.querySelectorAll('[data-action="rename"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          renameThread(this.dataset.id, this.dataset.title);
+        });
+      });
+      container.querySelectorAll('[data-action="delete"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          deleteThread(this.dataset.id);
+        });
+      });
+    }
+
+    async function viewTranscript(conversationId) {
+      try {
+        var messages = await api('/rest/v1/conversation_messages?conversation_id=eq.' + conversationId + '&order=turn_number.asc,created_at.asc');
+        
+        var thread = allThreads.find(function(t) { return t.id === conversationId; });
+        var title = thread ? (thread.title || 'Conversation') : 'Conversation';
+        var isPinned = thread ? !!thread.pinned : false;
+        var threadDate = thread ? new Date(thread.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        var msgCount = (messages && messages.length) || 0;
+
+        // Build transcript body
+        var bodyHTML = '<div class="transcript-container">';
+        
+        if (!messages || messages.length === 0) {
+          bodyHTML += '<div class="transcript-empty">No messages in this conversation.</div>';
+        } else {
+          for (var i = 0; i < messages.length; i++) {
+            var msg = messages[i];
+            var roleClass = msg.role === 'user' ? 'user' : 'assistant';
+            var cleaned = esc(msg.content).replace(/\\n\\n/g, '<br><br>').replace(/\\n/g, '<br>');
+            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + cleaned + '</div>';
+          }
+        }
+        
+        bodyHTML += '</div>';
+
+        // Share bottom sheet (hidden by default, slides up inside modal)
+        bodyHTML += '<div id="transcriptShareSheet" class="transcript-share-sheet hidden">' +
+          '<div class="transcript-share-header">Share Transcript</div>' +
+          '<div class="transcript-share-meta">' + msgCount + ' messages · Nothing is sent until you choose where.</div>' +
+          '<label class="transcript-share-toggle">' +
+            '<input type="checkbox" id="shareIncludeAlo" checked> Include Alo\'s responses' +
+          '</label>' +
+          '<div class="transcript-share-actions">' +
+            '<button class="btn-primary transcript-share-btn" id="transcriptCopyBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+              ' Copy to clipboard' +
+            '</button>' +
+            (navigator.share ? '<button class="btn-secondary transcript-share-btn" id="transcriptNativeShareBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+              ' Share via\u2026' +
+            '</button>' : '') +
+          '</div>' +
+          '<button class="btn-link transcript-share-cancel" id="transcriptShareCancel">Cancel</button>' +
+        '</div>';
+
+        toggleThreadSidebar();
+
+        // Build custom header: [Star] Title [Share ↗] [✕ handled by createModal]
+        var pinFill = isPinned ? 'currentColor' : 'none';
+        var pinClass = isPinned ? 'transcript-pin pinned' : 'transcript-pin';
+
+        var customTitle = '<div class="transcript-header-row">' +
+          '<button class="' + pinClass + '" id="transcriptPinBtn" aria-label="' + (isPinned ? 'Unpin' : 'Pin') + ' conversation" title="' + (isPinned ? 'Unpin' : 'Save this conversation') + '">' +
+            '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</button>' +
+          '<div class="transcript-title-block">' +
+            '<span class="transcript-title-text">' + escAttr(title) + '</span>' +
+            (threadDate ? '<span class="transcript-title-date">' + threadDate + '</span>' : '') +
+          '</div>' +
+          '<button class="transcript-share-icon" id="transcriptShareToggle" aria-label="Share transcript" title="Share">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+          '</button>' +
+        '</div>';
+
+        // No footer — close via ✕ only (more transcript space on mobile)
+        var modal = createModal(customTitle, bodyHTML, {
+          showFooter: false
+        });
+
+        // Store messages ref for share formatting
+        var transcriptMessages = messages || [];
+
+        // --- Wire up pin button ---
+        var pinBtn = modal.querySelector('#transcriptPinBtn');
+        if (pinBtn) {
+          pinBtn.addEventListener('click', function() {
+            togglePin(conversationId);
+            var newPinned = !isPinned;
+            isPinned = newPinned;
+            pinBtn.className = newPinned ? 'transcript-pin pinned' : 'transcript-pin';
+            var svg = pinBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', newPinned ? 'currentColor' : 'none');
+            pinBtn.setAttribute('aria-label', (newPinned ? 'Unpin' : 'Pin') + ' conversation');
+            pinBtn.setAttribute('title', newPinned ? 'Unpin' : 'Save this conversation');
+          });
+        }
+
+        // --- Wire up share sheet toggle ---
+        var shareToggle = modal.querySelector('#transcriptShareToggle');
+        var shareSheet = modal.querySelector('#transcriptShareSheet');
+        var shareCancel = modal.querySelector('#transcriptShareCancel');
+
+        if (shareToggle && shareSheet) {
+          shareToggle.addEventListener('click', function() {
+            shareSheet.classList.toggle('hidden');
+            if (!shareSheet.classList.contains('hidden')) {
+              shareSheet.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+        }
+        if (shareCancel) {
+          shareCancel.addEventListener('click', function() {
+            shareSheet.classList.add('hidden');
+          });
+        }
+
+        // --- Format transcript for sharing ---
+        function buildShareText(includeAlo) {
+          var dateLine = threadDate ? 'Alo Conversation \u2014 ' + threadDate : 'Alo Conversation';
+          var lines = [dateLine, '\u2500'.repeat(36), ''];
+          for (var si = 0; si < transcriptMessages.length; si++) {
+            var m = transcriptMessages[si];
+            if (!includeAlo && m.role !== 'user') continue;
+            var label = m.role === 'user' ? 'You' : 'Alo';
+            var text = (m.content || '').replace(/\\n/g, '\n');
+            lines.push(label + ': ' + text);
+            lines.push('');
+          }
+          return lines.join('\n').trim();
+        }
+
+        // --- Wire up copy button ---
+        var copyBtn = modal.querySelector('#transcriptCopyBtn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            var ok = await copyToClipboard(text);
+            if (ok) {
+              var origHTML = copyBtn.innerHTML;
+              copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+              setTimeout(function() { copyBtn.innerHTML = origHTML; }, 2000);
+            }
+          });
+        }
+
+        // --- Wire up native share button ---
+        var nativeBtn = modal.querySelector('#transcriptNativeShareBtn');
+        if (nativeBtn) {
+          nativeBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            try {
+              await navigator.share({ title: 'Alo \u2014 ' + (threadDate || 'Conversation'), text: text });
+            } catch (e) {
+              if (e.name !== 'AbortError') {
+                await copyToClipboard(text);
+                showToast('Copied to clipboard');
+              }
+            }
+          });
+        }
+
+      } catch (err) {
+        console.error('Error loading transcript:', err);
+        showToast('Could not load conversation');
+      }
+    }
+
+    function renameThread(conversationId, currentTitle) {
+      createModal('Rename Conversation', `
+        <input type="text" id="renameInput" value="${escAttr(currentTitle)}" 
+          placeholder="Give this conversation a name"
+          style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text-primary);"
+          maxlength="200" />
+      `, {
+        confirmLabel: 'Save',
+        cancelLabel: 'Cancel',
+        onConfirm: async () => {
+          const newTitle = document.getElementById('renameInput').value.trim();
+          if (!newTitle) {
+            showToast('Please enter a name');
+            return false;
+          }
+
+          try {
+            await api(`/rest/v1/conversations?id=eq.${conversationId}`, 'PATCH', {
+              title: newTitle
+            });
+
+            const thread = allThreads.find(t => t.id === conversationId);
+            if (thread) thread.title = newTitle;
+            renderThreadList();
+            showToast('Renamed');
+          } catch (err) {
+            console.error('Error renaming:', err);
+            showToast('Could not rename. Try again.');
+            return false;
+          }
+        }
+      });
+    }
+
+    async function deleteThread(conversationId) {
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      var isPinned = thread && thread.pinned;
+
+      var message = 'This permanently removes the conversation and Alo\'s memory of it. This can\'t be undone.';
+      if (!isPinned) {
+        message += ' If you want to keep it, you can save it instead.';
+      }
+
+      var confirmed = await showConfirm(
+        'Delete conversation?',
+        message,
+        {
+          confirmLabel: 'Delete',
+          cancelLabel: isPinned ? 'Keep' : 'Cancel',
+          dangerous: true
+        }
+      );
+
+      if (!confirmed) return;
+
+      try {
+        await api('/rest/v1/conversation_summaries?conversation_id=eq.' + conversationId, 'DELETE');
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'DELETE');
+        
+        allThreads = allThreads.filter(function(t) { return t.id !== conversationId; });
+        renderThreadList();
+        showToast('Conversation deleted');
+      } catch (err) {
+        console.error('Error deleting:', err);
+        showToast('Could not delete. Try again.');
+      }
+    }
+async function togglePin(conversationId) {
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      if (!thread) return;
+
+      var newPinned = !thread.pinned;
+
+      try {
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'PATCH', {
+          pinned: newPinned,
+          pinned_at: newPinned ? new Date().toISOString() : null
+        });
+
+        thread.pinned = newPinned;
+        thread.pinned_at = newPinned ? new Date().toISOString() : null;
+        renderThreadList();
+        showToast(newPinned ? 'Conversation saved' : 'Conversation unpinned');
+      } catch (err) {
+        console.error('Pin toggle failed:', err);
+        showToast('Could not update. Try again.');
+      }
+    }
+
+    async function clearHistory() {
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; });
+      var pinnedCount = allThreads.filter(function(t) { return t.pinned; }).length;
+
+      if (unpinned.length === 0) {
+        showToast('No unpinned conversations to clear');
+        return;
+      }
+
+      var message = 'This will delete ' + unpinned.length + ' unpinned conversation' +
+        (unpinned.length > 1 ? 's' : '') + '.';
+      if (pinnedCount > 0) {
+        message += ' Your ' + pinnedCount + ' saved conversation' +
+          (pinnedCount > 1 ? 's' : '') + ' won\'t be affected.';
+      }
+      message += ' Alo will still remember themes from recent sessions. This can\'t be undone.';
+
+      var confirmed = await showConfirm('Clear conversation history?', message, {
+        confirmLabel: 'Clear History',
+        cancelLabel: 'Keep',
+        dangerous: true
+      });
+
+      if (!confirmed) return;
+
+      try {
+        var { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        var unpinnedIds = unpinned.map(function(t) { return t.id; }).join(',');
+        
+        if (unpinnedIds) {
+          await api('/rest/v1/conversation_summaries?conversation_id=in.(' + unpinnedIds + ')', 'PATCH', {
+            source_expired: true,
+            last_referenced_at: new Date().toISOString()
+          });
+
+          await api('/rest/v1/conversations?client_id=eq.' + user.id + '&pinned=eq.false', 'DELETE');
+        }
+
+        allThreads = allThreads.filter(function(t) { return t.pinned; });
+        renderThreadList();
+        showToast('History cleared');
+      } catch (err) {
+        console.error('Error clearing history:', err);
+        showToast('Could not clear history. Try again.');
+      }
+    }
+    async function handleMemoryToggle(enabled) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const existing = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=client_id`);
+
+        if (existing && existing.length > 0) {
+          await api(`/rest/v1/client_settings?client_id=eq.${user.id}`, 'PATCH', {
+            memory_enabled: enabled,
+            updated_at: new Date().toISOString()
+          });
+        } else {
+          await api('/rest/v1/client_settings', 'POST', {
+            client_id: user.id,
+            memory_enabled: enabled
+          });
+        }
+
+        memoryGlobalEnabled = enabled;
+        if (enabled) {
+          localStorage.setItem('alo_memory_onboard_done', 'true');
+        }
+        updateMemoryUI();
+        showToast(enabled ? 'Memory enabled' : 'Memory turned off');
+      } catch (err) {
+        console.error('Error updating memory setting:', err);
+        showToast('Could not update setting');
+        document.getElementById('memoryToggle').checked = !enabled;
+        memoryGlobalEnabled = !enabled;
+        updateMemoryUI();
+      }
+    }
+
+    async function loadMemorySettings() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      try {
+        const settings = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=memory_enabled`);
+        if (settings && settings.length > 0) {
+          memoryGlobalEnabled = settings[0].memory_enabled !== false;
+        } else {
+          // No settings row = new user, default OFF (opt-in model)
+          memoryGlobalEnabled = false;
+        }
+      } catch (err) {
+        memoryGlobalEnabled = false;
+      }
+
+      document.getElementById('memoryToggle').checked = memoryGlobalEnabled;
+      updateMemoryUI();
+      checkMemoryOnboarding();
+    }
+
+    function updateMemoryUI() {
+      var iconBtn = document.getElementById('memoryIconBtn');
+      var iconOn = iconBtn ? iconBtn.querySelector('.mem-icon-on') : null;
+      var iconOff = iconBtn ? iconBtn.querySelector('.mem-icon-off') : null;
+      var dot = iconBtn ? iconBtn.querySelector('.mem-status-dot') : null;
+
+      var effectiveOn = memoryGlobalEnabled && !isPrivateSession;
+
+      if (iconOn) iconOn.style.display = effectiveOn ? 'block' : 'none';
+      if (iconOff) iconOff.style.display = effectiveOn ? 'none' : 'block';
+      if (dot) {
+        dot.className = 'mem-status-dot' + (effectiveOn ? ' mem-dot-on' : '') + (isPrivateSession ? ' mem-dot-private' : '');
+      }
+      if (iconBtn) {
+        iconBtn.setAttribute('aria-label', isPrivateSession ? 'Private session active' : (effectiveOn ? 'Memory is on' : 'Memory is off'));
+      }
+
+      // Update popover content
+      var popStatus = document.getElementById('memPopoverStatus');
+      if (popStatus) {
+        var dotEl = popStatus.querySelector('.mem-pop-dot');
+        var labelEl = popStatus.querySelector('.mem-pop-label');
+        if (isPrivateSession) {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-private';
+          if (labelEl) labelEl.textContent = 'Private session';
+        } else if (memoryGlobalEnabled) {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-on';
+          if (labelEl) labelEl.textContent = 'Memory is on';
+        } else {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-off';
+          if (labelEl) labelEl.textContent = 'Memory is off';
+        }
+      }
+
+      var privateBtn = document.getElementById('memPopPrivateBtn');
+      if (privateBtn) {
+        if (isPrivateSession) {
+          privateBtn.textContent = 'End private session';
+          privateBtn.onclick = endPrivateSession;
+        } else {
+          privateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Start private session';
+          privateBtn.onclick = startPrivateSession;
+        }
+        // Only show private session option when memory is globally on
+        privateBtn.style.display = memoryGlobalEnabled ? '' : 'none';
+      }
+
+      var toggleLabel = document.getElementById('memPopToggleLabel');
+      if (toggleLabel) {
+        toggleLabel.textContent = memoryGlobalEnabled ? 'Turn off memory' : 'Turn on memory';
+      }
+
+      // Sync the settings toggle in more-menu
+      var toggle = document.getElementById('memoryToggle');
+      if (toggle) toggle.checked = memoryGlobalEnabled;
+
+      // Private session banner
+      var banner = document.getElementById('privateSessionBanner');
+      if (banner) {
+        banner.style.display = isPrivateSession ? 'flex' : 'none';
+      }
+    }
+
+    // --- Memory popover ---
+    function toggleMemoryPopover() {
+      var pop = document.getElementById('memoryPopover');
+      var btn = document.getElementById('memoryIconBtn');
+      if (!pop) return;
+
+      var isHidden = pop.classList.contains('hidden');
+      if (isHidden) {
+        pop.classList.remove('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      } else {
+        pop.classList.add('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function toggleMemoryGlobal() {
+      handleMemoryToggle(!memoryGlobalEnabled);
+      toggleMemoryPopover();
+    }
+
+    // --- Private session ---
+    function startPrivateSession() {
+      isPrivateSession = true;
+      updateMemoryUI();
+      toggleMemoryPopover();
+      showToast('Private session — this conversation won\'t be remembered');
+
+      // Tell Botpress to skip memory for this conversation
+      if (window.botpress) {
+        window.botpress.updateUser({
+          data: { privateSession: true }
+        });
+      }
+    }
+
+    function endPrivateSession() {
+      isPrivateSession = false;
+      updateMemoryUI();
+      showToast('Private session ended');
+
+      if (window.botpress) {
+        window.botpress.updateUser({
+          data: { privateSession: false }
+        });
+      }
+    }
+
+    // --- Memory onboarding (opt-in on 2nd visit) ---
+    function checkMemoryOnboarding() {
+      if (!clientId) return;
+      if (memoryGlobalEnabled) return;  // already opted in
+      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already dismissed
+      if (localStorage.getItem('alo_memory_onboard_ask') === 'ready') {
+        // 2nd+ visit: show the card
+        var card = document.getElementById('memoryOnboardCard');
+        if (card) card.style.display = 'block';
+      } else {
+        // 1st visit: mark for next time
+        localStorage.setItem('alo_memory_onboard_ask', 'ready');
+      }
+    }
+
+    function enableMemoryFromOnboard() {
+      handleMemoryToggle(true);
+      var card = document.getElementById('memoryOnboardCard');
+      if (card) card.style.display = 'none';
+      localStorage.setItem('alo_memory_onboard_done', 'true');
+    }
+
+    function dismissMemoryOnboard() {
+      var card = document.getElementById('memoryOnboardCard');
+      if (card) card.style.display = 'none';
+      // Will ask one more time on 3rd visit
+      var dismissCount = parseInt(localStorage.getItem('alo_memory_onboard_dismiss_count') || '0');
+      dismissCount++;
+      localStorage.setItem('alo_memory_onboard_dismiss_count', String(dismissCount));
+      if (dismissCount >= 2) {
+        localStorage.setItem('alo_memory_onboard_done', 'true');
+      }
+    }
+
+    async function startNewConversation() {
+      const confirmed = await showConfirm(
+        'Start new conversation?',
+        'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
+        { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
+      );
+      if (!confirmed) return;
+
+      isPrivateSession = false;
+      updateMemoryUI();
+      resetPersistenceState();
+      toggleThreadSidebar();
+      
+      const aloFrame = document.getElementById('aloFrame');
+      const chatContainer = document.querySelector('.chat-container');
+      
+      const existingWebchat = document.querySelector('.bpWebchat');
+      if (existingWebchat) existingWebchat.remove();
+      
+      window.botpress.init({
+        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+        selector: '#aloFrame',
+        configuration: {
+          version: 'v2',
+          botName: ' ',
+          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+          botDescription: '',
+          color: '#3A7C86',
+          variant: 'soft',
+          headerVariant: 'glass',
+          themeMode: getEffectiveTheme(),
+          fontFamily: 'inter',
+          radius: 1,
+          feedbackEnabled: false,
+          soundEnabled: false,
+          conversationHistory: false
+        }
+      });
+
+      var reinitCheck = setInterval(function() {
+        if (window.botpress) {
+          try {
+            window.botpress.open();
+            var webchatIframe = document.querySelector('.bpWebchat');
+            if (chatContainer && webchatIframe) {
+              chatContainer.appendChild(webchatIframe);
+            }
+            if (clientId) {
+              var hwSummary = activeHomework.length > 0
+                ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
+                : [];
+              window.botpress.updateUser({
+                data: {
+                  sessionNonce: sessionNonce,
+                  clientId: clientId,
+                  homeworkActive: JSON.stringify(hwSummary)
+                }
+              });
+            }
+            sendAuthBridge();
+            clearInterval(reinitCheck);
+          } catch (e) {
+            // Not ready yet
+          }
+        }
+      }, 200);
+
+      setTimeout(function() { clearInterval(reinitCheck); }, 5000);
+    }
+
+    function checkGuestMemoryPrompt() {
+      guestTurnCount++;
+      if (guestTurnCount >= 5 && !clientId && !localStorage.getItem('alo_memory_prompt_dismissed')) {
+        const bar = document.getElementById('memoryPromptBar');
+        if (bar) bar.classList.add('show');
+      }
+    }
+
+    function hideMemoryPrompt() {
+      const bar = document.getElementById('memoryPromptBar');
+      if (bar) bar.classList.remove('show');
+      localStorage.setItem('alo_memory_prompt_dismissed', 'true');
+    }
+
+    // =====================================================
+    // BOTPRESS LAYOUT — position webchat iframe over chat-container
+    // Botpress mounts iframes at <body> level, not inside #aloFrame.
+    // We reposition the webchat iframe to exactly cover .chat-container.
+    // =====================================================
+    
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', async function() {
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      let loadTimeout;
+
+      // Initialize Botpress JS SDK immediately (guest mode)
+      // userData will be sent later via updateUser() once auth resolves
+      window.botpress.init({
+        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+        selector: '#aloFrame',
+        configuration: {
+          version: 'v2',
+          botName: ' ',
+          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+          botDescription: '',
+          color: '#3A7C86',
+          variant: 'soft',
+          headerVariant: 'glass',
+          themeMode: getEffectiveTheme(),
+          fontFamily: 'inter',
+          radius: 1,
+          feedbackEnabled: false,
+          soundEnabled: false,
+          conversationHistory: false
+        }
+      });
+
+      var botpressReady = false;
+      window.botpress.on('webchat:initialized', function() {
+        if (botpressReady) return;
+        botpressReady = true;
+
+        loadingOverlay.style.display = 'none';
+        clearTimeout(loadTimeout);
+        window.botpress.open();
+        console.log('[Alo] Botpress webchat initialized');
+
+        // Overlay positioning — don't move the iframe (breaks cross-origin),
+        // instead position it fixed over .chat-container
+        var chatContainer = document.querySelector('.chat-container');
+        var webchatEl = document.querySelector('.bpWebchat');
+        if (!chatContainer || !webchatEl) {
+          console.warn('[Alo] Missing chat-container or .bpWebchat');
+          return;
+        }
+
+        function positionWebchat() {
+          var rect = chatContainer.getBoundingClientRect();
+          var top = rect.top;
+          var height = rect.height;
+          var width = rect.width;
+          var left = rect.left;
+          
+          if (window.visualViewport) {
+            var vv = window.visualViewport;
+            
+            if (document.body.classList.contains('keyboard-open')) {
+              // Keyboard open: use visualViewport directly as source of truth.
+              // Header/footer are hidden, so iframe should fill the visible area.
+              // Use screen width to avoid layout shifts.
+              top = vv.offsetTop;
+              height = vv.height;
+              left = 0;
+              width = window.innerWidth;
+            } else {
+              // Keyboard closed: clamp to visible area as before
+              var visibleBottom = vv.offsetTop + vv.height;
+              if (top + height > visibleBottom) {
+                height = Math.max(0, visibleBottom - Math.max(top, vv.offsetTop));
+              }
+              if (top < vv.offsetTop) {
+                top = vv.offsetTop;
+              }
+            }
+          }
+          
+          webchatEl.style.cssText = 
+            'position:fixed!important;' +
+            'top:' + top + 'px!important;' +
+            'left:' + left + 'px!important;' +
+            'width:' + width + 'px!important;' +
+            'height:' + height + 'px!important;' +
+            'max-height:' + height + 'px!important;' +
+            'max-width:' + width + 'px!important;' +
+            'border-radius:0!important;' +
+            'box-shadow:none!important;' +
+            'z-index:10!important;';
+        }
+
+        positionWebchat();
+        console.log('[Alo] Positioned webchat overlay on .chat-container');
+
+        // Fight Botpress re-positioning: re-apply for first 3 seconds
+        var posRetries = 0;
+        var posInterval = setInterval(function() {
+          positionWebchat();
+          posRetries++;
+          if (posRetries >= 15) clearInterval(posInterval);
+        }, 200);
+
+                        // Note: MutationObserver removed — it caused infinite loop
+        // (setting style triggers observer, which sets style again).
+        // setInterval + ResizeObserver + window resize cover repositioning.
+
+
+
+        // Keep in sync on resize, orientation change, iOS keyboard
+        var ro = new ResizeObserver(positionWebchat);
+        ro.observe(chatContainer);
+        window.addEventListener('resize', positionWebchat);
+
+        // Keyboard detection: hide chrome when keyboard opens on mobile
+        var initialVVHeight = 0;
+        if (window.visualViewport) {
+          initialVVHeight = window.visualViewport.height;
+
+          window.visualViewport.addEventListener('resize', function() {
+            var vv = window.visualViewport;
+            // Update baseline when viewport GROWS (orientation change, keyboard close)
+            if (vv.height > initialVVHeight) initialVVHeight = vv.height;
+            
+            var keyboardOpen = initialVVHeight - vv.height > 150;
+            var isOpen = document.body.classList.contains('keyboard-open');
+            
+            if (keyboardOpen && !isOpen) {
+              document.body.classList.add('keyboard-open');
+              positionWebchat();
+            } else if (!keyboardOpen && isOpen) {
+              document.body.classList.remove('keyboard-open');
+              positionWebchat();
+            } else {
+              positionWebchat();
+            }
+          });
+
+          window.visualViewport.addEventListener('scroll', positionWebchat);
+        }
+
+        // Init theme label for more menu
+        var menuLabel = document.getElementById('moreMenuThemeLabel');
+        if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
+      });
+
+window.botpress.on('webchat:closed', function() {
+        if (!botpressReady) return;
+        window.botpress.open();
+      });
+      
+
+      // Message capture: persistence for signed-in users + guest turn tracking
+      // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
+      window.botpress.on('message', function(msg) {
+        if (!clientId) {
+          checkGuestMemoryPrompt();
+          return;
+        }
+
+        // Extract text — try all known paths
+        var content = '';
+        try { content = msg.block.text; } catch(e) {}
+        if (!content) try { content = msg.payload.text; } catch(e) {}
+        if (!content && typeof msg.text === 'string') content = msg.text;
+        if (!content) {
+          // Last resort: stringify and extract
+          try {
+            var raw = JSON.stringify(msg);
+            var match = raw.match(/"text":"([^"]+)"/);
+            if (match) content = match[1];
+          } catch(e) {}
+        }
+        if (!content) return;
+
+        // Determine role
+        var isUser = false;
+        try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
+        var role = isUser ? 'user' : 'assistant';
+        var msgId = null;
+        try { msgId = msg.id; } catch(e) {}
+        var bpConvId = null;
+        try { bpConvId = msg.conversationId; } catch(e) {}
+
+        console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
+
+        // Fire-and-forget: create conversation if needed, then save
+        (async function() {
+          try {
+            if (!currentSupabaseConvId) {
+              await ensureConversation(bpConvId || 'conv_' + Date.now());
+            }
+            await saveMessage(role, content, msgId);
+          } catch (err) {
+            console.error('[Persistence] Error:', err.message);
+          }
+        })();
+      });
+         
+      loadTimeout = setTimeout(function() {
+        loadingOverlay.innerHTML = `
+          <div class="error-message">
+            <p><strong>Still loading...</strong></p>
+            <p>This is taking longer than usual. Let's try again.</p>
+            <button onclick="location.reload()" class="btn-primary">Retry</button>
+            <p style="font-size: 13px; margin-top: 20px; color: var(--text-secondary);">
+              Need help now? Call <a href="tel:988" style="color: var(--text-primary);">988</a>
+            </p>
+          </div>
+        `;
+      }, 15000);
+
+      // Privacy bar
+      initPrivacyBar();
+
+      // Sign In and Connect use inline onclick handlers
+      // Close more menu on Escape key
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          const menu = document.getElementById('moreMenu');
+          if (!menu.classList.contains('hidden')) toggleMoreMenu();
+        }
+      });
+      
+      // Homework event listeners are attached dynamically in loadHomework()
+
+      document.getElementById('termsLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        createModal('Terms of Use', `
+          <p>Alo is a conversational companion, not a replacement for professional mental health care.</p>
+          <p style="margin-top: 12px;"><strong>By using Alo, you agree that:</strong></p>
+          <ul class="modal-list">
+            <li>Alo does not provide medical advice, diagnosis, or treatment</li>
+            <li>You will seek professional help for mental health crises</li>
+            <li>Your therapist does not see your conversations with Alo</li>
+            <li>You are responsible for deciding what to share with your therapist</li>
+          </ul>
+          <p class="modal-divider">
+            If you're in crisis, call <strong>988</strong> (US Suicide & Crisis Lifeline) or go to your nearest emergency room.
+          </p>
+        `, {
+          confirmLabel: 'I understand',
+          showCancel: false
+        });
+      });
+
+      document.getElementById('privacyLink').addEventListener('click', function(e) {
+        e.preventDefault();
+        createModal('Privacy Policy', `
+          <h3 class="modal-section-title">What we store</h3>
+          <ul class="modal-list">
+            <li>Account information (email, password hash)</li>
+            <li>Connection to your therapist</li>
+            <li>Homework completion status</li>
+            <li>Messages you send to your therapist</li>
+          </ul>
+
+          <h3 class="modal-section-title">Your Alo conversations</h3>
+          <ul class="modal-list">
+            <li>If you have an account, conversations are saved so Alo can provide continuity</li>
+            <li>You can delete any conversation at any time from the sidebar</li>
+            <li>You can turn off memory in settings — Alo will treat each chat as new</li>
+            <li>Guest conversations (no account) are not stored permanently</li>
+            <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
+            <li>Conversations are not used for training, analytics, or advertising</li>
+          </ul>
+
+          <h3 class="modal-section-title">Who sees your data</h3>
+          <ul class="modal-list">
+            <li>Your therapist sees homework status and messages you send them</li>
+            <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
+            <li>We don't sell or share your data with third parties</li>
+          </ul>
+
+          <h3 class="modal-section-title">Security</h3>
+          <ul class="modal-list">
+            <li>All stored data is encrypted at rest (AES-256) and in transit (TLS)</li>
+            <li>Chat data is encrypted at rest and in transit by our chat provider</li>
+            <li>Database access is controlled by row-level security — your therapist can only see their own clients</li>
+          </ul>
+
+          <p class="modal-divider">
+            Questions about your privacy? Ask your therapist.
+          </p>
+        `, {
+          confirmLabel: 'Got it',
+          showCancel: false
+        });
+      });
+
+      // Listen for auth state changes
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN') {
+          loadConnectedState();
+        } else if (event === 'SIGNED_OUT') {
+          resetPersistenceState();
+          authBridgeSent = false;
+          resetToGuestUI();
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[Auth] Token refreshed');
+        }
+      });
+
+      // Check for existing session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        await loadConnectedState();
+      }
+    });
+  </script>
+</body>
+</html>
