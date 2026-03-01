@@ -306,16 +306,10 @@
     function toggleTheme() {
       var current = getEffectiveTheme();
       var next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('alo_theme', next);
       
-      // Update meta theme-color for mobile browser chrome
-      var meta = document.getElementById('metaThemeColor');
-      if (meta) meta.content = next === 'dark' ? '#111917' : '#F3EDE4';
-      
-      // Sync more-menu label
-      var menuLabel = document.getElementById('moreMenuThemeLabel');
-      if (menuLabel) menuLabel.textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
+      // Reload page so Botpress re-initializes with correct themeMode
+      window.location.reload();
     }
 
     // =====================================================
