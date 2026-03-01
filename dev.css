@@ -1373,7 +1373,7 @@ footer a {
   #shareGuestBtn { padding: 6px 10px; font-size: 0.7rem; }
   #signInBtn { padding: 6px 10px; font-size: 0.7rem; min-height: 36px; }
   
-  button {
+  button:not(.more-menu-item):not(.more-btn):not(.mem-pop-action) {
     padding: 8px 12px;
     font-size: 0.75rem;
   }
