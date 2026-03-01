@@ -90,6 +90,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Conversations
       </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleTheme()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+        <span id="moreMenuThemeLabel">Dark Mode</span>
+      </button>
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Share
@@ -308,6 +312,10 @@
       // Update meta theme-color for mobile browser chrome
       var meta = document.getElementById('metaThemeColor');
       if (meta) meta.content = next === 'dark' ? '#111917' : '#F3EDE4';
+      
+      // Sync more-menu label
+      var menuLabel = document.getElementById('moreMenuThemeLabel');
+      if (menuLabel) menuLabel.textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
     }
 
     // =====================================================
@@ -2156,28 +2164,40 @@ async function togglePin(conversationId) {
           var rect = chatContainer.getBoundingClientRect();
           var top = rect.top;
           var height = rect.height;
+          var width = rect.width;
+          var left = rect.left;
           
-          // iOS keyboard fix: when visualViewport shrinks (keyboard open),
-          // clamp the webchat to the visible area
           if (window.visualViewport) {
             var vv = window.visualViewport;
-            var visibleBottom = vv.offsetTop + vv.height;
-            if (top + height > visibleBottom) {
-              height = Math.max(0, visibleBottom - Math.max(top, vv.offsetTop));
-            }
-            if (top < vv.offsetTop) {
+            
+            if (document.body.classList.contains('keyboard-open')) {
+              // Keyboard open: use visualViewport directly as source of truth.
+              // Header/footer are hidden, so iframe should fill the visible area.
+              // Use screen width to avoid layout shifts.
               top = vv.offsetTop;
+              height = vv.height;
+              left = 0;
+              width = window.innerWidth;
+            } else {
+              // Keyboard closed: clamp to visible area as before
+              var visibleBottom = vv.offsetTop + vv.height;
+              if (top + height > visibleBottom) {
+                height = Math.max(0, visibleBottom - Math.max(top, vv.offsetTop));
+              }
+              if (top < vv.offsetTop) {
+                top = vv.offsetTop;
+              }
             }
           }
           
           webchatEl.style.cssText = 
             'position:fixed!important;' +
             'top:' + top + 'px!important;' +
-            'left:' + rect.left + 'px!important;' +
-            'width:' + rect.width + 'px!important;' +
+            'left:' + left + 'px!important;' +
+            'width:' + width + 'px!important;' +
             'height:' + height + 'px!important;' +
             'max-height:' + height + 'px!important;' +
-            'max-width:' + rect.width + 'px!important;' +
+            'max-width:' + width + 'px!important;' +
             'border-radius:0!important;' +
             'box-shadow:none!important;' +
             'z-index:10!important;';
@@ -2204,10 +2224,37 @@ async function togglePin(conversationId) {
         var ro = new ResizeObserver(positionWebchat);
         ro.observe(chatContainer);
         window.addEventListener('resize', positionWebchat);
+
+        // Keyboard detection: hide chrome when keyboard opens on mobile
+        var initialVVHeight = 0;
         if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', positionWebchat);
+          initialVVHeight = window.visualViewport.height;
+
+          window.visualViewport.addEventListener('resize', function() {
+            var vv = window.visualViewport;
+            // Update baseline when viewport GROWS (orientation change, keyboard close)
+            if (vv.height > initialVVHeight) initialVVHeight = vv.height;
+            
+            var keyboardOpen = initialVVHeight - vv.height > 150;
+            var isOpen = document.body.classList.contains('keyboard-open');
+            
+            if (keyboardOpen && !isOpen) {
+              document.body.classList.add('keyboard-open');
+              positionWebchat();
+            } else if (!keyboardOpen && isOpen) {
+              document.body.classList.remove('keyboard-open');
+              positionWebchat();
+            } else {
+              positionWebchat();
+            }
+          });
+
           window.visualViewport.addEventListener('scroll', positionWebchat);
         }
+
+        // Init theme label for more menu
+        var menuLabel = document.getElementById('moreMenuThemeLabel');
+        if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
       });
 
 window.botpress.on('webchat:closed', function() {
