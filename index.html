@@ -14,7 +14,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#F3EDE4" id="metaThemeColor">
   
-  <!-- Prevent flash of wrong theme — runs before first paint -->
+  <!-- Prevent flash of wrong theme — runs before first paint --> 
   <script>
     (function() {
       var saved = localStorage.getItem('alo_theme');
@@ -55,10 +55,15 @@
       </div>
     </div>
     <div class="header-actions">
-      <button id="threadsBtn" class="threads-btn hidden" onclick="toggleThreadSidebar()" aria-label="Conversation history">
+      <button id="threadsBtn" class="threads-btn hidden" onclick="toggleThreadSidebar()" aria-label="Conversation history" title="Conversations">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       </button>
-      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+      <button id="memoryIconBtn" class="memory-icon-btn hidden" onclick="toggleMemoryPopover()" aria-label="Memory settings" aria-haspopup="true" aria-expanded="false" title="Memory settings">
+        <svg class="mem-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="mem-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <span class="mem-status-dot"></span>
+      </button>
+      <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
@@ -70,7 +75,7 @@
         <div id="trustBadge" class="trust-badge">
           <span id="trustBadgeText"></span>
         </div>
-        <button id="moreBtn" class="more-btn" onclick="toggleMoreMenu()" aria-label="Menu" aria-haspopup="true" aria-expanded="false">
+        <button id="moreBtn" class="more-btn" onclick="toggleMoreMenu()" aria-label="Menu" aria-haspopup="true" aria-expanded="false" title="Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
       </div>
@@ -94,6 +99,20 @@
         Message Therapist
       </button>
       <div class="more-menu-divider" role="separator"></div>
+      <div class="more-menu-settings" id="moreMenuMemory">
+        <div class="more-menu-settings-header">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Memory
+          <label class="toggle-switch">
+            <input type="checkbox" id="memoryToggle" onchange="handleMemoryToggle(this.checked)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+        <div class="more-menu-settings-detail">
+          Alo keeps short summaries of recent conversations (not full transcripts) for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
+        </div>
+      </div>
+      <div class="more-menu-divider" role="separator"></div>
       <button class="more-menu-item more-menu-logout" role="menuitem" onclick="toggleMoreMenu(); handleLogout()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Log Out
@@ -102,6 +121,51 @@
   </div>
 
   <!-- Thread sidebar (slide-in panel) -->
+  <div id="memoryPopover" class="memory-popover hidden" role="dialog" aria-label="Memory settings">
+    <div class="memory-popover-backdrop" onclick="toggleMemoryPopover()"></div>
+    <div class="memory-popover-panel">
+      <div class="memory-popover-status" id="memPopoverStatus">
+        <span class="mem-pop-dot mem-pop-dot-on"></span>
+        <span class="mem-pop-label">Memory is on</span>
+      </div>
+      <p class="memory-popover-desc">Alo uses short summaries from recent conversations for continuity. Your therapist cannot see this.</p>
+      <div class="memory-popover-actions">
+        <button class="mem-pop-action" id="memPopPrivateBtn" onclick="startPrivateSession()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          Start private session
+        </button>
+        <button class="mem-pop-action" id="memPopToggleBtn" onclick="toggleMemoryGlobal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span id="memPopToggleLabel">Turn off memory</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Private session banner (shown when memory paused for this conversation) -->
+  <div id="privateSessionBanner" class="private-session-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+    <span>Private session — Alo won't remember this conversation</span>
+    <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
+  </div>
+
+  <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
+  <div id="memoryOnboardCard" class="memory-onboard-card">
+    <div class="memory-onboard-content">
+      <div class="memory-onboard-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div>
+        <div class="memory-onboard-title">Want Alo to remember context?</div>
+        <div class="memory-onboard-desc">Alo can use short summaries from past conversations so you don't have to re-explain. Your therapist can't see any of this.</div>
+      </div>
+    </div>
+    <div class="memory-onboard-actions">
+      <button class="btn-primary memory-onboard-enable" onclick="enableMemoryFromOnboard()">Enable</button>
+      <button class="btn-secondary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Not now</button>
+    </div>
+  </div>
+
   <div id="threadSidebar" class="thread-sidebar" aria-label="Conversation history">
     <div class="thread-sidebar-header">
       <h2>Conversations</h2>
@@ -115,16 +179,14 @@
       <div class="thread-list-empty">No conversations yet.<br>Start chatting and they'll appear here.</div>
     </div>
     <div class="thread-sidebar-footer">
-      <div class="memory-toggle-row">
-        <div>
-          <div class="memory-toggle-label">Alo remembers context</div>
-          <span class="memory-toggle-sublabel">Past conversations inform new ones</span>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="memoryToggle" checked onchange="handleMemoryToggle(this.checked)">
-          <span class="toggle-track"></span>
-        </label>
-      </div>
+      <button class="clear-history-btn" onclick="clearHistory()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Clear unpinned conversations
+      </button>
+      <button class="thread-sidebar-settings-link" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Memory settings
+      </button>
     </div>
   </div>
   <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
@@ -137,7 +199,7 @@
   </div>
 
   <!-- Privacy assurance bar — shown on first visit, dismissible -->
-  <div id="privacyBar" class="privacy-bar">
+  <div id="privacyBar" class="privacy-bar hidden">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
       <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
     </svg>
@@ -208,6 +270,10 @@
     let currentSupabaseConvId = null;
     let seenMessageIds = new Set();
     let persistenceTurnCounter = 0;
+
+    // Memory & private session state
+    let memoryGlobalEnabled = false;  // opt-in: default OFF
+    let isPrivateSession = false;
     let authBridgeSent = false;
 
     // =====================================================
@@ -218,6 +284,10 @@
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
+    }
+
+    function escAttr(str) {
+      return esc(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     // =====================================================
@@ -267,10 +337,19 @@
         onConfirm = null,
         onCancel = null,
         showCancel = true,
+        showFooter = true,
         dangerous = false
       } = options;
 
       const modalId = 'modal-' + Date.now();
+      var footerHTML = '';
+      if (showFooter) {
+        footerHTML = '<div class="modal-footer">' +
+          (showCancel ? '<button class="btn-secondary modal-cancel">' + cancelLabel + '</button>' : '') +
+          '<button class="btn-primary modal-confirm ' + (dangerous ? 'btn-danger' : '') + '">' + confirmLabel + '</button>' +
+        '</div>';
+      }
+
       const modalHTML = `
         <div class="modal-overlay" id="${modalId}" role="dialog" aria-modal="true" aria-labelledby="${modalId}-title">
           <div class="modal-content">
@@ -281,10 +360,7 @@
             <div class="modal-body">
               ${bodyHTML}
             </div>
-            <div class="modal-footer">
-              ${showCancel ? `<button class="btn-secondary modal-cancel">${cancelLabel}</button>` : ''}
-              <button class="btn-primary modal-confirm ${dangerous ? 'btn-danger' : ''}">${confirmLabel}</button>
-            </div>
+            ${footerHTML}
           </div>
         </div>
       `;
@@ -300,8 +376,10 @@
       const firstInput = modal.querySelector('input, textarea, select');
       if (firstInput) {
         setTimeout(() => firstInput.focus(), 100);
-      } else {
+      } else if (confirmBtn) {
         setTimeout(() => confirmBtn.focus(), 100);
+      } else {
+        setTimeout(() => closeBtn.focus(), 100);
       }
 
       function closeModal() {
@@ -321,7 +399,7 @@
         });
       }
 
-      confirmBtn.addEventListener('click', async () => {
+      if (confirmBtn) confirmBtn.addEventListener('click', async () => {
         if (onConfirm) {
           const result = await onConfirm();
           if (result !== false) closeModal();
@@ -374,15 +452,16 @@
     // =====================================================
     // UI STATE MANAGEMENT
     // =====================================================
-    function showLoggedInNoConnection() {
+    async function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
       const badgeText = document.getElementById('trustBadgeText');
       badge.className = 'trust-badge';
       badgeText.textContent = 'Logged in';
       
-      // Show threads button for any logged-in user
-      document.getElementById('threadsBtn').classList.remove('hidden');
-      loadMemorySettings();
+      // Show threads button and memory icon, load memory settings
+        document.getElementById('threadsBtn').classList.remove('hidden');
+        document.getElementById('memoryIconBtn').classList.remove('hidden');
+        await loadMemorySettings();
       
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
@@ -430,6 +509,8 @@
       if (msgItem) {
         msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
       }
+
+      showPrivacyBarIfConnected();
     }
 
     function toggleMoreMenu() {
@@ -561,9 +642,9 @@
                 '<div class="homework-from">From ' + therapistName + '</div>' +
                 '<h3 class="homework-title">' + (hw.title || 'Practice exercise') + '</h3>' +
               '</div>' +
-              '<button class="homework-collapse" aria-label="Collapse homework details" aria-expanded="true" data-hw-id="' + hw.id + '">\u2212</button>' +
+              '<button class="homework-collapse" aria-label="Expand homework details" aria-expanded="false" data-hw-id="' + hw.id + '">+</button>' +
             '</div>' +
-            '<div class="homework-body" id="hwBody-' + hw.id + '">' +
+            '<div class="homework-body collapsed" id="hwBody-' + hw.id + '">' +
               (hw.homework_type ? '<span class="homework-type-tag">' + hw.homework_type + '</span>' : '') +
               '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
               '<div class="homework-actions">' +
@@ -576,30 +657,7 @@
 
         container.classList.add('show');
 
-        // Attach event listeners
-        container.querySelectorAll('.homework-collapse').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            var hwId = this.dataset.hwId;
-            var body = document.getElementById('hwBody-' + hwId);
-            var isCollapsed = body.classList.contains('collapsed');
-            body.classList.toggle('collapsed');
-            this.textContent = isCollapsed ? '\u2212' : '+';
-            this.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
-            this.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
-          });
-        });
-
-        container.querySelectorAll('.homework-done-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkDone(this.dataset.hwId);
-          });
-        });
-
-        container.querySelectorAll('.homework-hide-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            handleHomeworkHide(this.dataset.hwId);
-          });
-        });
+        
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -613,6 +671,34 @@
             }
           }
         }
+
+        // Event delegation — survives re-renders
+        container.onclick = function(e) {
+          var collapseBtn = e.target.closest('.homework-collapse');
+          if (collapseBtn) {
+            var hwId = collapseBtn.dataset.hwId;
+            var body = document.getElementById('hwBody-' + hwId);
+            if (!body) return;
+            var isCollapsed = body.classList.contains('collapsed');
+            body.classList.toggle('collapsed');
+            collapseBtn.textContent = isCollapsed ? '\u2212' : '+';
+            collapseBtn.setAttribute('aria-expanded', isCollapsed ? 'true' : 'false');
+            collapseBtn.setAttribute('aria-label', isCollapsed ? 'Collapse homework details' : 'Expand homework details');
+            return;
+          }
+
+          var doneBtn = e.target.closest('.homework-done-btn');
+          if (doneBtn) {
+            handleHomeworkDone(doneBtn.dataset.hwId);
+            return;
+          }
+
+          var hideBtn = e.target.closest('.homework-hide-btn');
+          if (hideBtn) {
+            handleHomeworkHide(hideBtn.dataset.hwId);
+            return;
+          }
+        };
 
       } catch (err) {
         console.error('Error loading homework:', err);
@@ -1129,8 +1215,9 @@
 
         showConnectedUI(therapistName, clientName);
         
-        // Show threads button and load memory settings
+        // Show threads button and memory icon, load memory settings
         document.getElementById('threadsBtn').classList.remove('hidden');
+        document.getElementById('memoryIconBtn').classList.remove('hidden');
         await loadMemorySettings();
         
         await loadHomework();
@@ -1206,7 +1293,9 @@
           client_id: clientId,
           title: title,
           botpress_conversation_id: botpressConvId,
-          turn_count: 0
+          turn_count: 0,
+          is_private: isPrivateSession || false,
+          pinned: false
         })
         .select('id')
         .single();
@@ -1224,6 +1313,7 @@
     }
 
     async function saveMessage(role, content, botpressMessageId) {
+      if (isPrivateSession) return;
       if (!currentSupabaseConvId || !content) return;
       if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
       if (botpressMessageId) seenMessageIds.add(botpressMessageId);
@@ -1290,19 +1380,16 @@
     // PRIVACY BAR
     // =====================================================
     function initPrivacyBar() {
-      const bar = document.getElementById('privacyBar');
       const dismissBtn = document.getElementById('privacyBarDismiss');
-      
-      // Check if user has dismissed it before
-      if (localStorage.getItem('alo_privacy_bar_dismissed')) {
-        bar.style.display = 'none';
-        return;
-      }
-
       dismissBtn.addEventListener('click', () => {
-        bar.style.display = 'none';
+        document.getElementById('privacyBar').classList.add('hidden');
         localStorage.setItem('alo_privacy_bar_dismissed', 'true');
       });
+    }
+
+    function showPrivacyBarIfConnected() {
+      if (localStorage.getItem('alo_privacy_bar_dismissed')) return;
+      document.getElementById('privacyBar').classList.remove('hidden');
     }
 // =====================================================
     // THREAD SIDEBAR + MEMORY FEATURES
@@ -1334,7 +1421,7 @@
       if (!user) return;
 
       try {
-        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&order=updated_at.desc&limit=50`);
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
         allThreads = threads || [];
         renderThreadList();
       } catch (err) {
@@ -1342,35 +1429,76 @@
       }
     }
 
+    function renderThreadRow(thread) {
+      var turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
+      var isPinned = !!thread.pinned;
+      var pinFill = isPinned ? 'currentColor' : 'none';
+      var pinClass = isPinned ? 'thread-pin-btn pinned' : 'thread-pin-btn';
+      var pinLabel = isPinned ? 'Unpin' : 'Save this conversation';
+      var safeTitle = escAttr(thread.title || 'Untitled');
+
+      return '<div class="thread-item" data-id="' + thread.id + '">' +
+        '<button class="' + pinClass + '" data-action="pin" data-id="' + thread.id + '" aria-label="' + pinLabel + '" title="' + pinLabel + '">' +
+          '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+        '</button>' +
+        '<div class="thread-item-content">' +
+          '<div class="thread-item-title">' + safeTitle + '</div>' +
+          '<div class="thread-item-meta">' + turnText + '</div>' +
+        '</div>' +
+        '<div class="thread-item-actions">' +
+          '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + escAttr(thread.title || '') + '" aria-label="Rename">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+          '</button>' +
+          '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    }
+
     function renderThreadList() {
-      const container = document.getElementById('threadList');
+      var container = document.getElementById('threadList');
       
       if (!allThreads || allThreads.length === 0) {
         container.innerHTML = '<div class="thread-list-empty">No conversations yet.<br>Start chatting and they\'ll appear here.</div>';
         return;
       }
 
-      container.innerHTML = allThreads.map(function(thread) {
-        const turnText = thread.turn_count === 1 ? '1 turn' : (thread.turn_count || 0) + ' turns';
-        return '<div class="thread-item" data-id="' + thread.id + '">' +
-          '<div class="thread-item-content">' +
-            '<div class="thread-item-title">' + esc(thread.title || 'Untitled') + '</div>' +
-            '<div class="thread-item-meta">' + turnText + '</div>' +
-          '</div>' +
-          '<div class="thread-item-actions">' +
-            '<button class="thread-action-btn" data-action="rename" data-id="' + thread.id + '" data-title="' + esc(thread.title || '') + '" aria-label="Rename">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
-            '</button>' +
-            '<button class="thread-action-btn danger" data-action="delete" data-id="' + thread.id + '" aria-label="Delete">' +
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>' +
-            '</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+      var pinned = allThreads.filter(function(t) { return t.pinned; })
+        .sort(function(a, b) { return new Date(b.pinned_at || b.created_at) - new Date(a.pinned_at || a.created_at); });
+
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; })
+        .sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+
+      var html = '';
+
+      if (pinned.length > 0) {
+        html += '<div class="thread-section-label">Saved</div>';
+        for (var pi = 0; pi < pinned.length; pi++) { html += renderThreadRow(pinned[pi]); }
+        if (unpinned.length > 0) {
+          html += '<div class="thread-divider"></div>';
+        }
+      }
+
+      var visibleUnpinned = unpinned.slice(0, 30);
+      for (var ui = 0; ui < visibleUnpinned.length; ui++) { html += renderThreadRow(visibleUnpinned[ui]); }
+
+      if (unpinned.length > 30) {
+        html += '<button class="thread-load-more" onclick="loadMoreThreads()">Load older conversations</button>';
+      }
+
+      container.innerHTML = html;
 
       container.querySelectorAll('.thread-item').forEach(function(item) {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+          if (e.target.closest('[data-action]')) return;
           viewTranscript(this.dataset.id);
+        });
+      });
+      container.querySelectorAll('[data-action="pin"]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          togglePin(this.dataset.id);
         });
       });
       container.querySelectorAll('[data-action="rename"]').forEach(function(btn) {
@@ -1389,30 +1517,158 @@
 
     async function viewTranscript(conversationId) {
       try {
-        const messages = await api(`/rest/v1/conversation_messages?conversation_id=eq.${conversationId}&order=turn_number.asc,created_at.asc`);
+        var messages = await api('/rest/v1/conversation_messages?conversation_id=eq.' + conversationId + '&order=turn_number.asc,created_at.asc');
         
-        const thread = allThreads.find(t => t.id === conversationId);
-        const title = thread ? thread.title : 'Conversation';
+        var thread = allThreads.find(function(t) { return t.id === conversationId; });
+        var title = thread ? (thread.title || 'Conversation') : 'Conversation';
+        var isPinned = thread ? !!thread.pinned : false;
+        var threadDate = thread ? new Date(thread.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        var msgCount = (messages && messages.length) || 0;
 
-        let bodyHTML = '<div class="transcript-container">';
+        // Build transcript body
+        var bodyHTML = '<div class="transcript-container">';
         
         if (!messages || messages.length === 0) {
           bodyHTML += '<div class="transcript-empty">No messages in this conversation.</div>';
         } else {
           for (var i = 0; i < messages.length; i++) {
-            const msg = messages[i];
-            const roleClass = msg.role === 'user' ? 'user' : 'assistant';
-            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + esc(msg.content) + '</div>';
+            var msg = messages[i];
+            var roleClass = msg.role === 'user' ? 'user' : 'assistant';
+            var cleaned = esc(msg.content).replace(/\\n\\n/g, '<br><br>').replace(/\\n/g, '<br>');
+            bodyHTML += '<div class="transcript-message ' + roleClass + '">' + cleaned + '</div>';
           }
         }
         
         bodyHTML += '</div>';
 
+        // Share bottom sheet (hidden by default, slides up inside modal)
+        bodyHTML += '<div id="transcriptShareSheet" class="transcript-share-sheet hidden">' +
+          '<div class="transcript-share-header">Share Transcript</div>' +
+          '<div class="transcript-share-meta">' + msgCount + ' messages · Nothing is sent until you choose where.</div>' +
+          '<label class="transcript-share-toggle">' +
+            '<input type="checkbox" id="shareIncludeAlo" checked> Include Alo\'s responses' +
+          '</label>' +
+          '<div class="transcript-share-actions">' +
+            '<button class="btn-primary transcript-share-btn" id="transcriptCopyBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>' +
+              ' Copy to clipboard' +
+            '</button>' +
+            (navigator.share ? '<button class="btn-secondary transcript-share-btn" id="transcriptNativeShareBtn">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+              ' Share via\u2026' +
+            '</button>' : '') +
+          '</div>' +
+          '<button class="btn-link transcript-share-cancel" id="transcriptShareCancel">Cancel</button>' +
+        '</div>';
+
         toggleThreadSidebar();
-        createModal(esc(title), bodyHTML, {
-          confirmLabel: 'Close',
-          showCancel: false
+
+        // Build custom header: [Star] Title [Share ↗] [✕ handled by createModal]
+        var pinFill = isPinned ? 'currentColor' : 'none';
+        var pinClass = isPinned ? 'transcript-pin pinned' : 'transcript-pin';
+
+        var customTitle = '<div class="transcript-header-row">' +
+          '<button class="' + pinClass + '" id="transcriptPinBtn" aria-label="' + (isPinned ? 'Unpin' : 'Pin') + ' conversation" title="' + (isPinned ? 'Unpin' : 'Save this conversation') + '">' +
+            '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</button>' +
+          '<div class="transcript-title-block">' +
+            '<span class="transcript-title-text">' + escAttr(title) + '</span>' +
+            (threadDate ? '<span class="transcript-title-date">' + threadDate + '</span>' : '') +
+          '</div>' +
+          '<button class="transcript-share-icon" id="transcriptShareToggle" aria-label="Share transcript" title="Share">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>' +
+          '</button>' +
+        '</div>';
+
+        // No footer — close via ✕ only (more transcript space on mobile)
+        var modal = createModal(customTitle, bodyHTML, {
+          showFooter: false
         });
+
+        // Store messages ref for share formatting
+        var transcriptMessages = messages || [];
+
+        // --- Wire up pin button ---
+        var pinBtn = modal.querySelector('#transcriptPinBtn');
+        if (pinBtn) {
+          pinBtn.addEventListener('click', function() {
+            togglePin(conversationId);
+            var newPinned = !isPinned;
+            isPinned = newPinned;
+            pinBtn.className = newPinned ? 'transcript-pin pinned' : 'transcript-pin';
+            var svg = pinBtn.querySelector('svg');
+            if (svg) svg.setAttribute('fill', newPinned ? 'currentColor' : 'none');
+            pinBtn.setAttribute('aria-label', (newPinned ? 'Unpin' : 'Pin') + ' conversation');
+            pinBtn.setAttribute('title', newPinned ? 'Unpin' : 'Save this conversation');
+          });
+        }
+
+        // --- Wire up share sheet toggle ---
+        var shareToggle = modal.querySelector('#transcriptShareToggle');
+        var shareSheet = modal.querySelector('#transcriptShareSheet');
+        var shareCancel = modal.querySelector('#transcriptShareCancel');
+
+        if (shareToggle && shareSheet) {
+          shareToggle.addEventListener('click', function() {
+            shareSheet.classList.toggle('hidden');
+            if (!shareSheet.classList.contains('hidden')) {
+              shareSheet.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          });
+        }
+        if (shareCancel) {
+          shareCancel.addEventListener('click', function() {
+            shareSheet.classList.add('hidden');
+          });
+        }
+
+        // --- Format transcript for sharing ---
+        function buildShareText(includeAlo) {
+          var dateLine = threadDate ? 'Alo Conversation \u2014 ' + threadDate : 'Alo Conversation';
+          var lines = [dateLine, '\u2500'.repeat(36), ''];
+          for (var si = 0; si < transcriptMessages.length; si++) {
+            var m = transcriptMessages[si];
+            if (!includeAlo && m.role !== 'user') continue;
+            var label = m.role === 'user' ? 'You' : 'Alo';
+            var text = (m.content || '').replace(/\\n/g, '\n');
+            lines.push(label + ': ' + text);
+            lines.push('');
+          }
+          return lines.join('\n').trim();
+        }
+
+        // --- Wire up copy button ---
+        var copyBtn = modal.querySelector('#transcriptCopyBtn');
+        if (copyBtn) {
+          copyBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            var ok = await copyToClipboard(text);
+            if (ok) {
+              var origHTML = copyBtn.innerHTML;
+              copyBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+              setTimeout(function() { copyBtn.innerHTML = origHTML; }, 2000);
+            }
+          });
+        }
+
+        // --- Wire up native share button ---
+        var nativeBtn = modal.querySelector('#transcriptNativeShareBtn');
+        if (nativeBtn) {
+          nativeBtn.addEventListener('click', async function() {
+            var includeAlo = modal.querySelector('#shareIncludeAlo').checked;
+            var text = buildShareText(includeAlo);
+            try {
+              await navigator.share({ title: 'Alo \u2014 ' + (threadDate || 'Conversation'), text: text });
+            } catch (e) {
+              if (e.name !== 'AbortError') {
+                await copyToClipboard(text);
+                showToast('Copied to clipboard');
+              }
+            }
+          });
+        }
+
       } catch (err) {
         console.error('Error loading transcript:', err);
         showToast('Could not load conversation');
@@ -1421,7 +1677,7 @@
 
     function renameThread(conversationId, currentTitle) {
       createModal('Rename Conversation', `
-        <input type="text" id="renameInput" value="${currentTitle}" 
+        <input type="text" id="renameInput" value="${escAttr(currentTitle)}" 
           placeholder="Give this conversation a name"
           style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px; background: var(--surface); color: var(--text-primary);"
           maxlength="200" />
@@ -1454,12 +1710,20 @@
     }
 
     async function deleteThread(conversationId) {
-      const confirmed = await showConfirm(
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      var isPinned = thread && thread.pinned;
+
+      var message = 'This permanently removes the conversation and Alo\'s memory of it. This can\'t be undone.';
+      if (!isPinned) {
+        message += ' If you want to keep it, you can save it instead.';
+      }
+
+      var confirmed = await showConfirm(
         'Delete conversation?',
-        'This permanently deletes this conversation and its messages. This can\'t be undone.',
+        message,
         {
           confirmLabel: 'Delete',
-          cancelLabel: 'Keep',
+          cancelLabel: isPinned ? 'Keep' : 'Cancel',
           dangerous: true
         }
       );
@@ -1467,9 +1731,10 @@
       if (!confirmed) return;
 
       try {
-        await api(`/rest/v1/conversations?id=eq.${conversationId}`, 'DELETE');
+        await api('/rest/v1/conversation_summaries?conversation_id=eq.' + conversationId, 'DELETE');
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'DELETE');
         
-        allThreads = allThreads.filter(t => t.id !== conversationId);
+        allThreads = allThreads.filter(function(t) { return t.id !== conversationId; });
         renderThreadList();
         showToast('Conversation deleted');
       } catch (err) {
@@ -1477,7 +1742,76 @@
         showToast('Could not delete. Try again.');
       }
     }
+async function togglePin(conversationId) {
+      var thread = allThreads.find(function(t) { return t.id === conversationId; });
+      if (!thread) return;
 
+      var newPinned = !thread.pinned;
+
+      try {
+        await api('/rest/v1/conversations?id=eq.' + conversationId, 'PATCH', {
+          pinned: newPinned,
+          pinned_at: newPinned ? new Date().toISOString() : null
+        });
+
+        thread.pinned = newPinned;
+        thread.pinned_at = newPinned ? new Date().toISOString() : null;
+        renderThreadList();
+        showToast(newPinned ? 'Conversation saved' : 'Conversation unpinned');
+      } catch (err) {
+        console.error('Pin toggle failed:', err);
+        showToast('Could not update. Try again.');
+      }
+    }
+
+    async function clearHistory() {
+      var unpinned = allThreads.filter(function(t) { return !t.pinned; });
+      var pinnedCount = allThreads.filter(function(t) { return t.pinned; }).length;
+
+      if (unpinned.length === 0) {
+        showToast('No unpinned conversations to clear');
+        return;
+      }
+
+      var message = 'This will delete ' + unpinned.length + ' unpinned conversation' +
+        (unpinned.length > 1 ? 's' : '') + '.';
+      if (pinnedCount > 0) {
+        message += ' Your ' + pinnedCount + ' saved conversation' +
+          (pinnedCount > 1 ? 's' : '') + ' won\'t be affected.';
+      }
+      message += ' Alo will still remember themes from recent sessions. This can\'t be undone.';
+
+      var confirmed = await showConfirm('Clear conversation history?', message, {
+        confirmLabel: 'Clear History',
+        cancelLabel: 'Keep',
+        dangerous: true
+      });
+
+      if (!confirmed) return;
+
+      try {
+        var { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        var unpinnedIds = unpinned.map(function(t) { return t.id; }).join(',');
+        
+        if (unpinnedIds) {
+          await api('/rest/v1/conversation_summaries?conversation_id=in.(' + unpinnedIds + ')', 'PATCH', {
+            source_expired: true,
+            last_referenced_at: new Date().toISOString()
+          });
+
+          await api('/rest/v1/conversations?client_id=eq.' + user.id + '&pinned=eq.false', 'DELETE');
+        }
+
+        allThreads = allThreads.filter(function(t) { return t.pinned; });
+        renderThreadList();
+        showToast('History cleared');
+      } catch (err) {
+        console.error('Error clearing history:', err);
+        showToast('Could not clear history. Try again.');
+      }
+    }
     async function handleMemoryToggle(enabled) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -1497,11 +1831,18 @@
           });
         }
 
+        memoryGlobalEnabled = enabled;
+        if (enabled) {
+          localStorage.setItem('alo_memory_onboard_done', 'true');
+        }
+        updateMemoryUI();
         showToast(enabled ? 'Memory enabled' : 'Memory turned off');
       } catch (err) {
         console.error('Error updating memory setting:', err);
         showToast('Could not update setting');
         document.getElementById('memoryToggle').checked = !enabled;
+        memoryGlobalEnabled = !enabled;
+        updateMemoryUI();
       }
     }
 
@@ -1512,10 +1853,162 @@
       try {
         const settings = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=memory_enabled`);
         if (settings && settings.length > 0) {
-          document.getElementById('memoryToggle').checked = settings[0].memory_enabled !== false;
+          memoryGlobalEnabled = settings[0].memory_enabled !== false;
+        } else {
+          // No settings row = new user, default OFF (opt-in model)
+          memoryGlobalEnabled = false;
         }
       } catch (err) {
-        document.getElementById('memoryToggle').checked = true;
+        memoryGlobalEnabled = false;
+      }
+
+      document.getElementById('memoryToggle').checked = memoryGlobalEnabled;
+      updateMemoryUI();
+      checkMemoryOnboarding();
+    }
+
+    function updateMemoryUI() {
+      var iconBtn = document.getElementById('memoryIconBtn');
+      var iconOn = iconBtn ? iconBtn.querySelector('.mem-icon-on') : null;
+      var iconOff = iconBtn ? iconBtn.querySelector('.mem-icon-off') : null;
+      var dot = iconBtn ? iconBtn.querySelector('.mem-status-dot') : null;
+
+      var effectiveOn = memoryGlobalEnabled && !isPrivateSession;
+
+      if (iconOn) iconOn.style.display = effectiveOn ? 'block' : 'none';
+      if (iconOff) iconOff.style.display = effectiveOn ? 'none' : 'block';
+      if (dot) {
+        dot.className = 'mem-status-dot' + (effectiveOn ? ' mem-dot-on' : '') + (isPrivateSession ? ' mem-dot-private' : '');
+      }
+      if (iconBtn) {
+        iconBtn.setAttribute('aria-label', isPrivateSession ? 'Private session active' : (effectiveOn ? 'Memory is on' : 'Memory is off'));
+      }
+
+      // Update popover content
+      var popStatus = document.getElementById('memPopoverStatus');
+      if (popStatus) {
+        var dotEl = popStatus.querySelector('.mem-pop-dot');
+        var labelEl = popStatus.querySelector('.mem-pop-label');
+        if (isPrivateSession) {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-private';
+          if (labelEl) labelEl.textContent = 'Private session';
+        } else if (memoryGlobalEnabled) {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-on';
+          if (labelEl) labelEl.textContent = 'Memory is on';
+        } else {
+          if (dotEl) dotEl.className = 'mem-pop-dot mem-pop-dot-off';
+          if (labelEl) labelEl.textContent = 'Memory is off';
+        }
+      }
+
+      var privateBtn = document.getElementById('memPopPrivateBtn');
+      if (privateBtn) {
+        if (isPrivateSession) {
+          privateBtn.textContent = 'End private session';
+          privateBtn.onclick = endPrivateSession;
+        } else {
+          privateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Start private session';
+          privateBtn.onclick = startPrivateSession;
+        }
+        // Only show private session option when memory is globally on
+        privateBtn.style.display = memoryGlobalEnabled ? '' : 'none';
+      }
+
+      var toggleLabel = document.getElementById('memPopToggleLabel');
+      if (toggleLabel) {
+        toggleLabel.textContent = memoryGlobalEnabled ? 'Turn off memory' : 'Turn on memory';
+      }
+
+      // Sync the settings toggle in more-menu
+      var toggle = document.getElementById('memoryToggle');
+      if (toggle) toggle.checked = memoryGlobalEnabled;
+
+      // Private session banner
+      var banner = document.getElementById('privateSessionBanner');
+      if (banner) {
+        banner.style.display = isPrivateSession ? 'flex' : 'none';
+      }
+    }
+
+    // --- Memory popover ---
+    function toggleMemoryPopover() {
+      var pop = document.getElementById('memoryPopover');
+      var btn = document.getElementById('memoryIconBtn');
+      if (!pop) return;
+
+      var isHidden = pop.classList.contains('hidden');
+      if (isHidden) {
+        pop.classList.remove('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+      } else {
+        pop.classList.add('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+    }
+
+    function toggleMemoryGlobal() {
+      handleMemoryToggle(!memoryGlobalEnabled);
+      toggleMemoryPopover();
+    }
+
+    // --- Private session ---
+    function startPrivateSession() {
+      isPrivateSession = true;
+      updateMemoryUI();
+      toggleMemoryPopover();
+      showToast('Private session — this conversation won\'t be remembered');
+
+      // Tell Botpress to skip memory for this conversation
+      if (window.botpress) {
+        window.botpress.updateUser({
+          data: { privateSession: true }
+        });
+      }
+    }
+
+    function endPrivateSession() {
+      isPrivateSession = false;
+      updateMemoryUI();
+      showToast('Private session ended');
+
+      if (window.botpress) {
+        window.botpress.updateUser({
+          data: { privateSession: false }
+        });
+      }
+    }
+
+    // --- Memory onboarding (opt-in on 2nd visit) ---
+    function checkMemoryOnboarding() {
+      if (!clientId) return;
+      if (memoryGlobalEnabled) return;  // already opted in
+      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already dismissed
+      if (localStorage.getItem('alo_memory_onboard_ask') === 'ready') {
+        // 2nd+ visit: show the card
+        var card = document.getElementById('memoryOnboardCard');
+        if (card) card.style.display = 'block';
+      } else {
+        // 1st visit: mark for next time
+        localStorage.setItem('alo_memory_onboard_ask', 'ready');
+      }
+    }
+
+    function enableMemoryFromOnboard() {
+      handleMemoryToggle(true);
+      var card = document.getElementById('memoryOnboardCard');
+      if (card) card.style.display = 'none';
+      localStorage.setItem('alo_memory_onboard_done', 'true');
+    }
+
+    function dismissMemoryOnboard() {
+      var card = document.getElementById('memoryOnboardCard');
+      if (card) card.style.display = 'none';
+      // Will ask one more time on 3rd visit
+      var dismissCount = parseInt(localStorage.getItem('alo_memory_onboard_dismiss_count') || '0');
+      dismissCount++;
+      localStorage.setItem('alo_memory_onboard_dismiss_count', String(dismissCount));
+      if (dismissCount >= 2) {
+        localStorage.setItem('alo_memory_onboard_done', 'true');
       }
     }
 
@@ -1527,8 +2020,9 @@
       );
       if (!confirmed) return;
 
+      isPrivateSession = false;
+      updateMemoryUI();
       resetPersistenceState();
-      authBridgeSent = false;
       toggleThreadSidebar();
       
       const aloFrame = document.getElementById('aloFrame');
@@ -1692,6 +2186,20 @@
         positionWebchat();
         console.log('[Alo] Positioned webchat overlay on .chat-container');
 
+        // Fight Botpress re-positioning: re-apply for first 3 seconds
+        var posRetries = 0;
+        var posInterval = setInterval(function() {
+          positionWebchat();
+          posRetries++;
+          if (posRetries >= 15) clearInterval(posInterval);
+        }, 200);
+
+                        // Note: MutationObserver removed — it caused infinite loop
+        // (setting style triggers observer, which sets style again).
+        // setInterval + ResizeObserver + window resize cover repositioning.
+
+
+
         // Keep in sync on resize, orientation change, iOS keyboard
         var ro = new ResizeObserver(positionWebchat);
         ro.observe(chatContainer);
@@ -1703,6 +2211,7 @@
       });
 
 window.botpress.on('webchat:closed', function() {
+        if (!botpressReady) return;
         window.botpress.open();
       });
       
