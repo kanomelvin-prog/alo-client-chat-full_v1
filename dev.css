@@ -723,6 +723,7 @@ main {
   flex: 1;
   min-height: 0;
   position: relative;
+  background: var(--warm-bg);
 }
 
 .chat-container #aloFrame {
