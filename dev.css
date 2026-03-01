@@ -740,7 +740,9 @@ main {
    by JS (see initBotpressLayout). */
 .bpFab, .bpFabWrapper, .bpMessagePreview { display: none !important; }
 /* bpWebchat positioning handled by JS overlay (positionWebchat) */
-
+[data-theme="dark"] .bpWebchat {
+  background: #111917 !important;
+}
 .bpHeaderContentTitle,
 .bpHeaderCloseButton,
 .bpCloseButton {
