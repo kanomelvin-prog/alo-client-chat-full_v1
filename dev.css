@@ -19,7 +19,7 @@
   --border-subtle: rgba(58, 124, 134, 0.10);
   --border-visible: rgba(58, 124, 134, 0.22);
   --border-color: rgba(58, 124, 134, 0.22);
-   
+  
   /* Primary brand — teal-blue */
   --primary: #3A7C86;
   --primary-light: #E0EDEB;
@@ -1373,7 +1373,7 @@ footer a {
   #shareGuestBtn { padding: 6px 10px; font-size: 0.7rem; }
   #signInBtn { padding: 6px 10px; font-size: 0.7rem; min-height: 36px; }
   
-  button:not(.more-menu-item):not(.more-btn):not(.mem-pop-action) {
+  button {
     padding: 8px 12px;
     font-size: 0.75rem;
   }
