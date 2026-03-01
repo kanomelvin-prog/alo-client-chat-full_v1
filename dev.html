@@ -306,42 +306,10 @@
     function toggleTheme() {
       var current = getEffectiveTheme();
       var next = current === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', next);
       localStorage.setItem('alo_theme', next);
       
-      // Update meta theme-color for mobile browser chrome
-      var meta = document.getElementById('metaThemeColor');
-      if (meta) meta.content = next === 'dark' ? '#111917' : '#F3EDE4';
-      
-      // Sync more-menu label
-      var menuLabel = document.getElementById('moreMenuThemeLabel');
-      if (menuLabel) menuLabel.textContent = next === 'dark' ? 'Light Mode' : 'Dark Mode';
-      
-      // Sync Botpress webchat theme — re-init with new themeMode
-      try {
-        window.botpress.init({
-          botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
-          clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
-          selector: '#aloFrame',
-          configuration: {
-            version: 'v2',
-            botName: ' ',
-            botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
-            botDescription: '',
-            color: '#3A7C86',
-            variant: 'soft',
-            headerVariant: 'glass',
-            themeMode: next,
-            fontFamily: 'inter',
-            radius: 1,
-            feedbackEnabled: false,
-            soundEnabled: false,
-            conversationHistory: false
-          }
-        });
-      } catch(e) {
-        console.log('[Alo] Botpress theme sync failed:', e.message);
-      }
+      // Reload page so Botpress re-initializes with correct themeMode
+      window.location.reload();
     }
 
     // =====================================================
