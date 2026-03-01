@@ -1351,17 +1351,20 @@ footer a {
   
   .header-actions { gap: 2px; }
   
+  /* On mobile, threads/memory/theme accessible via hamburger menu */
   .threads-btn,
   .memory-icon-btn,
   .theme-toggle {
+    display: none !important;
+  }
+  
+  .more-btn {
     width: 38px;
     height: 38px;
     min-height: 38px;
   }
   
-  .threads-btn svg,
-  .memory-icon-btn svg,
-  .theme-toggle svg {
+  .more-btn svg {
     width: 18px;
     height: 18px;
   }
@@ -1383,6 +1386,17 @@ footer a {
     font-size: 0.625rem;
     padding: 10px 16px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  /* Keyboard open: maximize chat space */
+  body.keyboard-open header,
+  body.keyboard-open .privacy-bar,
+  body.keyboard-open #homeworkContainer,
+  body.keyboard-open #privateSessionBanner,
+  body.keyboard-open #memoryOnboardCard,
+  body.keyboard-open #memoryPromptBar,
+  body.keyboard-open footer {
+    display: none !important;
   }
 
   /* More menu becomes bottom sheet on phone */
