@@ -2206,6 +2206,7 @@ async function togglePin(conversationId) {
       });
 
 window.botpress.on('webchat:closed', function() {
+        if (!botpressReady) return;
         window.botpress.open();
       });
       
