@@ -2178,6 +2178,12 @@ async function togglePin(conversationId) {
             }
           }
           
+          // When keyboard is open, Safari's bottom bar (~50px) sits on top of
+          // the visual viewport, hiding the Botpress input. Shrink to compensate.
+          if (document.body.classList.contains('keyboard-open')) {
+            height = Math.max(0, height - 50);
+          }
+          
           webchatEl.style.cssText = 
             'position:fixed!important;' +
             'top:' + top + 'px!important;' +
