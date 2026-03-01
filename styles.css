@@ -617,6 +617,8 @@ main {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  z-index: 20;
 }
 
 .homework-card {
@@ -1338,13 +1340,34 @@ footer a {
 /* === PHONE === */
 @media (max-width: 640px) {
   header {
-    padding: 10px 16px;
+    padding: 10px 12px;
     padding-top: max(10px, env(safe-area-inset-top));
   }
   
   .brand-name { font-size: 15px; }
-  .brand-text span { font-size: 11px; }
+  .brand-text span { display: none; }
   .brand-icon { width: 30px; height: 30px; font-size: 14px; border-radius: 6px; }
+  .brand { gap: 8px; }
+  
+  .header-actions { gap: 2px; }
+  
+  .threads-btn,
+  .memory-icon-btn,
+  .theme-toggle {
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+  
+  .threads-btn svg,
+  .memory-icon-btn svg,
+  .theme-toggle svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  #shareGuestBtn { padding: 6px 10px; font-size: 0.7rem; }
+  #signInBtn { padding: 6px 10px; font-size: 0.7rem; min-height: 36px; }
   
   button {
     padding: 8px 12px;
@@ -1408,7 +1431,6 @@ footer a {
 }
 
 @media (max-width: 400px) {
-  .brand-text span { display: none; }
   .trust-badge.connected { font-size: 10px; max-width: 160px; }
 }
 
@@ -1784,7 +1806,349 @@ footer a {
 .threads-btn.hidden {
   display: none;
 }
+/* ============================================================
+   MEMORY ICON, POPOVER, PRIVATE SESSION, ONBOARDING
+   Added: Post v1.4 — Opt-in memory UX
+   ============================================================ */
 
+/* === HEADER MEMORY ICON === */
+.memory-icon-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
+  position: relative;
+}
+
+.memory-icon-btn:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.memory-icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.memory-icon-btn .mem-icon-off { display: none; }
+.memory-icon-btn .mem-icon-on { display: block; }
+
+.mem-status-dot {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  border: 1.5px solid var(--bg);
+}
+
+.mem-status-dot.mem-dot-on {
+  background: var(--primary);
+}
+
+.mem-status-dot.mem-dot-private {
+  background: var(--accent);
+}
+
+/* === MEMORY POPOVER === */
+.memory-popover {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 90;
+}
+
+.memory-popover.hidden { display: none; }
+
+.memory-popover-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.memory-popover-panel {
+  position: absolute;
+  top: 60px;
+  right: 80px;
+  width: 280px;
+  background: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: popFadeIn 0.15s ease;
+}
+
+@keyframes popFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.memory-popover-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mem-pop-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mem-pop-dot-on { background: var(--primary); }
+.mem-pop-dot-off { background: var(--text-muted); }
+.mem-pop-dot-private { background: var(--accent); }
+
+.mem-pop-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.memory-popover-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.memory-popover-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mem-pop-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-shadow: none;
+}
+
+.mem-pop-action:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.mem-pop-action svg {
+  flex-shrink: 0;
+}
+
+/* === PRIVATE SESSION BANNER === */
+.private-session-banner {
+  flex-shrink: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 20px;
+  background: var(--accent-light);
+  border-bottom: 1px solid rgba(199, 134, 95, 0.2);
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .private-session-banner {
+  color: var(--accent);
+}
+
+.private-session-end {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  min-height: 28px;
+  min-width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  box-shadow: none;
+  margin-left: 4px;
+}
+
+.private-session-end:hover {
+  opacity: 1;
+  background: transparent;
+}
+
+/* === MEMORY ONBOARDING CARD === */
+.memory-onboard-card {
+  display: none;
+  flex-shrink: 0;
+  margin: 12px 16px 0;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.memory-onboard-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.memory-onboard-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.memory-onboard-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.memory-onboard-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.memory-onboard-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.memory-onboard-enable {
+  flex: 1;
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.memory-onboard-dismiss {
+  flex: 1;
+  min-height: 38px;
+  font-size: 13px;
+}
+
+/* === MORE MENU — MEMORY SETTINGS SECTION === */
+.more-menu-settings {
+  padding: 10px 14px;
+}
+
+.more-menu-settings-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.more-menu-settings-header svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.more-menu-settings-header .toggle-switch {
+  margin-left: auto;
+}
+
+.more-menu-settings-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding-left: 24px;
+}
+
+/* === SIDEBAR SETTINGS LINK (replaces old toggle) === */
+.thread-sidebar-settings-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.thread-sidebar-settings-link:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.thread-sidebar-settings-link svg {
+  flex-shrink: 0;
+}
+
+/* === PHONE OVERRIDES === */
+@media (max-width: 640px) {
+  .memory-popover-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    animation: sheetSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .memory-popover-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: var(--border-visible);
+    border-radius: 2px;
+    margin: 0 auto 8px;
+  }
+  .memory-popover-backdrop {
+    background: rgba(0, 0, 0, 0.35);
+  }
+  .memory-onboard-card {
+    margin: 8px 12px 0;
+  }
+}
 .memory-prompt-bar {
   position: fixed;
   bottom: 0;
@@ -1844,4 +2208,263 @@ footer a {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+/* ============================================================
+   CONVERSATION LIFECYCLE — Pin, sections, clear history
+   Added: Feb 28, 2026
+   ============================================================ */
+
+/* === PIN BUTTON === */
+.thread-pin-btn {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.3;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.thread-pin-btn:hover {
+  opacity: 0.7;
+  background: var(--primary-light);
+}
+
+.thread-pin-btn.pinned {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.thread-pin-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: none) {
+  .thread-pin-btn { opacity: 0.5; }
+  .thread-pin-btn.pinned { opacity: 1; }
+}
+
+/* === THREAD SECTIONS === */
+.thread-section-label {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.thread-divider {
+  height: 1px;
+  background: var(--border-visible);
+  margin: 8px 16px;
+  opacity: 0.4;
+}
+
+/* === CLEAR HISTORY BUTTON === */
+.clear-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: none;
+  margin-bottom: 4px;
+}
+
+.clear-history-btn:hover {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.clear-history-btn svg {
+  flex-shrink: 0;
+}
+
+/* === LOAD MORE BUTTON === */
+.thread-load-more {
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: none;
+}
+
+.thread-load-more:hover {
+  background: rgba(0,0,0,0.03);
+}
+/* ============================================================
+   TRANSCRIPT MODAL — Pin + Share header, share bottom sheet
+   Added: Feb 28, 2026
+   ============================================================ */
+
+/* Custom header row replaces default h2 in transcript modal */
+.transcript-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding-right: 36px; /* leave room for ✕ close button */
+}
+
+.transcript-title-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.transcript-title-text {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transcript-title-date {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Pin + Share icon buttons in transcript header */
+.transcript-pin,
+.transcript-share-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.transcript-pin:hover,
+.transcript-share-icon:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.transcript-pin:active,
+.transcript-share-icon:active {
+  background: var(--primary-light);
+}
+
+.transcript-pin.pinned {
+  color: var(--primary);
+}
+
+/* Share bottom sheet — appears inside modal body */
+.transcript-share-sheet {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--warm-bg);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  animation: shareSlideUp 0.2s ease-out;
+}
+
+@keyframes shareSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.transcript-share-sheet.hidden {
+  display: none;
+}
+
+.transcript-share-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.transcript-share-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.transcript-share-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.transcript-share-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.transcript-share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.transcript-share-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  min-height: 44px;
+}
+
+.transcript-share-cancel {
+  width: 100%;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: none;
+}
+
+.transcript-share-cancel:hover {
+  color: var(--text-primary);
 }
