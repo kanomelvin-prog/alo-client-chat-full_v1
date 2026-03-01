@@ -723,6 +723,7 @@ main {
   flex: 1;
   min-height: 0;
   position: relative;
+  background: var(--warm-bg);
 }
 
 .chat-container #aloFrame {
@@ -739,7 +740,9 @@ main {
    by JS (see initBotpressLayout). */
 .bpFab, .bpFabWrapper, .bpMessagePreview { display: none !important; }
 /* bpWebchat positioning handled by JS overlay (positionWebchat) */
-
+[data-theme="dark"] .bpWebchat {
+  background: #111917 !important;
+}
 .bpHeaderContentTitle,
 .bpHeaderCloseButton,
 .bpCloseButton {
@@ -1372,7 +1375,7 @@ footer a {
   #shareGuestBtn { padding: 6px 10px; font-size: 0.7rem; }
   #signInBtn { padding: 6px 10px; font-size: 0.7rem; min-height: 36px; }
   
-  button {
+  button:not(.more-menu-item):not(.more-btn):not(.mem-pop-action) {
     padding: 8px 12px;
     font-size: 0.75rem;
   }
