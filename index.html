@@ -42,7 +42,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dev.css">
 </head>
 
 <body>
@@ -141,6 +141,11 @@
         <button class="mem-pop-action" id="memPopToggleBtn" onclick="toggleMemoryGlobal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
           <span id="memPopToggleLabel">Turn off memory</span>
+        </button>
+        <div class="mem-pop-divider"></div>
+        <button class="mem-pop-action mem-pop-action-danger" id="memPopClearBtn" onclick="clearAllMemories()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          Clear all memories
         </button>
       </div>
     </div>
@@ -882,13 +887,29 @@
             showToast('Please enter email and password');
             return false;
           }
+// Store invite code in localStorage as fallback (primary: user_metadata)
+          if (inviteCode) {
+            localStorage.setItem('alo_pending_invite', inviteCode);
+          }
 
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
           
+          
           // If sign in fails, try sign up
           if (error && error.message.includes('Invalid login credentials')) {
-            const signUpResult = await supabase.auth.signUp({ email, password });
+            const signUpResult = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  role: 'individual',
+                  display_name: email.split('@')[0],
+                  invite_code: inviteCode || null
+                },
+                emailRedirectTo: window.location.origin
+              }
+            });
             
             if (signUpResult.error) {
               showToast('Authentication failed. Please try again.');
@@ -903,19 +924,9 @@
             data = signUpResult.data;
             error = null;
 
-            // P0: Create profiles row on sign-up
-            try {
-              const displayName = email.split('@')[0];
-              await api('/rest/v1/profiles', 'POST', {
-                id: data.user.id,
-                role: 'individual',
-                display_name: displayName,
-                email: email
-              });
-            } catch (profileErr) {
-              // Non-blocking — profile creation failure shouldn't break signup
-              console.error('Error creating profile:', profileErr);
-            }
+            // Profile creation handled by Supabase auth trigger (handle_new_user)
+            // Trigger fires on INSERT to auth.users, creates profile with role='individual'
+            // Invite code stored in user_metadata, claimed in loadConnectedState
           }
 
           if (error) {
@@ -1195,6 +1206,39 @@
 
         if (!links || links.length === 0) {
           clientId = user.id;
+
+          // Ensure profile exists (fallback for pre-trigger users)
+          try {
+            var existingProfile = await api('/rest/v1/profiles?id=eq.' + user.id + '&select=id');
+            if (!existingProfile || existingProfile.length === 0) {
+              await api('/rest/v1/profiles', 'POST', {
+                id: user.id,
+                role: 'individual',
+                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'there',
+                email: user.email
+              });
+              console.log('[Auth] Created missing profile for confirmed user');
+            }
+          } catch (profileErr) {
+            console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
+          }
+
+          // Check for pending invite code — first from user_metadata, then localStorage
+          var pendingInvite = user.user_metadata?.invite_code || localStorage.getItem('alo_pending_invite');
+          if (pendingInvite) {
+            localStorage.removeItem('alo_pending_invite');
+            console.log('[Auth] Found pending invite code, attempting to claim');
+            try {
+              await handleConnectSubmit(pendingInvite);
+              // Clear invite_code from user_metadata after successful claim
+              await supabase.auth.updateUser({ data: { invite_code: null } });
+            } catch (inviteErr) {
+              console.log('[Auth] Invite claim failed:', inviteErr.message);
+              showLoggedInNoConnection();
+            }
+            return;
+          }
+
           showLoggedInNoConnection();
           return;
         }
@@ -1951,6 +1995,33 @@ async function togglePin(conversationId) {
     function toggleMemoryGlobal() {
       handleMemoryToggle(!memoryGlobalEnabled);
       toggleMemoryPopover();
+    }
+
+    async function clearAllMemories() {
+      var confirmed = confirm(
+        'Clear all memories?\n\n' +
+        'This permanently deletes all conversation summaries Alo has stored. ' +
+        'Future conversations will start fresh with no context from past sessions.\n\n' +
+        'This cannot be undone.'
+      );
+      if (!confirmed) return;
+
+      toggleMemoryPopover();
+
+      try {
+        var { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          showToast('Not signed in');
+          return;
+        }
+
+        await api('/rest/v1/conversation_summaries?client_id=eq.' + user.id, 'DELETE');
+        showToast('All memories cleared');
+        console.log('[Memory] Cleared all summaries for client');
+      } catch (err) {
+        console.error('[Memory] Clear all failed:', err);
+        showToast('Could not clear memories. Please try again.');
+      }
     }
 
     // --- Private session ---
