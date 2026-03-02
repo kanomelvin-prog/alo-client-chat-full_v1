@@ -882,13 +882,29 @@
             showToast('Please enter email and password');
             return false;
           }
+// Store invite code in localStorage as fallback (primary: user_metadata)
+          if (inviteCode) {
+            localStorage.setItem('alo_pending_invite', inviteCode);
+          }
 
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
           
+          
           // If sign in fails, try sign up
           if (error && error.message.includes('Invalid login credentials')) {
-            const signUpResult = await supabase.auth.signUp({ email, password });
+            const signUpResult = await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: {
+                  role: 'individual',
+                  display_name: email.split('@')[0],
+                  invite_code: inviteCode || null
+                },
+                emailRedirectTo: window.location.origin
+              }
+            });
             
             if (signUpResult.error) {
               showToast('Authentication failed. Please try again.');
@@ -903,19 +919,9 @@
             data = signUpResult.data;
             error = null;
 
-            // P0: Create profiles row on sign-up
-            try {
-              const displayName = email.split('@')[0];
-              await api('/rest/v1/profiles', 'POST', {
-                id: data.user.id,
-                role: 'individual',
-                display_name: displayName,
-                email: email
-              });
-            } catch (profileErr) {
-              // Non-blocking — profile creation failure shouldn't break signup
-              console.error('Error creating profile:', profileErr);
-            }
+            // Profile creation handled by Supabase auth trigger (handle_new_user)
+            // Trigger fires on INSERT to auth.users, creates profile with role='individual'
+            // Invite code stored in user_metadata, claimed in loadConnectedState
           }
 
           if (error) {
@@ -1195,6 +1201,39 @@
 
         if (!links || links.length === 0) {
           clientId = user.id;
+
+          // Ensure profile exists (fallback for pre-trigger users)
+          try {
+            var existingProfile = await api('/rest/v1/profiles?id=eq.' + user.id + '&select=id');
+            if (!existingProfile || existingProfile.length === 0) {
+              await api('/rest/v1/profiles', 'POST', {
+                id: user.id,
+                role: 'individual',
+                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'there',
+                email: user.email
+              });
+              console.log('[Auth] Created missing profile for confirmed user');
+            }
+          } catch (profileErr) {
+            console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
+          }
+
+          // Check for pending invite code — first from user_metadata, then localStorage
+          var pendingInvite = user.user_metadata?.invite_code || localStorage.getItem('alo_pending_invite');
+          if (pendingInvite) {
+            localStorage.removeItem('alo_pending_invite');
+            console.log('[Auth] Found pending invite code, attempting to claim');
+            try {
+              await handleConnectSubmit(pendingInvite);
+              // Clear invite_code from user_metadata after successful claim
+              await supabase.auth.updateUser({ data: { invite_code: null } });
+            } catch (inviteErr) {
+              console.log('[Auth] Invite claim failed:', inviteErr.message);
+              showLoggedInNoConnection();
+            }
+            return;
+          }
+
           showLoggedInNoConnection();
           return;
         }
