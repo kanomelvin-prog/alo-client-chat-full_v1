@@ -1980,6 +1980,25 @@ footer a {
   flex-shrink: 0;
 }
 
+.mem-pop-divider {
+  height: 1px;
+  background: var(--border-subtle, rgba(255,255,255,0.08));
+  margin: 4px 0;
+}
+
+.mem-pop-action-danger {
+  color: var(--text-tertiary, rgba(255,255,255,0.4));
+}
+
+.mem-pop-action-danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #f87171;
+}
+
+.mem-pop-action-danger:hover svg {
+  stroke: #f87171;
+}
+
 /* === PRIVATE SESSION BANNER === */
 .private-session-banner {
   flex-shrink: 0;
