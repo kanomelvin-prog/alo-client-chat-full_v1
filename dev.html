@@ -665,6 +665,18 @@
         }
       });
     }
+function showGuestBenefitsCard() {
+      if (clientId) return;
+      if (sessionStorage.getItem('alo_guest_benefits_dismissed')) return;
+      var card = document.getElementById('guestBenefitsCard');
+      if (card) card.classList.remove('hidden');
+    }
+
+    function dismissGuestBenefits() {
+      var card = document.getElementById('guestBenefitsCard');
+      if (card) card.classList.add('hidden');
+      sessionStorage.setItem('alo_guest_benefits_dismissed', '1');
+    }
 
     function resetToGuestUI() {
       const badge = document.getElementById('trustBadge');
@@ -687,6 +699,8 @@
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
       document.getElementById('homeworkContainer').classList.remove('show');
+
+      setTimeout(function() { showGuestBenefitsCard(); }, 2000);
     }
 
     // =====================================================
