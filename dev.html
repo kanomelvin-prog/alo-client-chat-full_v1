@@ -2665,8 +2665,10 @@ window.botpress.on('webchat:closed', function() {
       // Listen for auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
-          // User clicked reset link — show new password form
-          setTimeout(function() { showSetNewPasswordModal(); }, 500);
+          // Only show on the tab that received the reset link (has recovery token in URL)
+          if (window.location.hash.includes('type=recovery')) {
+            setTimeout(function() { showSetNewPasswordModal(); }, 500);
+          }
         } else if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
