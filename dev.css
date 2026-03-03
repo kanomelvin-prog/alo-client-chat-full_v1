@@ -2604,3 +2604,149 @@ footer a {
 @media (max-width: 640px) {
   .guest-benefits-actions { padding-left: 0; }
 }
+
+/* === INFO BUTTON === */
+.info-btn {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  box-shadow: none;
+}
+
+.info-btn:hover {
+  background: var(--primary-light);
+  color: var(--text-primary);
+}
+
+.info-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* === ABOUT MODAL === */
+.about-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+}
+
+.about-modal.hidden { display: none; }
+
+.about-modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--modal-overlay);
+}
+
+.about-modal-panel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px var(--modal-shadow);
+  width: 92%;
+  max-width: 520px;
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  animation: menuFadeIn 0.15s ease-out;
+}
+
+.about-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  flex-shrink: 0;
+}
+
+.about-modal-header h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.about-modal-body {
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.about-section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.about-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.about-section h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.about-section p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.about-section p:last-child {
+  margin-bottom: 0;
+}
+
+.about-section-crisis {
+  background: var(--primary-light);
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  border-bottom: none;
+}
+
+.about-section-crisis + .about-section {
+  border-top: none;
+}
+
+/* Phone: bottom sheet */
+@media (max-width: 640px) {
+  .about-modal-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    max-height: 85dvh;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+    animation: sheetSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
