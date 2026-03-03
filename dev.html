@@ -465,25 +465,47 @@
     // =====================================================
     async function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
+      
       badge.className = 'trust-badge';
-      badgeText.textContent = 'Logged in';
+      badge.innerHTML = '<span id="trustBadgeText">Logged in</span>';
       
-      // Show threads button and memory icon, load memory settings
-        document.getElementById('threadsBtn').classList.remove('hidden');
-        document.getElementById('memoryIconBtn').classList.remove('hidden');
-        await loadMemorySettings();
+      // Show header icons: threads, memory, theme
+      document.getElementById('threadsBtn').classList.remove('hidden');
+      document.getElementById('memoryIconBtn').classList.remove('hidden');
+      await loadMemorySettings();
       
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
+      // Show hamburger menu, hide guest auth button
+      document.getElementById('guestAuthActions').classList.add('hidden');
+      document.getElementById('shareGuestBtn').classList.add('hidden');
+      document.getElementById('connectedActions').classList.remove('hidden');
       
-      // Repurpose the sign-in button as "Link to Therapist" for logged-in-no-connection state
-      const signInBtn = document.getElementById('signInBtn');
-      signInBtn.textContent = 'Link to Therapist';
-      signInBtn.onclick = showConnectModal;
-      document.getElementById('guestAuthActions').classList.remove('hidden');
-      document.getElementById('connectedActions').classList.add('hidden');
-      document.getElementById('moreMenu').classList.add('hidden');
+      // Show "Connect to Therapist" in menu, hide "Message Therapist"
+      const connectItem = document.getElementById('moreConnectBtn');
+      if (connectItem) connectItem.style.display = '';
+      const msgItem = document.getElementById('moreMessageBtn');
+      if (msgItem) msgItem.style.display = 'none';
+      
+      // Show one-time popup prompting connection
+      if (!sessionStorage.getItem('alo_connect_prompt_dismissed')) {
+        setTimeout(function() { showConnectPrompt(); }, 800);
+      }
+    }
+
+    function showConnectPrompt() {
+      createModal('Connect with your therapist', `
+        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages.</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No code yet? No worries — you can connect anytime from the menu.</p>
+      `, {
+        confirmLabel: 'Enter Code',
+        cancelLabel: 'Not Now',
+        onConfirm: () => {
+          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
+          showConnectModal();
+        },
+        onCancel: () => {
+          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
+        }
+      });
     }
 
     function showConnectedUI(therapistName, clientName) {
@@ -520,6 +542,9 @@
       if (msgItem) {
         msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
       }
+      // Hide "Connect to Therapist" — already connected
+      const connectItem = document.getElementById('moreConnectBtn');
+      if (connectItem) connectItem.style.display = 'none';
 
       showPrivacyBarIfConnected();
     }
