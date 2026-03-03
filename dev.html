@@ -1051,7 +1051,11 @@
 
             if (error) {
               console.error('Reset email error:', error.message, error);
-              showToast('Reset error: ' + error.message);
+              if (error.message.includes('rate limit')) {
+                showToast('Too many attempts. Please wait a few minutes and try again.');
+              } else {
+                showToast('Could not send reset email. Try again.');
+              }
               return false;
             }
 
