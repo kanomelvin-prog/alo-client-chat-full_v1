@@ -42,7 +42,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dev.css">
 </head>
 
 <body>
@@ -97,6 +97,10 @@
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Share
+      </button>
+      <button class="more-menu-item" role="menuitem" id="moreConnectBtn" onclick="toggleMoreMenu(); showConnectModal()" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        Connect to Therapist
       </button>
       <button class="more-menu-item" role="menuitem" id="moreMessageBtn" onclick="toggleMoreMenu(); showMessageModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
@@ -461,25 +465,47 @@
     // =====================================================
     async function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
+      
       badge.className = 'trust-badge';
-      badgeText.textContent = 'Logged in';
+      badge.innerHTML = '<span id="trustBadgeText">Logged in</span>';
       
-      // Show threads button and memory icon, load memory settings
-        document.getElementById('threadsBtn').classList.remove('hidden');
-        document.getElementById('memoryIconBtn').classList.remove('hidden');
-        await loadMemorySettings();
+      // Show header icons: threads, memory, theme
+      document.getElementById('threadsBtn').classList.remove('hidden');
+      document.getElementById('memoryIconBtn').classList.remove('hidden');
+      await loadMemorySettings();
       
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
+      // Show hamburger menu, hide guest auth button
+      document.getElementById('guestAuthActions').classList.add('hidden');
+      document.getElementById('shareGuestBtn').classList.add('hidden');
+      document.getElementById('connectedActions').classList.remove('hidden');
       
-      // Repurpose the sign-in button as "Link to Therapist" for logged-in-no-connection state
-      const signInBtn = document.getElementById('signInBtn');
-      signInBtn.textContent = 'Link to Therapist';
-      signInBtn.onclick = showConnectModal;
-      document.getElementById('guestAuthActions').classList.remove('hidden');
-      document.getElementById('connectedActions').classList.add('hidden');
-      document.getElementById('moreMenu').classList.add('hidden');
+      // Show "Connect to Therapist" in menu, hide "Message Therapist"
+      const connectItem = document.getElementById('moreConnectBtn');
+      if (connectItem) connectItem.style.display = '';
+      const msgItem = document.getElementById('moreMessageBtn');
+      if (msgItem) msgItem.style.display = 'none';
+      
+      // Show one-time popup prompting connection
+      if (!sessionStorage.getItem('alo_connect_prompt_dismissed')) {
+        setTimeout(function() { showConnectPrompt(); }, 800);
+      }
+    }
+
+    function showConnectPrompt() {
+      createModal('Connect with your therapist', `
+        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages.</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No code yet? No worries — you can connect anytime from the menu.</p>
+      `, {
+        confirmLabel: 'Enter Code',
+        cancelLabel: 'Not Now',
+        onConfirm: () => {
+          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
+          showConnectModal();
+        },
+        onCancel: () => {
+          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
+        }
+      });
     }
 
     function showConnectedUI(therapistName, clientName) {
@@ -506,7 +532,7 @@
           }
         });
       }
-      
+       
       document.getElementById('guestAuthActions').classList.add('hidden');
       document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
@@ -516,6 +542,9 @@
       if (msgItem) {
         msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
       }
+      // Hide "Connect to Therapist" — already connected
+      const connectItem = document.getElementById('moreConnectBtn');
+      if (connectItem) connectItem.style.display = 'none';
 
       showPrivacyBarIfConnected();
     }
@@ -872,6 +901,9 @@
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
           <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
           <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
+          <div style="text-align: right; margin-top: 6px;">
+            <button onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
+          </div>
         </div>
         <p class="modal-sign-in-link" style="margin-top: 12px;">
           Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
@@ -895,9 +927,9 @@
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
           
-          
-          // If sign in fails, try sign up
+          // If sign in fails, check whether user exists before trying signup
           if (error && error.message.includes('Invalid login credentials')) {
+            // Attempt signup to distinguish "no account" from "wrong password"
             const signUpResult = await supabase.auth.signUp({
               email,
               password,
@@ -910,6 +942,23 @@
                 emailRedirectTo: window.location.origin
               }
             });
+            
+            // Supabase returns empty identities array when email already exists
+            if (signUpResult.data?.user?.identities?.length === 0) {
+              // Existing account — wrong password
+              const modalBody = document.querySelector('.modal-overlay .modal-body');
+              if (modalBody) {
+                let errEl = modalBody.querySelector('.login-error-msg');
+                if (!errEl) {
+                  errEl = document.createElement('div');
+                  errEl.className = 'login-error-msg';
+                  errEl.style.cssText = 'color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center;';
+                  modalBody.appendChild(errEl);
+                }
+                errEl.innerHTML = 'Incorrect password. <button onclick="handleForgotPassword(\'' + escAttr(email) + '\')" style="color: var(--primary); background: none; border: none; cursor: pointer; text-decoration: underline; font-size: 13px; padding: 0;">Forgot password?</button>';
+              }
+              return false;
+            }
             
             if (signUpResult.error) {
               showToast('Authentication failed. Please try again.');
@@ -941,6 +990,53 @@
           } else {
             await loadConnectedState();
           }
+        }
+      });
+    }
+
+    // =====================================================
+    // FORGOT PASSWORD
+    // =====================================================
+    async function handleForgotPassword(prefillEmail) {
+      // Close any existing modal
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) existingModal.remove();
+
+      createModal('Reset Password', `
+        <p>Enter your email and we'll send you a link to reset your password.</p>
+        <div style="margin-top: 16px;">
+          <label for="resetEmailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
+          <input type="email" id="resetEmailInput" class="modal-input" placeholder="Email" autocomplete="email" value="${escAttr(prefillEmail || '')}" />
+        </div>
+      `, {
+        confirmLabel: 'Send Reset Link',
+        cancelLabel: 'Back to Sign In',
+        onConfirm: async () => {
+          const email = document.getElementById('resetEmailInput').value.trim();
+          if (!email) {
+            showToast('Please enter your email');
+            return false;
+          }
+
+          try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: window.location.origin
+            });
+
+            if (error) {
+              showToast('Could not send reset email. Try again.');
+              return false;
+            }
+
+            showToast('Reset link sent — check your email');
+          } catch (err) {
+            console.error('Reset password error:', err);
+            showToast('Could not send reset email. Try again.');
+            return false;
+          }
+        },
+        onCancel: () => {
+          showLoginModal();
         }
       });
     }
