@@ -901,6 +901,9 @@
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
           <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
           <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
+          <div style="text-align: right; margin-top: 6px;">
+            <button onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
+          </div>
         </div>
         <p class="modal-sign-in-link" style="margin-top: 12px;">
           Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
@@ -924,9 +927,9 @@
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
           
-          
-          // If sign in fails, try sign up
+          // If sign in fails, check whether user exists before trying signup
           if (error && error.message.includes('Invalid login credentials')) {
+            // Attempt signup to distinguish "no account" from "wrong password"
             const signUpResult = await supabase.auth.signUp({
               email,
               password,
@@ -939,6 +942,23 @@
                 emailRedirectTo: window.location.origin
               }
             });
+            
+            // Supabase returns empty identities array when email already exists
+            if (signUpResult.data?.user?.identities?.length === 0) {
+              // Existing account — wrong password
+              const modalBody = document.querySelector('.modal-overlay .modal-body');
+              if (modalBody) {
+                let errEl = modalBody.querySelector('.login-error-msg');
+                if (!errEl) {
+                  errEl = document.createElement('div');
+                  errEl.className = 'login-error-msg';
+                  errEl.style.cssText = 'color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center;';
+                  modalBody.appendChild(errEl);
+                }
+                errEl.innerHTML = 'Incorrect password. <button onclick="handleForgotPassword(\'' + escAttr(email) + '\')" style="color: var(--primary); background: none; border: none; cursor: pointer; text-decoration: underline; font-size: 13px; padding: 0;">Forgot password?</button>';
+              }
+              return false;
+            }
             
             if (signUpResult.error) {
               showToast('Authentication failed. Please try again.');
@@ -970,6 +990,53 @@
           } else {
             await loadConnectedState();
           }
+        }
+      });
+    }
+
+    // =====================================================
+    // FORGOT PASSWORD
+    // =====================================================
+    async function handleForgotPassword(prefillEmail) {
+      // Close any existing modal
+      const existingModal = document.querySelector('.modal-overlay');
+      if (existingModal) existingModal.remove();
+
+      createModal('Reset Password', `
+        <p>Enter your email and we'll send you a link to reset your password.</p>
+        <div style="margin-top: 16px;">
+          <label for="resetEmailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
+          <input type="email" id="resetEmailInput" class="modal-input" placeholder="Email" autocomplete="email" value="${escAttr(prefillEmail || '')}" />
+        </div>
+      `, {
+        confirmLabel: 'Send Reset Link',
+        cancelLabel: 'Back to Sign In',
+        onConfirm: async () => {
+          const email = document.getElementById('resetEmailInput').value.trim();
+          if (!email) {
+            showToast('Please enter your email');
+            return false;
+          }
+
+          try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+              redirectTo: window.location.origin
+            });
+
+            if (error) {
+              showToast('Could not send reset email. Try again.');
+              return false;
+            }
+
+            showToast('Reset link sent — check your email');
+          } catch (err) {
+            console.error('Reset password error:', err);
+            showToast('Could not send reset email. Try again.');
+            return false;
+          }
+        },
+        onCancel: () => {
+          showLoginModal();
         }
       });
     }
