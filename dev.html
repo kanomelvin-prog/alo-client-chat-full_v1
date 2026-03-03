@@ -177,7 +177,49 @@
       </div>
     </div>
   </div>
+<!-- About Alo modal -->
+  <div id="aboutModal" class="about-modal hidden" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="about-modal-backdrop" onclick="closeAboutModal()"></div>
+    <div class="about-modal-panel">
+      <div class="about-modal-header">
+        <h2 id="aboutTitle">About Alo</h2>
+        <button class="modal-close" onclick="closeAboutModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="about-modal-body">
 
+        <section class="about-section">
+          <h3>What is Alo?</h3>
+          <p>Alo is a private space to think out loud. Through thoughtful questions, Alo helps you explore your thoughts and emotions — especially between therapy sessions.</p>
+          <p>Think of Alo as a companion for reflection, not a replacement for the people in your life. The goal is to help you build clarity and confidence you can carry into your real-world relationships.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>What Alo doesn't do</h3>
+          <p>Alo is not a therapist. It doesn't diagnose, treat, or prescribe. It's not a substitute for professional mental health care.</p>
+          <p>Alo won't send you notifications, track streaks, or try to pull you back. You come when you want, on your terms.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>Your privacy</h3>
+          <p>Your conversations are private. If you connect with a therapist through Alowen, they may see high-level session themes and homework status — never full transcripts of what you said.</p>
+          <p>Guest sessions aren't stored at all. For signed-in users, you control your data: toggle memory on or off, start private sessions, or ask Alo to forget specific topics.</p>
+        </section>
+
+        <section class="about-section about-section-crisis">
+          <h3>If you're in crisis</h3>
+          <p>Alo is not a crisis service. If you're experiencing a mental health emergency, please contact the <strong>988 Suicide &amp; Crisis Lifeline</strong> (call or text <strong>988</strong>) or your local emergency number.</p>
+          <p>If Alo detects signs of crisis during a conversation, it will pause and share these resources with you directly.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>How memory works</h3>
+          <p>When memory is enabled, Alo keeps short summaries of recent conversations — not word-for-word transcripts — so it can remember context across sessions. You can turn this off anytime, start a private session, or ask Alo to forget anything.</p>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory is available when you're signed in. Guests start fresh each visit.</p>
+        </section>
+
+      </div>
+    </div>
+  </div>
   <!-- Thread sidebar (slide-in panel) -->
   <div id="memoryPopover" class="memory-popover hidden" role="dialog" aria-label="Memory settings">
     <div class="memory-popover-backdrop" onclick="toggleMemoryPopover()"></div>
@@ -561,11 +603,13 @@
       // Show header icons: threads, memory, theme
       document.getElementById('threadsBtn').classList.remove('hidden');
       document.getElementById('memoryIconBtn').classList.remove('hidden');
+      document.getElementById('themeToggle').classList.add('hidden');
       await loadMemorySettings();
       
       // Show hamburger menu, hide guest auth button
       document.getElementById('guestAuthActions').classList.add('hidden');
       document.getElementById('shareGuestBtn').classList.add('hidden');
+      document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
       
       // Show "Connect to Therapist" in menu, hide "Message Therapist"
@@ -765,6 +809,7 @@ function showGuestBenefitsCard() {
       signInBtn.onclick = function() { showLoginModal(); };
       signInBtn.classList.remove('hidden');
       document.getElementById('shareGuestBtn').classList.remove('hidden');
+      document.getElementById('themeToggle').classList.remove('hidden');
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
       document.getElementById('homeworkContainer').classList.remove('show');
@@ -2789,6 +2834,9 @@ window.botpress.on('webchat:closed', function() {
 
       if (session) {
         await loadConnectedState();
+      } else {
+        // Guest: show benefits card after brief delay
+        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
       }
     });
   </script>
