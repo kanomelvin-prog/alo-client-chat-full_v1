@@ -637,7 +637,26 @@
 
       showPrivacyBarIfConnected();
     }
+function showAboutModal() {
+      var modal = document.getElementById('aboutModal');
+      modal.classList.remove('hidden');
+      modal.querySelector('.modal-close').focus();
+    }
 
+    function closeAboutModal() {
+      document.getElementById('aboutModal').classList.add('hidden');
+      var trigger = document.getElementById('infoBtn');
+      if (trigger) trigger.focus();
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        var modal = document.getElementById('aboutModal');
+        if (modal && !modal.classList.contains('hidden')) {
+          closeAboutModal();
+        }
+      }
+    });
     function toggleMoreMenu() {
       const menu = document.getElementById('moreMenu');
       const btn = document.getElementById('moreBtn');
