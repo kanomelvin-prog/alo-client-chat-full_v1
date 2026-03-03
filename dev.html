@@ -1050,7 +1050,8 @@
             });
 
             if (error) {
-              showToast('Could not send reset email. Try again.');
+              console.error('Reset email error:', error.message, error);
+              showToast('Reset error: ' + error.message);
               return false;
             }
 
