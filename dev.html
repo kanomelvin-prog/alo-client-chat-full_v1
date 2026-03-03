@@ -161,7 +161,23 @@
     <span>Private session — Alo won't remember this conversation</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
-
+<!-- Guest benefits card (shown for unauthenticated users after a brief delay) -->
+  <div id="guestBenefitsCard" class="guest-benefits-card hidden">
+    <div class="guest-benefits-content">
+      <div class="guest-benefits-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div>
+        <div class="guest-benefits-title">Get more from Alo</div>
+        <div class="guest-benefits-desc">Create a free account and Alo can remember your conversations, pick up where you left off, and connect with your therapist if you have one.</div>
+      </div>
+      <button class="guest-benefits-dismiss" onclick="dismissGuestBenefits()" aria-label="Dismiss">&times;</button>
+    </div>
+    <div class="guest-benefits-actions">
+      <button class="guest-benefits-btn" onclick="dismissGuestBenefits(); showLoginModal();">Create Account</button>
+      <button class="guest-benefits-later" onclick="dismissGuestBenefits()">Maybe later</button>
+    </div>
+  </div>
   <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
   <div id="memoryOnboardCard" class="memory-onboard-card">
     <div class="memory-onboard-content">
@@ -516,8 +532,8 @@
 
     function showConnectPrompt() {
       createModal('Connect with your therapist', `
-        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages.</p>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No code yet? No worries — you can connect anytime from the menu.</p>
+        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages between sessions.</p>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No therapist? No problem — Alo works great on its own. You can always connect later from the menu.</p>
       `, {
         confirmLabel: 'Enter Code',
         cancelLabel: 'Not Now',
