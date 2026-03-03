@@ -63,6 +63,9 @@
         <svg class="mem-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         <span class="mem-status-dot"></span>
       </button>
+      <button id="infoBtn" class="info-btn" onclick="showAboutModal()" aria-label="About Alowen" title="About Alowen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </button>
       <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode" title="Toggle dark mode">
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -93,6 +96,10 @@
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleTheme()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <span id="moreMenuThemeLabel">Dark Mode</span>
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showAboutModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        About Alo
       </button>
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -125,6 +132,49 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Log Out
       </button>
+    </div>
+  </div>
+
+  <!-- About Alo modal -->
+  <div id="aboutModal" class="about-modal hidden" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="about-modal-backdrop" onclick="closeAboutModal()"></div>
+    <div class="about-modal-panel">
+      <div class="about-modal-header">
+        <h2 id="aboutTitle">About Alo</h2>
+        <button class="modal-close" onclick="closeAboutModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="about-modal-body">
+
+        <section class="about-section">
+          <h3>What is Alo?</h3>
+          <p>Alo is a private space to think out loud. Through thoughtful questions, Alo helps you explore your thoughts and emotions — especially between therapy sessions.</p>
+          <p>Think of Alo as a companion for reflection, not a replacement for the people in your life. The goal is to help you build clarity and confidence you can carry into your real-world relationships.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>What Alo doesn't do</h3>
+          <p>Alo is not a therapist. It doesn't diagnose, treat, or prescribe. It's not a substitute for professional mental health care.</p>
+          <p>Alo won't send you notifications, track streaks, or try to pull you back. You come when you want, on your terms.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>Your privacy</h3>
+          <p>Your conversations are private. If you connect with a therapist through Alowen, they may see high-level session themes and homework status — never full transcripts of what you said.</p>
+          <p>Guest sessions aren't stored at all. For signed-in users, you control your data: toggle memory on or off, start private sessions, or ask Alo to forget specific topics.</p>
+        </section>
+
+        <section class="about-section about-section-crisis">
+          <h3>If you're in crisis</h3>
+          <p>Alo is not a crisis service. If you're experiencing a mental health emergency, please contact the <strong>988 Suicide &amp; Crisis Lifeline</strong> (call or text <strong>988</strong>) or your local emergency number.</p>
+          <p>If Alo detects signs of crisis during a conversation, it will pause and share these resources with you directly.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>How memory works</h3>
+          <p>When memory is enabled, Alo keeps short summaries of recent conversations — not word-for-word transcripts — so it can remember context across sessions. You can turn this off anytime, start a private session, or ask Alo to forget anything.</p>
+        </section>
+
+      </div>
     </div>
   </div>
 
