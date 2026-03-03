@@ -304,6 +304,29 @@
     }
 
     // =====================================================
+    // PASSWORD VISIBILITY TOGGLE
+    // =====================================================
+    function togglePasswordVisibility() {
+      var input = document.getElementById('passwordInput');
+      var show = document.getElementById('eyeShow');
+      var hide = document.getElementById('eyeHide');
+      var btn = document.getElementById('passwordToggleBtn');
+      if (!input) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (show) show.style.display = 'none';
+        if (hide) hide.style.display = 'block';
+        if (btn) btn.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        if (show) show.style.display = 'block';
+        if (hide) hide.style.display = 'none';
+        if (btn) btn.setAttribute('aria-label', 'Show password');
+      }
+    }
+
+    // =====================================================
     // THEME TOGGLE
     // =====================================================
     function getEffectiveTheme() {
@@ -900,14 +923,17 @@
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="email" style="margin-bottom: 12px;" />
           <label for="passwordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Password</label>
-          <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" />
+          <div style="position: relative;">
+            <input type="password" id="passwordInput" class="modal-input" placeholder="Password" autocomplete="current-password" style="padding-right: 44px;" />
+            <button type="button" onclick="togglePasswordVisibility()" id="passwordToggleBtn" aria-label="Show password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-muted); display: flex; align-items: center;">
+              <svg id="eyeShow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="eyeHide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
           <div style="text-align: right; margin-top: 6px;">
             <button onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
           </div>
         </div>
-        <p class="modal-sign-in-link" style="margin-top: 12px;">
-          Have an invite code from your therapist? <button onclick="document.querySelector('.modal-overlay').remove(); showConnectModal();">Link to Therapist</button>
-        </p>
       `, {
         confirmLabel: 'Continue',
         cancelLabel: 'Cancel',
@@ -1024,7 +1050,12 @@
             });
 
             if (error) {
-              showToast('Could not send reset email. Try again.');
+              console.error('Reset email error:', error.message, error);
+              if (error.message.includes('rate limit')) {
+                showToast('Too many attempts. Please wait a few minutes and try again.');
+              } else {
+                showToast('Could not send reset email. Try again.');
+              }
               return false;
             }
 
@@ -1039,6 +1070,80 @@
           showLoginModal();
         }
       });
+    }
+
+    // =====================================================
+    // SET NEW PASSWORD (after reset link clicked)
+    // =====================================================
+    function showSetNewPasswordModal() {
+      createModal('Set New Password', `
+        <p>Choose a new password for your Alowen account.</p>
+        <div style="margin-top: 16px;">
+          <label for="newPasswordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">New Password</label>
+          <div style="position: relative;">
+            <input type="password" id="newPasswordInput" class="modal-input" placeholder="Min. 6 characters" autocomplete="new-password" style="padding-right: 44px;" />
+            <button type="button" onclick="toggleNewPasswordVisibility()" id="newPasswordToggleBtn" aria-label="Show password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-muted); display: flex; align-items: center;">
+              <svg id="newEyeShow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="newEyeHide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <label for="confirmPasswordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px; margin-top: 12px;">Confirm Password</label>
+          <input type="password" id="confirmPasswordInput" class="modal-input" placeholder="Re-enter password" autocomplete="new-password" />
+        </div>
+      `, {
+        confirmLabel: 'Update Password',
+        showCancel: false,
+        onConfirm: async () => {
+          const newPw = document.getElementById('newPasswordInput').value;
+          const confirmPw = document.getElementById('confirmPasswordInput').value;
+
+          if (!newPw || newPw.length < 6) {
+            showToast('Password must be at least 6 characters');
+            return false;
+          }
+
+          if (newPw !== confirmPw) {
+            showToast('Passwords don\'t match');
+            return false;
+          }
+
+          try {
+            const { error } = await supabase.auth.updateUser({ password: newPw });
+
+            if (error) {
+              showToast('Could not update password. Try again.');
+              return false;
+            }
+
+            showToast('Password updated successfully');
+            await loadConnectedState();
+          } catch (err) {
+            console.error('Password update error:', err);
+            showToast('Could not update password. Try again.');
+            return false;
+          }
+        }
+      });
+    }
+
+    function toggleNewPasswordVisibility() {
+      var input = document.getElementById('newPasswordInput');
+      var show = document.getElementById('newEyeShow');
+      var hide = document.getElementById('newEyeHide');
+      var btn = document.getElementById('newPasswordToggleBtn');
+      if (!input) return;
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        if (show) show.style.display = 'none';
+        if (hide) hide.style.display = 'block';
+        if (btn) btn.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        if (show) show.style.display = 'block';
+        if (hide) hide.style.display = 'none';
+        if (btn) btn.setAttribute('aria-label', 'Show password');
+      }
     }
 
     // =====================================================
@@ -2564,7 +2669,12 @@ window.botpress.on('webchat:closed', function() {
 
       // Listen for auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN') {
+        if (event === 'PASSWORD_RECOVERY') {
+          // Only show on the tab that received the reset link (has recovery token in URL)
+          if (window.location.hash.includes('type=recovery')) {
+            setTimeout(function() { showSetNewPasswordModal(); }, 500);
+          }
+        } else if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
           resetPersistenceState();
