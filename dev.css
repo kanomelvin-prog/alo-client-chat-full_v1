@@ -2504,3 +2504,103 @@ footer a {
 .transcript-share-cancel:hover {
   color: var(--text-primary);
 }
+/* === GUEST BENEFITS CARD === */
+.guest-benefits-card {
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 20px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+}
+
+.guest-benefits-card.hidden { display: none; }
+
+.guest-benefits-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.guest-benefits-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--primary-light);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+}
+
+.guest-benefits-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.guest-benefits-desc {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.guest-benefits-dismiss {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.guest-benefits-dismiss:hover { color: var(--text-primary); }
+
+.guest-benefits-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-left: 48px;
+}
+
+.guest-benefits-btn {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 36px;
+  box-shadow: none;
+}
+
+.guest-benefits-btn:hover { background: var(--primary-dark); }
+
+.guest-benefits-later {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 8px 4px;
+  box-shadow: none;
+}
+
+.guest-benefits-later:hover { color: var(--text-secondary); }
+
+@media (max-width: 640px) {
+  .guest-benefits-actions { padding-left: 0; }
+}
