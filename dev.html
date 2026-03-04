@@ -1042,9 +1042,9 @@ function showGuestBenefitsCard() {
             </button>
           </div>
           <div style="text-align: right; margin-top: 6px;">
-            <button onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
+            <button type="button" onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
           </div>
-        </div>
+        </form>
       `, {
         confirmLabel: 'Continue',
         cancelLabel: 'Cancel',
