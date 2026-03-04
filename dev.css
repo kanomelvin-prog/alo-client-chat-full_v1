@@ -1,10 +1,14 @@
 /* ============================================================
-   ALO CLIENT CHAT v3.0
+   ALO CLIENT CHAT v3.1
    Design: Teal-blue thinking partner (calm + focus palette)
-   Updated: Feb 23, 2026 — Color palette overhaul + dark mode
-   Changes: New teal-blue color system, dark mode via data-theme,
-            theme toggle persistence, warm accent (clay), 
-            WCAG AA contrast compliance, nighttime-optimized dark mode
+   Updated: Mar 3, 2026 — Experience physics + accessibility
+   Changes: Spring easing system (damped, not bouncy), button press
+            physics, modal spring + backdrop blur, sidebar deceleration,
+            toast spring, breathing pulse loader, hover isolation
+            (fixes Android sticky hover), transition:all eliminated,
+            .sr-only utility, loading crossfade, touch target fix,
+            all hover states behind @media (hover: hover)
+   Previous: v3.0 — Color palette overhaul + dark mode (Feb 23)
    ============================================================ */
 
 /* === LIGHT MODE (default) === */
@@ -67,6 +71,12 @@
   /* Loading spinner */
   --spinner-track: rgba(58, 124, 134, 0.12);
   --spinner-head: var(--primary);
+
+  /* Physics-based easing — calibrated for emotional support context
+     "Weighted blanket, not rubber ball" — damped, grounded, settling */
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --ease-spring-soft: cubic-bezier(0.25, 1.0, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* === DARK MODE === */
@@ -178,6 +188,10 @@
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* GPU hints — ONLY on elements that actually animate */
+.thread-sidebar { will-change: transform; }
+.modal-content { will-change: transform, opacity; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html, body { overflow-x: clip; }
 @supports not (overflow-x: clip) {
@@ -195,6 +209,7 @@ body {
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -289,11 +304,6 @@ header {
   box-shadow: none;
 }
 
-.theme-toggle:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .theme-toggle svg {
   width: 20px;
   height: 20px;
@@ -334,8 +344,6 @@ header {
   white-space: nowrap;
 }
 
-.btn-link:hover { color: var(--primary); }
-
 .more-btn {
   width: 44px;
   height: 44px;
@@ -355,8 +363,6 @@ header {
 [data-theme="dark"] .more-btn {
   color: var(--primary);
 }
-
-.more-btn:hover { background: var(--primary-light); }
 
 /* === MORE MENU PANEL === */
 .more-menu {
@@ -389,12 +395,12 @@ header {
   box-shadow: 0 8px 24px var(--modal-shadow);
   min-width: 200px;
   padding: 6px 0;
-  animation: menuFadeIn 0.12s ease-out;
+  animation: menuFadeIn 0.2s var(--ease-spring-soft);
 }
 
 @keyframes menuFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .more-menu-item {
@@ -414,8 +420,6 @@ header {
   border-radius: 0;
   box-shadow: none;
 }
-
-.more-menu-item:hover { background: var(--primary-light); }
 
 .more-menu-item svg {
   flex-shrink: 0;
@@ -527,11 +531,6 @@ header {
   color: var(--text-secondary);
 }
 
-.privacy-bar-dismiss:hover {
-  opacity: 1;
-  background: transparent;
-}
-
 /* === BUTTONS === */
 button {
   border: 1px solid var(--border-subtle);
@@ -543,13 +542,28 @@ button {
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.2s var(--ease-spring-soft),
+              background 0.15s ease,
+              color 0.15s ease,
+              box-shadow 0.15s ease;
   box-shadow: none;
 }
 
-button:hover { background: var(--primary-light); color: var(--text-primary); }
-button:active { transform: scale(0.98); }
+/* Instant press-down (0.06s), spring release (0.2s via base transition) */
+button:active {
+  transform: scale(0.96);
+  transition-duration: 0.06s;
+  transition-timing-function: ease-out;
+}
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Icon buttons — compact press */
+.theme-toggle:active,
+.threads-btn:active,
+.memory-icon-btn:active,
+.more-btn:active {
+  transform: scale(0.88);
+}
 
 .btn-primary {
   background: var(--primary);
@@ -558,11 +572,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   font-weight: 600;
 }
 
-.btn-primary:hover { 
-  background: var(--primary-hover);
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--primary-glow);
+.btn-primary:active {
+  transform: scale(0.96);
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -570,8 +582,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   border: 1px solid var(--border-visible);
   color: var(--text-primary);
 }
-
-.btn-secondary:hover { background: var(--primary-light); border-color: var(--primary); }
 
 .btn-link {
   background: transparent;
@@ -761,27 +771,47 @@ main {
   align-items: center;
   justify-content: center;
   z-index: 5;
+  transition: opacity 0.3s var(--ease-out-expo);
+}
+
+.loading-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .loading-message { text-align: center; }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--spinner-track);
-  border-top-color: var(--spinner-head);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  animation: breathe 4s ease-in-out infinite;
   margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
-    border-top-color: transparent;
-    border-right-color: var(--primary);
+    opacity: 1;
   }
 }
 
@@ -843,11 +873,17 @@ footer a {
   justify-content: center;
   z-index: 10000;
   padding: 20px;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   animation: fadeIn 0.2s ease;
 }
 
 .modal-overlay.show { display: flex; }
+
+.modal-overlay.dismissing {
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
 
 @keyframes fadeIn {
   from { opacity: 0; }
@@ -863,14 +899,31 @@ footer a {
   box-shadow: 0 8px 24px var(--modal-shadow);
   max-height: 80vh;
   overflow-y: auto;
-  animation: slideUp 0.3s ease;
+  animation: modalPresent 0.35s var(--ease-spring-soft);
   position: relative;
   outline: none;
 }
 
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes modalPresent {
+  from {
+    transform: translateY(32px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes modalDismiss {
+  to {
+    transform: translateY(24px) scale(0.98);
+    opacity: 0;
+  }
+}
+
+.modal-content.dismissing {
+  animation: modalDismiss 0.2s var(--ease-out-expo) forwards;
 }
 
 .modal-header {
@@ -940,11 +993,6 @@ footer a {
   cursor: pointer;
   color: var(--text-muted);
   box-shadow: none;
-}
-
-.modal-close:hover {
-  color: var(--text-primary);
-  background: var(--primary-glow);
 }
 
 /* === MODAL FORM ELEMENTS === */
@@ -1058,8 +1106,9 @@ footer a {
   font-size: 0.875rem;
   font-weight: 500;
   opacity: 0;
-  transform: translateY(20px);
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.35s var(--ease-spring-soft),
+              opacity 0.15s ease-out;
   pointer-events: none;
   max-width: 90vw;
   text-align: center;
@@ -1072,7 +1121,7 @@ footer a {
 }
 
 .toast.show {
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
   opacity: 1;
 }
 
@@ -1340,6 +1389,150 @@ footer a {
 /* === FOCUS & ACCESSIBILITY === */
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
+/* Screen reader only — visually hidden, announced by assistive tech */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* === HOVER STATES — Desktop mouse only ===
+   Prevents Android "sticky hover" on tap.
+   Touch feedback handled by :active states above.
+   ============================================ */
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--primary-glow);
+  }
+
+  .btn-secondary:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+  }
+
+  .btn-link:hover { color: var(--primary); }
+
+  .theme-toggle:hover,
+  .threads-btn:hover,
+  .memory-icon-btn:hover,
+  .more-btn:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+
+  .thread-item:hover { background: var(--primary-light); }
+  .thread-item:hover .thread-item-actions { opacity: 1; }
+
+  .thread-action-btn:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+
+  .thread-action-btn.danger:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  .thread-sidebar-close:hover { color: var(--text-primary); }
+
+  .thread-new-btn:hover {
+    background: var(--primary-hover);
+    color: white;
+  }
+
+  .mem-pop-action:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .private-session-end:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+  }
+
+  .thread-sidebar-settings-link:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .thread-pin-btn:hover {
+    opacity: 0.7;
+    background: var(--primary-light);
+  }
+
+  .clear-history-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+  }
+
+  .thread-load-more:hover {
+    background: rgba(0,0,0,0.03);
+  }
+
+  .more-menu-item:hover { background: var(--primary-light); }
+
+  .privacy-bar-dismiss:hover {
+    opacity: 1;
+    background: transparent;
+  }
+
+  .modal-close:hover {
+    color: var(--text-primary);
+    background: var(--primary-glow);
+  }
+
+  .editable-name:hover {
+    opacity: 0.8;
+  }
+
+  .mem-pop-action-danger:hover svg {
+    stroke: #f87171;
+  }
+
+  .mem-pop-action-danger:hover {
+    background: rgba(220, 38, 38, 0.12);
+    color: #f87171;
+  }
+
+  .memory-prompt-btn:hover {
+    background: var(--primary-hover);
+  }
+
+  .transcript-share-icon:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+
+  .transcript-share-cancel:hover {
+    color: var(--text-primary);
+  }
+
+  .guest-benefits-dismiss:hover { color: var(--text-primary); }
+
+  .guest-benefits-btn:hover { background: var(--primary-dark); }
+
+  .guest-benefits-later:hover { color: var(--text-secondary); }
+
+  .info-btn:hover {
+    background: var(--primary-light);
+    color: var(--text-primary);
+  }
+}
+
 /* === PHONE === */
 @media (max-width: 640px) {
   header {
@@ -1362,9 +1555,9 @@ footer a {
   }
   
   .more-btn {
-    width: 38px;
-    height: 38px;
-    min-height: 38px;
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
   
   .more-btn svg {
@@ -1411,7 +1604,7 @@ footer a {
     border-radius: 16px 16px 0 0;
     min-width: 100%;
     padding-bottom: max(6px, env(safe-area-inset-bottom));
-    animation: sheetSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: sheetSlideUp 0.25s var(--ease-out-expo);
   }
   .more-menu-panel::before {
     content: '';
@@ -1429,7 +1622,7 @@ footer a {
     max-width: 100%;
     border-radius: 16px 16px 0 0;
     max-height: 85vh;
-    animation: sheetSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: sheetSlideUp 0.35s var(--ease-out-expo);
   }
   .modal-content::before {
     content: '';
@@ -1443,8 +1636,14 @@ footer a {
 }
 
 @keyframes sheetSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @media (max-width: 400px) {
@@ -1455,10 +1654,6 @@ footer a {
   border-bottom: 1.5px dotted currentColor;
   cursor: pointer;
   padding-bottom: 1px;
-}
-
-.editable-name:hover {
-  opacity: 0.8;
 }
 
 .editable-name:focus-visible {
@@ -1486,7 +1681,7 @@ footer a {
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
-  transition: transform 0.25s ease;
+  transition: transform 0.35s var(--ease-out-expo);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
 }
 
@@ -1544,11 +1739,6 @@ footer a {
   font-size: 20px;
 }
 
-.thread-sidebar-close:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .thread-new-btn {
   margin: 12px 16px;
   padding: 10px 16px;
@@ -1564,10 +1754,6 @@ footer a {
   gap: 8px;
   transition: background 0.15s;
   min-height: 44px;
-}
-
-.thread-new-btn:hover {
-  background: var(--primary-hover);
 }
 
 .thread-new-btn svg {
@@ -1602,10 +1788,6 @@ footer a {
   min-height: 48px;
 }
 
-.thread-item:hover {
-  background: var(--primary-glow);
-}
-
 .thread-item-content {
   flex: 1;
   min-width: 0;
@@ -1635,10 +1817,6 @@ footer a {
   transition: opacity 0.15s;
 }
 
-.thread-item:hover .thread-item-actions {
-  opacity: 1;
-}
-
 @media (hover: none) {
   .thread-item-actions {
     opacity: 1;
@@ -1658,16 +1836,6 @@ footer a {
   align-items: center;
   justify-content: center;
   padding: 0;
-}
-
-.thread-action-btn:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
-.thread-action-btn.danger:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
 }
 
 .thread-action-btn svg {
@@ -1810,11 +1978,6 @@ footer a {
   transition: background 0.15s, color 0.15s;
 }
 
-.threads-btn:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .threads-btn svg {
   width: 20px;
   height: 20px;
@@ -1845,11 +2008,6 @@ footer a {
   transition: background 0.15s, color 0.15s;
   box-shadow: none;
   position: relative;
-}
-
-.memory-icon-btn:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
 }
 
 .memory-icon-btn svg {
@@ -1909,12 +2067,12 @@ footer a {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  animation: popFadeIn 0.15s ease;
+  animation: popFadeIn 0.2s var(--ease-spring-soft);
 }
 
 @keyframes popFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .memory-popover-status {
@@ -1971,11 +2129,6 @@ footer a {
   box-shadow: none;
 }
 
-.mem-pop-action:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .mem-pop-action svg {
   flex-shrink: 0;
 }
@@ -1988,15 +2141,6 @@ footer a {
 
 .mem-pop-action-danger {
   color: var(--text-tertiary, rgba(255,255,255,0.4));
-}
-
-.mem-pop-action-danger:hover {
-  background: rgba(220, 38, 38, 0.12);
-  color: #f87171;
-}
-
-.mem-pop-action-danger:hover svg {
-  stroke: #f87171;
 }
 
 /* === PRIVATE SESSION BANNER === */
@@ -2033,11 +2177,6 @@ footer a {
   opacity: 0.7;
   box-shadow: none;
   margin-left: 4px;
-}
-
-.private-session-end:hover {
-  opacity: 1;
-  background: transparent;
 }
 
 /* === MEMORY ONBOARDING CARD === */
@@ -2149,11 +2288,6 @@ footer a {
   box-shadow: none;
 }
 
-.thread-sidebar-settings-link:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .thread-sidebar-settings-link svg {
   flex-shrink: 0;
 }
@@ -2167,7 +2301,7 @@ footer a {
     left: 0;
     width: 100%;
     border-radius: 16px 16px 0 0;
-    animation: sheetSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: sheetSlideUp 0.25s var(--ease-out-expo);
   }
   .memory-popover-panel::before {
     content: '';
@@ -2228,10 +2362,6 @@ footer a {
   min-height: 36px;
 }
 
-.memory-prompt-btn:hover {
-  background: var(--primary-hover);
-}
-
 .memory-prompt-dismiss {
   width: 28px;
   height: 28px;
@@ -2266,11 +2396,6 @@ footer a {
   padding: 0;
   opacity: 0.3;
   transition: opacity 0.15s, color 0.15s;
-}
-
-.thread-pin-btn:hover {
-  opacity: 0.7;
-  background: var(--primary-light);
 }
 
 .thread-pin-btn.pinned {
@@ -2324,11 +2449,6 @@ footer a {
   margin-bottom: 4px;
 }
 
-.clear-history-btn:hover {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
-
 .clear-history-btn svg {
   flex-shrink: 0;
 }
@@ -2346,9 +2466,6 @@ footer a {
   box-shadow: none;
 }
 
-.thread-load-more:hover {
-  background: rgba(0,0,0,0.03);
-}
 /* ============================================================
    TRANSCRIPT MODAL — Pin + Share header, share bottom sheet
    Added: Feb 28, 2026
@@ -2408,11 +2525,6 @@ footer a {
 }
 
 .transcript-pin:hover,
-.transcript-share-icon:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
-}
-
 .transcript-pin:active,
 .transcript-share-icon:active {
   background: var(--primary-light);
@@ -2501,9 +2613,6 @@ footer a {
   box-shadow: none;
 }
 
-.transcript-share-cancel:hover {
-  color: var(--text-primary);
-}
 /* === GUEST BENEFITS CARD === */
 .guest-benefits-card {
   flex-shrink: 0;
@@ -2564,8 +2673,6 @@ footer a {
   box-shadow: none;
 }
 
-.guest-benefits-dismiss:hover { color: var(--text-primary); }
-
 .guest-benefits-actions {
   display: flex;
   align-items: center;
@@ -2587,8 +2694,6 @@ footer a {
   box-shadow: none;
 }
 
-.guest-benefits-btn:hover { background: var(--primary-dark); }
-
 .guest-benefits-later {
   background: none;
   border: none;
@@ -2598,8 +2703,6 @@ footer a {
   padding: 8px 4px;
   box-shadow: none;
 }
-
-.guest-benefits-later:hover { color: var(--text-secondary); }
 
 @media (max-width: 640px) {
   .guest-benefits-actions { padding-left: 0; }
@@ -2621,11 +2724,6 @@ footer a {
   justify-content: center;
   transition: background 0.15s, color 0.15s;
   box-shadow: none;
-}
-
-.info-btn:hover {
-  background: var(--primary-light);
-  color: var(--text-primary);
 }
 
 .info-btn svg {
@@ -2747,6 +2845,6 @@ footer a {
     max-height: 85dvh;
     border-radius: 16px 16px 0 0;
     padding-bottom: max(0px, env(safe-area-inset-bottom));
-    animation: sheetSlideUp 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: sheetSlideUp 0.25s var(--ease-out-expo);
   }
 }
