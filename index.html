@@ -1597,7 +1597,8 @@ function showGuestBenefitsCard() {
               data: {
                 sessionNonce: sessionNonce,
                 clientId: clientId,
-                homeworkActive: JSON.stringify(hwSummary)
+                homeworkActive: JSON.stringify(hwSummary),
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
               }
             });
             console.log('[Alo] Identity + homework sent to Botpress via updateUser');
