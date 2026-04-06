@@ -1,14 +1,14 @@
 /* ============================================================
    ALO CLIENT CHAT v3.1
    Design: Teal-blue thinking partner (calm + focus palette)
-   Updated: Mar 3, 2026 — Experience physics + accessibility
+   Updated: Mar 3, 2026 â€” Experience physics + accessibility
    Changes: Spring easing system (damped, not bouncy), button press
             physics, modal spring + backdrop blur, sidebar deceleration,
             toast spring, breathing pulse loader, hover isolation
             (fixes Android sticky hover), transition:all eliminated,
             .sr-only utility, loading crossfade, touch target fix,
             all hover states behind @media (hover: hover)
-   Previous: v3.0 — Color palette overhaul + dark mode (Feb 23)
+   Previous: v3.0 â€” Color palette overhaul + dark mode (Feb 23)
    ============================================================ */
 
 /* === LIGHT MODE (default) === */
@@ -24,14 +24,14 @@
   --border-visible: rgba(58, 124, 134, 0.22);
   --border-color: rgba(58, 124, 134, 0.22);
   
-  /* Primary brand — teal-blue */
+  /* Primary brand â€” teal-blue */
   --primary: #3A7C86;
   --primary-light: #E0EDEB;
   --primary-hover: #2D6B74;
   --primary-dark: #264038;
   --primary-glow: rgba(58, 124, 134, 0.12);
   
-  /* Warm accent — clay terracotta */
+  /* Warm accent â€” clay terracotta */
   --accent: #C7865F;
   --accent-hover: #B57550;
   --accent-light: rgba(199, 134, 95, 0.10);
@@ -72,8 +72,8 @@
   --spinner-track: rgba(58, 124, 134, 0.12);
   --spinner-head: var(--primary);
 
-  /* Physics-based easing — calibrated for emotional support context
-     "Weighted blanket, not rubber ball" — damped, grounded, settling */
+  /* Physics-based easing â€” calibrated for emotional support context
+     "Weighted blanket, not rubber ball" â€” damped, grounded, settling */
   --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
   --ease-spring-soft: cubic-bezier(0.25, 1.0, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -189,7 +189,7 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* GPU hints — ONLY on elements that actually animate */
+/* GPU hints â€” ONLY on elements that actually animate */
 .thread-sidebar { will-change: transform; }
 .modal-content { will-change: transform, opacity; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -557,7 +557,7 @@ button:active {
 }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Icon buttons — compact press */
+/* Icon buttons â€” compact press */
 .theme-toggle:active,
 .threads-btn:active,
 .memory-icon-btn:active,
@@ -743,7 +743,7 @@ main {
   background: var(--chat-bg);
 }
 
-/* Botpress JS SDK — fill chat-container, hide floating bubble
+/* Botpress JS SDK â€” fill chat-container, hide floating bubble
    Botpress appends iframes to <body>, not inside #aloFrame,
    so selectors must be global. We position the webchat iframe
    to cover .chat-container using fixed positioning calculated
@@ -1389,7 +1389,7 @@ footer a {
 /* === FOCUS & ACCESSIBILITY === */
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
-/* Screen reader only — visually hidden, announced by assistive tech */
+/* Screen reader only â€” visually hidden, announced by assistive tech */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1402,7 +1402,7 @@ footer a {
   border: 0;
 }
 
-/* === HOVER STATES — Desktop mouse only ===
+/* === HOVER STATES â€” Desktop mouse only ===
    Prevents Android "sticky hover" on tap.
    Touch feedback handled by :active states above.
    ============================================ */
@@ -1664,7 +1664,7 @@ footer a {
 
 /* ============================================================
    THREAD SIDEBAR + MEMORY FEATURES
-   Added: Feb 25, 2026 — Conversation history + memory toggle
+   Added: Feb 25, 2026 â€” Conversation history + memory toggle
    ============================================================ */
 
 /* === THREAD SIDEBAR === */
@@ -1988,7 +1988,7 @@ footer a {
 }
 /* ============================================================
    MEMORY ICON, POPOVER, PRIVATE SESSION, ONBOARDING
-   Added: Post v1.4 — Opt-in memory UX
+   Added: Post v1.4 â€” Opt-in memory UX
    ============================================================ */
 
 /* === HEADER MEMORY ICON === */
@@ -2240,7 +2240,7 @@ footer a {
   font-size: 13px;
 }
 
-/* === MORE MENU — MEMORY SETTINGS SECTION === */
+/* === MORE MENU â€” MEMORY SETTINGS SECTION === */
 .more-menu-settings {
   padding: 10px 14px;
 }
@@ -2376,7 +2376,7 @@ footer a {
   flex-shrink: 0;
 }
 /* ============================================================
-   CONVERSATION LIFECYCLE — Pin, sections, clear history
+   CONVERSATION LIFECYCLE â€” Pin, sections, clear history
    Added: Feb 28, 2026
    ============================================================ */
 
@@ -2467,7 +2467,7 @@ footer a {
 }
 
 /* ============================================================
-   TRANSCRIPT MODAL — Pin + Share header, share bottom sheet
+   TRANSCRIPT MODAL â€” Pin + Share header, share bottom sheet
    Added: Feb 28, 2026
    ============================================================ */
 
@@ -2477,7 +2477,7 @@ footer a {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding-right: 36px; /* leave room for ✕ close button */
+  padding-right: 36px; /* leave room for âœ• close button */
 }
 
 .transcript-title-block {
@@ -2534,7 +2534,7 @@ footer a {
   color: var(--primary);
 }
 
-/* Share bottom sheet — appears inside modal body */
+/* Share bottom sheet â€” appears inside modal body */
 .transcript-share-sheet {
   margin-top: 16px;
   padding: 16px;
@@ -2847,4 +2847,336 @@ footer a {
     padding-bottom: max(0px, env(safe-area-inset-bottom));
     animation: sheetSlideUp 0.25s var(--ease-out-expo);
   }
+}
+
+/* ============================================================
+   JOURNAL FEATURE â€” Tab bar, container, empty state, entries
+   Added: Apr 6, 2026 â€” Phase 1 (Foundation + CRUD)
+   ============================================================ */
+
+/* === TAB BAR === */
+.tab-bar {
+  flex-shrink: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border-subtle);
+  position: relative;
+  z-index: 10;
+}
+
+.tab-bar.hidden { display: none; }
+
+.tab-bar-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  min-height: 52px;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-bar-btn svg {
+  stroke: var(--text-muted);
+  transition: stroke 0.2s ease;
+}
+
+.tab-bar-btn.active {
+  color: var(--primary);
+}
+
+.tab-bar-btn.active svg {
+  stroke: var(--primary);
+}
+
+@media (hover: hover) {
+  .tab-bar-btn:hover {
+    color: var(--primary);
+  }
+  .tab-bar-btn:hover svg {
+    stroke: var(--primary);
+  }
+}
+
+/* === JOURNAL CONTAINER === */
+.journal-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: var(--warm-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.journal-container.hidden { display: none; }
+
+.journal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* === EMPTY STATE === */
+.journal-empty-state {
+  text-align: center;
+  padding: 40px 0 8px;
+}
+
+.journal-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--primary-light);
+  color: var(--primary);
+  margin-bottom: 16px;
+}
+
+.journal-empty-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.journal-empty-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* === PROMPT CARD === */
+.journal-prompt-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.journal-prompt-text {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+  font-style: italic;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.journal-prompt-refresh {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  min-height: 32px;
+}
+
+@media (hover: hover) {
+  .journal-prompt-refresh:hover {
+    color: var(--primary-hover);
+  }
+}
+
+/* === COMPOSER === */
+.journal-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-textarea {
+  width: 100%;
+  min-height: 100px;
+  max-height: 200px;
+  padding: 14px;
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--surface);
+  resize: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.journal-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-glow);
+}
+
+.journal-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.journal-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.journal-save-btn {
+  padding: 10px 24px;
+  font-size: 0.875rem;
+}
+
+.journal-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* === TIMELINE === */
+.journal-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-timeline.hidden { display: none; }
+
+.journal-timeline-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding-top: 8px;
+}
+
+.journal-entry-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) {
+  .journal-entry-card:hover {
+    border-color: var(--border-visible);
+    box-shadow: 0 1px 4px var(--modal-shadow);
+  }
+}
+
+.journal-entry-card.alo-generated {
+  border-left: 3px solid var(--primary);
+}
+
+.journal-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.journal-entry-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.journal-entry-badge {
+  font-size: 0.6875rem;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.journal-entry-preview {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* === JOURNAL DETAIL (inside modal) === */
+.journal-detail-badge {
+  font-size: 0.8125rem;
+  color: var(--primary);
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.journal-detail-content {
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.journal-detail-actions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  gap: 8px;
+}
+
+/* === PHONE: tab bar + keyboard === */
+@media (max-width: 640px) {
+  .tab-bar-btn {
+    min-height: 48px;
+    padding: 6px 0;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  .journal-scroll {
+    padding: 16px;
+  }
+
+  body.keyboard-open .tab-bar {
+    display: none !important;
+  }
+}
+
+/* === DARK MODE: journal === */
+[data-theme="dark"] .journal-textarea {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .journal-prompt-card {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .journal-entry-card {
+  background: var(--surface);
 }
