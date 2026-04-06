@@ -3149,6 +3149,133 @@ footer a {
   border-top: 1px solid var(--border-subtle);
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* === JOURNAL EDIT MODE === */
+.journal-edit-textarea {
+  width: 100%;
+  min-height: 120px;
+  max-height: 300px;
+  padding: 14px;
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  line-height: 1.7;
+  color: var(--text-primary);
+  background: var(--surface);
+  resize: none;
+  box-sizing: border-box;
+}
+
+.journal-edit-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-glow);
+}
+
+.journal-edit-textarea.hidden,
+.journal-edit-save.hidden,
+.journal-edit-cancel.hidden,
+.journal-edit-btn.hidden,
+#journalDetailContent.hidden {
+  display: none;
+}
+
+/* === JOURNAL SECONDARY ACTIONS (share, bring to alo) === */
+.journal-detail-secondary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.journal-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border-visible);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.journal-share-btn.shared {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-glow);
+}
+
+@media (hover: hover) {
+  .journal-share-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.journal-bring-to-alo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--primary-dark);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+@media (hover: hover) {
+  .journal-bring-to-alo-btn:hover {
+    background: var(--primary);
+    color: #fff;
+  }
+  .journal-bring-to-alo-btn:hover svg {
+    stroke: #fff;
+  }
+}
+
+/* === SAFETY BANNER === */
+.journal-safety-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.journal-safety-content {
+  flex: 1;
+}
+
+.journal-safety-content a {
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.journal-safety-dismiss {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 /* === PHONE: tab bar + keyboard === */
@@ -3179,4 +3306,16 @@ footer a {
 
 [data-theme="dark"] .journal-entry-card {
   background: var(--surface);
+}
+
+[data-theme="dark"] .journal-edit-textarea {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .journal-safety-banner {
+  background: var(--surface);
+}
+
+[data-theme="dark"] .journal-bring-to-alo-btn {
+  color: var(--primary);
 }
