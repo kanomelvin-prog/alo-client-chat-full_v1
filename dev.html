@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=2">
+  <link rel="stylesheet" href="dev.css?v=4">
 </head>
 
 <body>
@@ -416,7 +416,6 @@
     let activeTab = 'chat';
     var positionWebchatFn = null;
     var botpressReady = false;
-    var pendingJournalInject = null;
 
     // Journal prompt bank (14 general + 2 therapy-conditional)
     var journalPrompts = [
@@ -2540,12 +2539,6 @@ async function togglePin(conversationId) {
                 homeworkActive: JSON.stringify(hwSummary),
                 timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
               };
-              // Include journal inject if pending
-              if (pendingJournalInject) {
-                userData.journalInject = pendingJournalInject;
-                console.log('[Journal] Included journal inject in new conversation');
-                pendingJournalInject = null;
-              }
               window.botpress.updateUser({ data: userData });
             }
             authBridgeSent = false;
@@ -2954,10 +2947,9 @@ async function togglePin(conversationId) {
       var bringBtn = document.getElementById('journalBringToAlo');
       if (bringBtn) {
         bringBtn.addEventListener('click', function() {
-          pendingJournalInject = entry.content;
           document.querySelector('.modal-overlay')?.remove();
           switchTab('chat');
-          showToast('Starting a conversation about your entry...');
+          showToast('Starting a new conversation...');
           startNewConversation(true);
         });
       }
