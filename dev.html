@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=4">
+  <link rel="stylesheet" href="dev.css?v=5">
 </head>
 
 <body>
@@ -2492,7 +2492,6 @@ async function togglePin(conversationId) {
       isPrivateSession = false;
       updateMemoryUI();
       resetPersistenceState();
-      botpressReady = false;
 
       // Only toggle sidebar if it's open
       var sidebar = document.getElementById('threadSidebar');
@@ -2504,6 +2503,8 @@ async function togglePin(conversationId) {
       const existingWebchat = document.querySelector('.bpWebchat');
       if (existingWebchat) existingWebchat.remove();
       
+      botpressReady = false;
+
       window.botpress.init({
         botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
         clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
@@ -2526,20 +2527,21 @@ async function togglePin(conversationId) {
       });
 
       var reinitCheck = setInterval(function() {
-        if (botpressReady && window.botpress) {
+        if (window.botpress) {
           try {
             window.botpress.open();
             if (clientId) {
               var hwSummary = activeHomework.length > 0
                 ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
                 : [];
-              var userData = {
-                sessionNonce: sessionNonce,
-                clientId: clientId,
-                homeworkActive: JSON.stringify(hwSummary),
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              };
-              window.botpress.updateUser({ data: userData });
+              window.botpress.updateUser({
+                data: {
+                  sessionNonce: sessionNonce,
+                  clientId: clientId,
+                  homeworkActive: JSON.stringify(hwSummary),
+                  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                }
+              });
             }
             authBridgeSent = false;
             sendAuthBridge();
