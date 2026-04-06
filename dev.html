@@ -310,7 +310,55 @@
       
       <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
     </div>
+
+    <!-- Journal container (hidden by default, shown via tab bar) -->
+    <div id="journalContainer" class="journal-container hidden">
+      <div class="journal-scroll">
+
+        <!-- Empty state (shown when no entries exist) -->
+        <div id="journalEmptyState" class="journal-empty-state">
+          <div class="journal-empty-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="32" height="32"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <p class="journal-empty-title" id="journalEmptyTitle">Catch what matters</p>
+          <p class="journal-empty-subtitle" id="journalEmptySubtitle">A private place to hold your thoughts, so Alo picks up where you left off.</p>
+        </div>
+
+        <!-- Prompt card -->
+        <div id="journalPromptCard" class="journal-prompt-card">
+          <p class="journal-prompt-text" id="journalPromptText"></p>
+          <button class="journal-prompt-refresh" id="journalPromptRefresh" aria-label="Try a different prompt">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Try another
+          </button>
+        </div>
+
+        <!-- Composer -->
+        <div class="journal-composer">
+          <textarea id="journalTextarea" class="journal-textarea" placeholder="Start writing..." rows="4"></textarea>
+          <div class="journal-composer-actions">
+            <button id="journalSaveBtn" class="btn-primary journal-save-btn" disabled>Save</button>
+          </div>
+        </div>
+
+        <!-- Timeline (populated by JS, hidden when empty) -->
+        <div id="journalTimeline" class="journal-timeline hidden"></div>
+
+      </div>
+    </div>
   </main>
+
+  <!-- Tab bar (visible for signed-in users) -->
+  <nav id="tabBar" class="tab-bar hidden" role="tablist" aria-label="Navigation">
+    <button class="tab-bar-btn active" data-tab="chat" role="tab" aria-selected="true" aria-controls="chatMain" onclick="switchTab('chat')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span>Chat</span>
+    </button>
+    <button class="tab-bar-btn" data-tab="journal" role="tab" aria-selected="false" aria-controls="journalContainer" onclick="switchTab('journal')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      <span>Journal</span>
+    </button>
+  </nav>
 
   <footer>
     <div class="crisis-notice">
@@ -363,6 +411,33 @@
     let memoryGlobalEnabled = false;  // opt-in: default OFF
     let isPrivateSession = false;
     let authBridgeSent = false;
+
+    // Tab bar & journal state
+    let activeTab = 'chat';
+    var positionWebchatFn = null;
+
+    // Journal prompt bank (14 general + 2 therapy-conditional)
+    var journalPrompts = [
+      "What's taking up space in your head right now?",
+      "What's the part that won't leave you alone?",
+      "What would you tell a friend who was feeling what you're feeling?",
+      "What's true right now?",
+      "Today, I noticed...",
+      "The thing I keep not saying is...",
+      "What I need right now that I'm not asking for is...",
+      "What small thing felt possible today?",
+      "One thing I could do about this tomorrow.",
+      "What do I want to remember about how I feel right now?",
+      "What I wish I could say is...",
+      "The thing I keep replaying is...",
+      "What held today?",
+      "I want to remember..."
+    ];
+    var journalTherapyPrompts = [
+      "What do I want my therapist to know?",
+      "What stayed with me after therapy?"
+    ];
+    var lastPromptIndex = -1;
 
     // =====================================================
     // UTILITY
@@ -578,6 +653,7 @@
       document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
+      document.getElementById('tabBar').classList.remove('hidden');
       
       // Show "Connect to Therapist" in menu, hide "Message Therapist"
       const connectItem = document.getElementById('moreConnectBtn');
@@ -637,6 +713,7 @@
       document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
+      document.getElementById('tabBar').classList.remove('hidden');
       
       // Show/hide message option in more menu
       const msgItem = document.getElementById('moreMessageBtn');
@@ -781,6 +858,8 @@ function showGuestBenefitsCard() {
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
       document.getElementById('homeworkContainer').classList.remove('show');
+      document.getElementById('tabBar').classList.add('hidden');
+      if (activeTab !== 'chat') switchTab('chat');
 
       setTimeout(function() { showGuestBenefitsCard(); }, 2000);
     }
@@ -2485,6 +2564,245 @@ async function togglePin(conversationId) {
     }
 
     // =====================================================
+    // TAB BAR — Chat / Journal switching
+    // =====================================================
+    function switchTab(tab) {
+      if (tab === activeTab) return;
+      activeTab = tab;
+
+      var chatContainer = document.querySelector('.chat-container');
+      var journalContainer = document.getElementById('journalContainer');
+      var webchatEl = document.querySelector('.bpWebchat');
+      var homeworkContainer = document.getElementById('homeworkContainer');
+      var tabBtns = document.querySelectorAll('.tab-bar-btn');
+
+      // Update tab button states
+      tabBtns.forEach(function(btn) {
+        var isActive = btn.dataset.tab === tab;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+
+      if (tab === 'journal') {
+        // Hide chat, show journal
+        if (chatContainer) chatContainer.style.display = 'none';
+        if (homeworkContainer) homeworkContainer.style.display = 'none';
+        if (webchatEl) {
+          webchatEl.style.visibility = 'hidden';
+          webchatEl.style.position = 'absolute';
+          webchatEl.style.height = '0';
+          webchatEl.style.overflow = 'hidden';
+        }
+        if (journalContainer) journalContainer.classList.remove('hidden');
+        initJournalView();
+        loadJournalEntries();
+      } else {
+        // Show chat, hide journal
+        if (journalContainer) journalContainer.classList.add('hidden');
+        if (chatContainer) chatContainer.style.display = '';
+        if (homeworkContainer && homeworkContainer.innerHTML.trim()) {
+          homeworkContainer.style.display = '';
+        }
+        if (webchatEl) {
+          webchatEl.style.visibility = 'visible';
+          webchatEl.style.position = 'fixed';
+          webchatEl.style.height = '';
+          webchatEl.style.overflow = '';
+          window.dispatchEvent(new Event('resize'));
+        }
+      }
+
+      sessionStorage.setItem('alo_active_tab', tab);
+    }
+
+    // =====================================================
+    // JOURNAL — Prompt rotation, empty state, composer
+    // =====================================================
+    function getRandomPrompt() {
+      var pool = journalPrompts.slice();
+      if (therapistLink) {
+        pool = pool.concat(journalTherapyPrompts);
+      }
+      var idx;
+      do {
+        idx = Math.floor(Math.random() * pool.length);
+      } while (idx === lastPromptIndex && pool.length > 1);
+      lastPromptIndex = idx;
+      return pool[idx];
+    }
+
+    function showNextPrompt() {
+      var el = document.getElementById('journalPromptText');
+      if (el) el.textContent = getRandomPrompt();
+    }
+
+    function initJournalView() {
+      // Set conditional empty state copy
+      var titleEl = document.getElementById('journalEmptyTitle');
+      var subtitleEl = document.getElementById('journalEmptySubtitle');
+      if (titleEl && subtitleEl) {
+        if (therapistLink) {
+          subtitleEl.textContent = 'A private place to catch what matters between sessions.';
+        } else {
+          subtitleEl.textContent = 'A private place to hold your thoughts, so Alo picks up where you left off.';
+        }
+      }
+
+      // Show a prompt if not already showing
+      var promptText = document.getElementById('journalPromptText');
+      if (promptText && !promptText.textContent) {
+        showNextPrompt();
+      }
+    }
+
+    function initJournalListeners() {
+      var textarea = document.getElementById('journalTextarea');
+      var saveBtn = document.getElementById('journalSaveBtn');
+      var refreshBtn = document.getElementById('journalPromptRefresh');
+
+      if (textarea && saveBtn) {
+        textarea.addEventListener('input', function() {
+          saveBtn.disabled = !textarea.value.trim();
+          // Auto-expand textarea
+          textarea.style.height = 'auto';
+          textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        });
+
+        saveBtn.addEventListener('click', async function() {
+          var content = textarea.value.trim();
+          if (!content || !clientId) return;
+
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving...';
+
+          try {
+            var title = content.substring(0, 60);
+            if (content.length > 60) title += '...';
+
+            await api('/rest/v1/journal_entries', 'POST', {
+              client_id: clientId,
+              title: title,
+              content: content,
+              source: 'client',
+              entry_type: null,
+              is_pinned: false,
+              shared_with_therapist: false
+            });
+
+            textarea.value = '';
+            textarea.style.height = '';
+            saveBtn.textContent = 'Save';
+            showToast('Entry saved');
+            showNextPrompt();
+            loadJournalEntries();
+          } catch (err) {
+            console.error('[Journal] Save failed:', err);
+            showToast('Could not save. Please try again.');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+          }
+        });
+      }
+
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', showNextPrompt);
+      }
+    }
+
+    async function loadJournalEntries() {
+      if (!clientId) return;
+
+      try {
+        var entries = await api('/rest/v1/journal_entries?client_id=eq.' + clientId + '&order=created_at.desc&limit=50');
+        var timeline = document.getElementById('journalTimeline');
+        var emptyState = document.getElementById('journalEmptyState');
+
+        if (!entries || entries.length === 0) {
+          if (timeline) timeline.classList.add('hidden');
+          if (emptyState) emptyState.style.display = '';
+          return;
+        }
+
+        // Hide empty state title, keep composer visible
+        if (emptyState) emptyState.style.display = 'none';
+        if (timeline) {
+          timeline.classList.remove('hidden');
+          timeline.innerHTML = '<div class="journal-timeline-header">Your entries</div>' +
+            entries.map(function(entry) {
+              var date = new Date(entry.created_at);
+              var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              var isAlo = entry.source === 'alo';
+              var badge = isAlo ? '<span class="journal-entry-badge">From your conversation</span>' : '';
+              var preview = (entry.content || '').substring(0, 120);
+              if ((entry.content || '').length > 120) preview += '...';
+              var pinnedClass = entry.is_pinned ? ' pinned' : '';
+              var aloClass = isAlo ? ' alo-generated' : '';
+
+              return '<div class="journal-entry-card' + pinnedClass + aloClass + '" data-id="' + entry.id + '">' +
+                '<div class="journal-entry-header">' +
+                  '<span class="journal-entry-date">' + dateStr + '</span>' +
+                  badge +
+                '</div>' +
+                '<div class="journal-entry-preview">' + esc(preview) + '</div>' +
+              '</div>';
+            }).join('');
+
+          // Tap to view detail (placeholder for Phase 2)
+          timeline.querySelectorAll('.journal-entry-card').forEach(function(card) {
+            card.addEventListener('click', function() {
+              viewJournalEntry(this.dataset.id, entries);
+            });
+          });
+        }
+      } catch (err) {
+        console.error('[Journal] Load failed:', err);
+      }
+    }
+
+    function viewJournalEntry(entryId, entries) {
+      var entry = entries.find(function(e) { return e.id === entryId; });
+      if (!entry) return;
+
+      var date = new Date(entry.created_at);
+      var dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      var isAlo = entry.source === 'alo';
+      var badge = isAlo ? '<div class="journal-detail-badge">From your conversation on ' + dateStr + '</div>' : '';
+
+      createModal(dateStr, badge +
+        '<div class="journal-detail-content">' + esc(entry.content).replace(/\n/g, '<br>') + '</div>' +
+        '<div class="journal-detail-actions">' +
+          '<button class="btn-secondary journal-delete-btn" data-id="' + entry.id + '">Delete</button>' +
+        '</div>'
+      , {
+        confirmLabel: 'Close',
+        showCancel: false
+      });
+
+      // Wire up delete button
+      var deleteBtn = document.querySelector('.journal-delete-btn[data-id="' + entry.id + '"]');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', async function() {
+          var confirmed = await showConfirm('Delete entry?', 'This can\'t be undone.', {
+            confirmLabel: 'Delete',
+            cancelLabel: 'Keep',
+            dangerous: true
+          });
+          if (!confirmed) return;
+
+          try {
+            await api('/rest/v1/journal_entries?id=eq.' + entry.id, 'DELETE');
+            showToast('Entry deleted');
+            document.querySelector('.modal-overlay')?.remove();
+            loadJournalEntries();
+          } catch (err) {
+            console.error('[Journal] Delete failed:', err);
+            showToast('Could not delete. Try again.');
+          }
+        });
+      }
+    }
+
+    // =====================================================
     // BOTPRESS LAYOUT — position webchat iframe over chat-container
     // Botpress mounts iframes at <body> level, not inside #aloFrame.
     // We reposition the webchat iframe to exactly cover .chat-container.
@@ -2583,6 +2901,7 @@ async function togglePin(conversationId) {
         }
 
         positionWebchat();
+        positionWebchatFn = positionWebchat;
         console.log('[Alo] Positioned webchat overlay on .chat-container');
 
         // Fight Botpress re-positioning: re-apply for first 3 seconds
@@ -2704,6 +3023,7 @@ window.botpress.on('webchat:closed', function() {
 
       // Privacy bar
       initPrivacyBar();
+      initJournalListeners();
 
       // Sign In and Connect use inline onclick handlers
       // Close more menu on Escape key
@@ -2808,11 +3128,6 @@ window.botpress.on('webchat:closed', function() {
         setTimeout(function() { showGuestBenefitsCard(); }, 2000);
       }
     });
-  </script>
-
-  <!-- TEMPORARY TEST — Remove after confirming iframe survives toggle -->
-  <script>
-    (function(){var b=document.createElement('button');b.textContent='Toggle Iframe';b.style.cssText='position:fixed;bottom:80px;right:16px;z-index:9999;padding:10px 16px;background:#3A7C86;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;';document.body.appendChild(b);var h=false,w=null;b.onclick=function(){if(!w)w=document.querySelector('.bpWebchat');if(!w)return;if(h){w.style.visibility='visible';w.style.position='fixed';w.style.height='';w.style.overflow='';window.dispatchEvent(new Event('resize'));b.textContent='Toggle (visible)';}else{w.style.visibility='hidden';w.style.position='absolute';w.style.height='0';w.style.overflow='hidden';b.textContent='Toggle (hidden)';}h=!h;};})();
   </script>
 </body>
 </html>
