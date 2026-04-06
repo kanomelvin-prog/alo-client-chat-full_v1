@@ -2867,22 +2867,25 @@ footer a {
 .tab-bar.hidden { display: none; }
 
 .tab-bar-btn {
-  flex: 1;
+  flex: 1 1 0%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 8px 0;
-  background: none;
-  border: none;
+  padding: 8px 0 !important;
+  background: none !important;
+  border: none !important;
+  border-radius: 0 !important;
   color: var(--text-muted);
-  font-size: 0.6875rem;
+  font-size: 0.6875rem !important;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.2s ease;
   min-height: 52px;
+  min-width: 0;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: none !important;
 }
 
 .tab-bar-btn svg {
