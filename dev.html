@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css">
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -2695,6 +2695,11 @@ async function togglePin(conversationId) {
             showToast('Entry saved');
             showNextPrompt();
             loadJournalEntries();
+
+            // Post-save safety check (local only, no data sent)
+            if (checkJournalSafety(content)) {
+              showSafetyBanner();
+            }
           } catch (err) {
             console.error('[Journal] Save failed:', err);
             showToast('Could not save. Please try again.');
@@ -2767,18 +2772,112 @@ async function togglePin(conversationId) {
       var dateStr = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       var isAlo = entry.source === 'alo';
       var badge = isAlo ? '<div class="journal-detail-badge">From your conversation on ' + dateStr + '</div>' : '';
+      var isShared = !!entry.shared_with_therapist;
+
+      // Share toggle (only for therapist-connected users)
+      var shareHTML = '';
+      if (therapistLink) {
+        var shareIcon = isShared
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>';
+        var shareLabel = isShared ? 'Shared with therapist' : 'Share with therapist';
+        var shareClass = isShared ? 'journal-share-btn shared' : 'journal-share-btn';
+        shareHTML = '<button class="' + shareClass + '" id="journalShareToggle">' + shareIcon + ' ' + shareLabel + '</button>';
+      }
 
       createModal(dateStr, badge +
-        '<div class="journal-detail-content">' + esc(entry.content).replace(/\n/g, '<br>') + '</div>' +
+        '<div class="journal-detail-content" id="journalDetailContent">' + esc(entry.content).replace(/\n/g, '<br>') + '</div>' +
+        '<textarea class="journal-edit-textarea hidden" id="journalEditTextarea">' + esc(entry.content) + '</textarea>' +
         '<div class="journal-detail-actions">' +
+          '<button class="btn-secondary journal-edit-btn" id="journalEditBtn">Edit</button>' +
+          '<button class="btn-primary journal-edit-save hidden" id="journalEditSave">Save changes</button>' +
+          '<button class="btn-secondary journal-edit-cancel hidden" id="journalEditCancel">Cancel</button>' +
           '<button class="btn-secondary journal-delete-btn" data-id="' + entry.id + '">Delete</button>' +
+        '</div>' +
+        '<div class="journal-detail-secondary-actions">' +
+          shareHTML +
+          '<button class="journal-bring-to-alo-btn" id="journalBringToAlo">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
+            ' Bring this to Alo' +
+          '</button>' +
         '</div>'
       , {
         confirmLabel: 'Close',
         showCancel: false
       });
 
-      // Wire up delete button
+      // --- Wire up Edit ---
+      var editBtn = document.getElementById('journalEditBtn');
+      var editSave = document.getElementById('journalEditSave');
+      var editCancel = document.getElementById('journalEditCancel');
+      var contentDiv = document.getElementById('journalDetailContent');
+      var editArea = document.getElementById('journalEditTextarea');
+
+      if (editBtn) {
+        editBtn.addEventListener('click', function() {
+          contentDiv.classList.add('hidden');
+          editArea.classList.remove('hidden');
+          editBtn.classList.add('hidden');
+          editSave.classList.remove('hidden');
+          editCancel.classList.remove('hidden');
+          editArea.focus();
+          editArea.style.height = 'auto';
+          editArea.style.height = Math.min(editArea.scrollHeight, 300) + 'px';
+        });
+      }
+
+      if (editCancel) {
+        editCancel.addEventListener('click', function() {
+          editArea.value = entry.content;
+          editArea.classList.add('hidden');
+          contentDiv.classList.remove('hidden');
+          editBtn.classList.remove('hidden');
+          editSave.classList.add('hidden');
+          editCancel.classList.add('hidden');
+        });
+      }
+
+      if (editSave) {
+        editSave.addEventListener('click', async function() {
+          var newContent = editArea.value.trim();
+          if (!newContent) { showToast('Entry cannot be empty'); return; }
+
+          editSave.disabled = true;
+          editSave.textContent = 'Saving...';
+
+          try {
+            var newTitle = newContent.substring(0, 60);
+            if (newContent.length > 60) newTitle += '...';
+
+            await api('/rest/v1/journal_entries?id=eq.' + entry.id, 'PATCH', {
+              content: newContent,
+              title: newTitle
+            });
+
+            entry.content = newContent;
+            entry.title = newTitle;
+            contentDiv.innerHTML = esc(newContent).replace(/\n/g, '<br>');
+
+            editArea.classList.add('hidden');
+            contentDiv.classList.remove('hidden');
+            editBtn.classList.remove('hidden');
+            editSave.classList.add('hidden');
+            editCancel.classList.add('hidden');
+            editSave.disabled = false;
+            editSave.textContent = 'Save changes';
+
+            showToast('Entry updated');
+            loadJournalEntries();
+          } catch (err) {
+            console.error('[Journal] Edit save failed:', err);
+            showToast('Could not save. Try again.');
+            editSave.disabled = false;
+            editSave.textContent = 'Save changes';
+          }
+        });
+      }
+
+      // --- Wire up Delete ---
       var deleteBtn = document.querySelector('.journal-delete-btn[data-id="' + entry.id + '"]');
       if (deleteBtn) {
         deleteBtn.addEventListener('click', async function() {
@@ -2799,6 +2898,106 @@ async function togglePin(conversationId) {
             showToast('Could not delete. Try again.');
           }
         });
+      }
+
+      // --- Wire up Share Toggle ---
+      var shareBtn = document.getElementById('journalShareToggle');
+      if (shareBtn) {
+        shareBtn.addEventListener('click', async function() {
+          if (isShared) {
+            // Revoke share
+            try {
+              await api('/rest/v1/journal_entries?id=eq.' + entry.id, 'PATCH', { shared_with_therapist: false });
+              isShared = false;
+              entry.shared_with_therapist = false;
+              shareBtn.className = 'journal-share-btn';
+              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg> Share with therapist';
+              showToast('Share revoked');
+            } catch (err) {
+              showToast('Could not update. Try again.');
+            }
+          } else {
+            // Confirm then share
+            var therapistName = connectedTherapistName || 'your therapist';
+            var confirmed = await showConfirm('Share this entry?', therapistName + ' will be able to see this entry. You can revoke anytime.', {
+              confirmLabel: 'Share',
+              cancelLabel: 'Not now'
+            });
+            if (!confirmed) return;
+
+            try {
+              await api('/rest/v1/journal_entries?id=eq.' + entry.id, 'PATCH', { shared_with_therapist: true });
+              isShared = true;
+              entry.shared_with_therapist = true;
+              shareBtn.className = 'journal-share-btn shared';
+              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Shared with therapist';
+              showToast('Entry shared');
+            } catch (err) {
+              showToast('Could not share. Try again.');
+            }
+          }
+        });
+      }
+
+      // --- Wire up Bring this to Alo ---
+      var bringBtn = document.getElementById('journalBringToAlo');
+      if (bringBtn) {
+        bringBtn.addEventListener('click', function() {
+          sessionStorage.setItem('alo_journal_inject', entry.content);
+          document.querySelector('.modal-overlay')?.remove();
+          switchTab('chat');
+
+          // Send entry content to Botpress via updateUser so Init_State can pick it up
+          if (window.botpress) {
+            window.botpress.updateUser({
+              data: { journalInject: entry.content }
+            });
+            console.log('[Journal] Sent entry to Botpress via updateUser');
+          }
+
+          showToast('Bringing your entry to Alo...');
+        });
+      }
+    }
+
+    // =====================================================
+    // JOURNAL — Post-save safety keyword check
+    // =====================================================
+    // Tier A + B keywords from Botpress Safety_Check node.
+    // Client-side only. No data sent. Zero-knowledge preserved.
+    var SAFETY_KEYWORDS = [
+      'kill myself', 'end my life', 'suicide', 'going to kill', 'going to end',
+      'got a plan', 'have a plan', 'made a plan', 'tonight i', 'right now i',
+      'going to do it', 'about to do it', 'ready to do it', 'not safe', 'unsafe with myself',
+      'want to die', 'wish i was dead', 'wish i were dead', 'better off dead',
+      "don't want to live", "can't go on", "can't take", "can't do this",
+      'no way out', 'no reason to', 'nothing to live for', 'everyone better without',
+      'world better without', 'no point in', 'give up on life', 'end it all',
+      'make it stop', 'make the pain stop'
+    ];
+
+    function checkJournalSafety(content) {
+      var lower = content.toLowerCase();
+      return SAFETY_KEYWORDS.some(function(kw) { return lower.includes(kw); });
+    }
+
+    function showSafetyBanner() {
+      var existing = document.getElementById('journalSafetyBanner');
+      if (existing) return; // Only show once per session
+
+      var banner = document.createElement('div');
+      banner.id = 'journalSafetyBanner';
+      banner.className = 'journal-safety-banner';
+      banner.innerHTML = '<div class="journal-safety-content">' +
+        '<span>If this feels heavy, you can talk to Alo or reach someone at </span>' +
+        '<a href="tel:988"><strong>988</strong></a>' +
+        '<span> anytime.</span>' +
+        '</div>' +
+        '<button class="journal-safety-dismiss" aria-label="Dismiss" onclick="this.parentElement.remove()">&times;</button>';
+
+      var composer = document.querySelector('.journal-composer');
+      if (composer) {
+        composer.parentNode.insertBefore(banner, composer.nextSibling);
       }
     }
 
