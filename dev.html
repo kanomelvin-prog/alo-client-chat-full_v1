@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <!-- v3.0 — Feb 27, 2026 — Conversation persistence + thread sidebar -->
 <!-- Changes: Teal-blue color palette, light/dark mode toggle,
@@ -24,12 +25,12 @@
         if (meta) meta.content = saved === 'dark' ? '#111917' : '#F3EDE4';
       }
     })();
-  
+  </script>
   
   <!-- Botpress JS SDK -->
   <link rel="preconnect" href="https://cdn.botpress.cloud">
   <link rel="preconnect" href="https://files.bpcontent.cloud">
-  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js">
+  <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script>
   
   <!-- Open Graph — link preview when therapist texts URL to client -->
   <meta property="og:title" content="Alowen — Someone to think out loud with">
@@ -327,7 +328,7 @@
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <script>
     // =====================================================
     // CONFIG
@@ -2806,44 +2807,12 @@ window.botpress.on('webchat:closed', function() {
         // Guest: show benefits card after brief delay
         setTimeout(function() { showGuestBenefitsCard(); }, 2000);
       }
-   });
+    });
+  </script>
 
-    // ============================================================================
-    // TEMPORARY TEST — Iframe hide/show survival check
-    // Remove after confirming iframe survives toggle
-    // ============================================================================
-    (function() {
-      var testBtn = document.createElement('button');
-      testBtn.textContent = 'Toggle Iframe';
-      testBtn.style.cssText = 'position:fixed;bottom:80px;right:16px;z-index:9999;padding:10px 16px;background:#3A7C86;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;';
-      document.body.appendChild(testBtn);
-
-      var iframeHidden = false;
-      var webchatEl = null;
-
-      testBtn.addEventListener('click', function() {
-        if (!webchatEl) webchatEl = document.querySelector('.bpWebchat');
-        if (!webchatEl) { console.warn('[Test] .bpWebchat not found'); return; }
-
-        if (iframeHidden) {
-          webchatEl.style.visibility = 'visible';
-          webchatEl.style.position = 'fixed';
-          webchatEl.style.height = '';
-          webchatEl.style.overflow = '';
-          window.dispatchEvent(new Event('resize'));
-          testBtn.textContent = 'Toggle Iframe (visible)';
-          console.log('[Test] Iframe SHOWN');
-        } else {
-          webchatEl.style.visibility = 'hidden';
-          webchatEl.style.position = 'absolute';
-          webchatEl.style.height = '0';
-          webchatEl.style.overflow = 'hidden';
-          testBtn.textContent = 'Toggle Iframe (hidden)';
-          console.log('[Test] Iframe HIDDEN');
-        }
-        iframeHidden = !iframeHidden;
-      });
-    })();
-
-    </body>
+  <!-- TEMPORARY TEST — Remove after confirming iframe survives toggle -->
+  <script>
+    (function(){var b=document.createElement('button');b.textContent='Toggle Iframe';b.style.cssText='position:fixed;bottom:80px;right:16px;z-index:9999;padding:10px 16px;background:#3A7C86;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;';document.body.appendChild(b);var h=false,w=null;b.onclick=function(){if(!w)w=document.querySelector('.bpWebchat');if(!w)return;if(h){w.style.visibility='visible';w.style.position='fixed';w.style.height='';w.style.overflow='';window.dispatchEvent(new Event('resize'));b.textContent='Toggle (visible)';}else{w.style.visibility='hidden';w.style.position='absolute';w.style.height='0';w.style.overflow='hidden';b.textContent='Toggle (hidden)';}h=!h;};})();
+  </script>
+</body>
 </html>
