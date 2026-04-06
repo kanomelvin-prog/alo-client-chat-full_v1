@@ -415,6 +415,8 @@
     // Tab bar & journal state
     let activeTab = 'chat';
     var positionWebchatFn = null;
+    var botpressReady = false;
+    var pendingJournalInject = null;
 
     // Journal prompt bank (14 general + 2 therapy-conditional)
     var journalPrompts = [
@@ -2478,18 +2480,24 @@ async function togglePin(conversationId) {
       }
     }
 
-    async function startNewConversation() {
-      const confirmed = await showConfirm(
-        'Start new conversation?',
-        'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
-        { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
-      );
-      if (!confirmed) return;
+    async function startNewConversation(skipConfirm) {
+      if (!skipConfirm) {
+        const confirmed = await showConfirm(
+          'Start new conversation?',
+          'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
+          { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
+        );
+        if (!confirmed) return;
+      }
 
       isPrivateSession = false;
       updateMemoryUI();
       resetPersistenceState();
-      toggleThreadSidebar();
+      botpressReady = false;
+
+      // Only toggle sidebar if it's open
+      var sidebar = document.getElementById('threadSidebar');
+      if (sidebar && sidebar.classList.contains('open')) toggleThreadSidebar();
       
       const aloFrame = document.getElementById('aloFrame');
       const chatContainer = document.querySelector('.chat-container');
@@ -2519,25 +2527,28 @@ async function togglePin(conversationId) {
       });
 
       var reinitCheck = setInterval(function() {
-        if (window.botpress) {
+        if (botpressReady && window.botpress) {
           try {
             window.botpress.open();
-            var webchatIframe = document.querySelector('.bpWebchat');
-            if (chatContainer && webchatIframe) {
-              chatContainer.appendChild(webchatIframe);
-            }
             if (clientId) {
               var hwSummary = activeHomework.length > 0
                 ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
                 : [];
-              window.botpress.updateUser({
-                data: {
-                  sessionNonce: sessionNonce,
-                  clientId: clientId,
-                  homeworkActive: JSON.stringify(hwSummary)
-                }
-              });
+              var userData = {
+                sessionNonce: sessionNonce,
+                clientId: clientId,
+                homeworkActive: JSON.stringify(hwSummary),
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+              };
+              // Include journal inject if pending
+              if (pendingJournalInject) {
+                userData.journalInject = pendingJournalInject;
+                console.log('[Journal] Included journal inject in new conversation');
+                pendingJournalInject = null;
+              }
+              window.botpress.updateUser({ data: userData });
             }
+            authBridgeSent = false;
             sendAuthBridge();
             clearInterval(reinitCheck);
           } catch (e) {
@@ -2943,69 +2954,11 @@ async function togglePin(conversationId) {
       var bringBtn = document.getElementById('journalBringToAlo');
       if (bringBtn) {
         bringBtn.addEventListener('click', function() {
-          var journalContent = entry.content;
+          pendingJournalInject = entry.content;
           document.querySelector('.modal-overlay')?.remove();
           switchTab('chat');
           showToast('Starting a conversation about your entry...');
-
-          // Start a fresh conversation so Init_State fires with journal content
-          isPrivateSession = false;
-          updateMemoryUI();
-          resetPersistenceState();
-
-          var existingWebchat = document.querySelector('.bpWebchat');
-          if (existingWebchat) existingWebchat.remove();
-
-          window.botpress.init({
-            botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
-            clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
-            selector: '#aloFrame',
-            configuration: {
-              version: 'v2',
-              botName: ' ',
-              botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
-              botDescription: '',
-              color: '#3A7C86',
-              variant: 'soft',
-              headerVariant: 'glass',
-              themeMode: getEffectiveTheme(),
-              fontFamily: 'inter',
-              radius: 1,
-              feedbackEnabled: false,
-              soundEnabled: false,
-              conversationHistory: false
-            }
-          });
-
-          var reinitCheck = setInterval(function() {
-            if (window.botpress) {
-              try {
-                window.botpress.open();
-                if (clientId) {
-                  var hwSummary = activeHomework.length > 0
-                    ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
-                    : [];
-                  window.botpress.updateUser({
-                    data: {
-                      sessionNonce: sessionNonce,
-                      clientId: clientId,
-                      homeworkActive: JSON.stringify(hwSummary),
-                      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                      journalInject: journalContent
-                    }
-                  });
-                  console.log('[Journal] Sent entry to Botpress via updateUser for new conversation');
-                }
-                authBridgeSent = false;
-                sendAuthBridge();
-                clearInterval(reinitCheck);
-              } catch (e) {
-                // Not ready yet
-              }
-            }
-          }, 200);
-
-          setTimeout(function() { clearInterval(reinitCheck); }, 5000);
+          startNewConversation(true);
         });
       }
     }
@@ -3087,7 +3040,7 @@ async function togglePin(conversationId) {
         }
       });
 
-      var botpressReady = false;
+      // botpressReady is declared in global scope for reset on re-init
       window.botpress.on('webchat:initialized', function() {
         if (botpressReady) return;
         botpressReady = true;
