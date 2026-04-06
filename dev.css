@@ -1,14 +1,14 @@
 /* ============================================================
    ALO CLIENT CHAT v3.1
    Design: Teal-blue thinking partner (calm + focus palette)
-   Updated: Mar 3, 2026 â€” Experience physics + accessibility
+   Updated: Mar 3, 2026 — Experience physics + accessibility
    Changes: Spring easing system (damped, not bouncy), button press
             physics, modal spring + backdrop blur, sidebar deceleration,
             toast spring, breathing pulse loader, hover isolation
             (fixes Android sticky hover), transition:all eliminated,
             .sr-only utility, loading crossfade, touch target fix,
             all hover states behind @media (hover: hover)
-   Previous: v3.0 â€” Color palette overhaul + dark mode (Feb 23)
+   Previous: v3.0 — Color palette overhaul + dark mode (Feb 23)
    ============================================================ */
 
 /* === LIGHT MODE (default) === */
@@ -24,14 +24,14 @@
   --border-visible: rgba(58, 124, 134, 0.22);
   --border-color: rgba(58, 124, 134, 0.22);
   
-  /* Primary brand â€” teal-blue */
+  /* Primary brand — teal-blue */
   --primary: #3A7C86;
   --primary-light: #E0EDEB;
   --primary-hover: #2D6B74;
   --primary-dark: #264038;
   --primary-glow: rgba(58, 124, 134, 0.12);
   
-  /* Warm accent â€” clay terracotta */
+  /* Warm accent — clay terracotta */
   --accent: #C7865F;
   --accent-hover: #B57550;
   --accent-light: rgba(199, 134, 95, 0.10);
@@ -72,8 +72,8 @@
   --spinner-track: rgba(58, 124, 134, 0.12);
   --spinner-head: var(--primary);
 
-  /* Physics-based easing â€” calibrated for emotional support context
-     "Weighted blanket, not rubber ball" â€” damped, grounded, settling */
+  /* Physics-based easing — calibrated for emotional support context
+     "Weighted blanket, not rubber ball" — damped, grounded, settling */
   --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
   --ease-spring-soft: cubic-bezier(0.25, 1.0, 0.5, 1);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -189,7 +189,7 @@
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* GPU hints â€” ONLY on elements that actually animate */
+/* GPU hints — ONLY on elements that actually animate */
 .thread-sidebar { will-change: transform; }
 .modal-content { will-change: transform, opacity; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -557,7 +557,7 @@ button:active {
 }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Icon buttons â€” compact press */
+/* Icon buttons — compact press */
 .theme-toggle:active,
 .threads-btn:active,
 .memory-icon-btn:active,
@@ -743,7 +743,7 @@ main {
   background: var(--chat-bg);
 }
 
-/* Botpress JS SDK â€” fill chat-container, hide floating bubble
+/* Botpress JS SDK — fill chat-container, hide floating bubble
    Botpress appends iframes to <body>, not inside #aloFrame,
    so selectors must be global. We position the webchat iframe
    to cover .chat-container using fixed positioning calculated
@@ -1389,7 +1389,7 @@ footer a {
 /* === FOCUS & ACCESSIBILITY === */
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 
-/* Screen reader only â€” visually hidden, announced by assistive tech */
+/* Screen reader only — visually hidden, announced by assistive tech */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1402,7 +1402,7 @@ footer a {
   border: 0;
 }
 
-/* === HOVER STATES â€” Desktop mouse only ===
+/* === HOVER STATES — Desktop mouse only ===
    Prevents Android "sticky hover" on tap.
    Touch feedback handled by :active states above.
    ============================================ */
@@ -1664,7 +1664,7 @@ footer a {
 
 /* ============================================================
    THREAD SIDEBAR + MEMORY FEATURES
-   Added: Feb 25, 2026 â€” Conversation history + memory toggle
+   Added: Feb 25, 2026 — Conversation history + memory toggle
    ============================================================ */
 
 /* === THREAD SIDEBAR === */
@@ -1988,7 +1988,7 @@ footer a {
 }
 /* ============================================================
    MEMORY ICON, POPOVER, PRIVATE SESSION, ONBOARDING
-   Added: Post v1.4 â€” Opt-in memory UX
+   Added: Post v1.4 — Opt-in memory UX
    ============================================================ */
 
 /* === HEADER MEMORY ICON === */
@@ -2240,7 +2240,7 @@ footer a {
   font-size: 13px;
 }
 
-/* === MORE MENU â€” MEMORY SETTINGS SECTION === */
+/* === MORE MENU — MEMORY SETTINGS SECTION === */
 .more-menu-settings {
   padding: 10px 14px;
 }
@@ -2376,7 +2376,7 @@ footer a {
   flex-shrink: 0;
 }
 /* ============================================================
-   CONVERSATION LIFECYCLE â€” Pin, sections, clear history
+   CONVERSATION LIFECYCLE — Pin, sections, clear history
    Added: Feb 28, 2026
    ============================================================ */
 
@@ -2467,7 +2467,7 @@ footer a {
 }
 
 /* ============================================================
-   TRANSCRIPT MODAL â€” Pin + Share header, share bottom sheet
+   TRANSCRIPT MODAL — Pin + Share header, share bottom sheet
    Added: Feb 28, 2026
    ============================================================ */
 
@@ -2477,7 +2477,7 @@ footer a {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding-right: 36px; /* leave room for âœ• close button */
+  padding-right: 36px; /* leave room for ✕ close button */
 }
 
 .transcript-title-block {
@@ -2534,7 +2534,7 @@ footer a {
   color: var(--primary);
 }
 
-/* Share bottom sheet â€” appears inside modal body */
+/* Share bottom sheet — appears inside modal body */
 .transcript-share-sheet {
   margin-top: 16px;
   padding: 16px;
@@ -2850,8 +2850,8 @@ footer a {
 }
 
 /* ============================================================
-   JOURNAL FEATURE â€” Tab bar, container, empty state, entries
-   Added: Apr 6, 2026 â€” Phase 1 (Foundation + CRUD)
+   JOURNAL FEATURE — Tab bar, container, empty state, entries
+   Added: Apr 6, 2026 — Phase 1 (Foundation + CRUD)
    ============================================================ */
 
 /* === TAB BAR === */
@@ -3225,15 +3225,19 @@ footer a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--primary-light);
+  background: var(--surface);
   border: 1px solid var(--primary);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--primary-dark);
+  color: var(--primary);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.journal-bring-to-alo-btn svg {
+  stroke: var(--primary);
 }
 
 @media (hover: hover) {
@@ -3317,8 +3321,4 @@ footer a {
 
 [data-theme="dark"] .journal-safety-banner {
   background: var(--surface);
-}
-
-[data-theme="dark"] .journal-bring-to-alo-btn {
-  color: var(--primary);
 }
