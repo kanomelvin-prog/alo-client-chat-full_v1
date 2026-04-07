@@ -2910,14 +2910,15 @@ async function togglePin(conversationId) {
           document.querySelector('.modal-overlay')?.remove();
           switchTab('chat');
           showToast('Starting a new conversation...');
-          await startNewConversation(true);
+                    await startNewConversation(true);
+
+          // Wait for new conversation to be fully ready before sending
+          await new Promise(function(resolve) { setTimeout(resolve, 1500); });
 
           // Send the journal entry as the user's first message.
-          // This triggers Init_State (turnCount === 1), which loads
-          // memory + journal context from Supabase. Alo sees both
-          // the full journal context AND this specific entry.
           try {
             await window.botpress.sendMessage(entryContent);
+
             console.log('[Alo] Journal entry sent as first message');
           } catch (e) {
             console.warn('[Alo] sendMessage after restart failed:', e);
