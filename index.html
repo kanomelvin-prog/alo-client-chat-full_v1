@@ -3023,10 +3023,8 @@ async function togglePin(conversationId) {
           return;
         }
 
-                function positionWebchat() {
-          if (activeTab !== 'chat') return;
+        function positionWebchat() {
           var rect = chatContainer.getBoundingClientRect();
-
           var top = rect.top;
           var height = rect.height;
           var width = rect.width;
