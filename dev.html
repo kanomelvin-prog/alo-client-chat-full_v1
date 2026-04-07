@@ -2479,7 +2479,7 @@ async function togglePin(conversationId) {
       }
     }
 
-    async function startNewConversation(skipConfirm) {
+   async function startNewConversation(skipConfirm) {
       if (!skipConfirm) {
         const confirmed = await showConfirm(
           'Start new conversation?',
@@ -2496,63 +2496,20 @@ async function togglePin(conversationId) {
       // Only toggle sidebar if it's open
       var sidebar = document.getElementById('threadSidebar');
       if (sidebar && sidebar.classList.contains('open')) toggleThreadSidebar();
-      
-      const aloFrame = document.getElementById('aloFrame');
-      const chatContainer = document.querySelector('.chat-container');
-      
-      const existingWebchat = document.querySelector('.bpWebchat');
-      if (existingWebchat) existingWebchat.remove();
-      
-      botpressReady = false;
 
-      window.botpress.init({
-        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
-        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
-        selector: '#aloFrame',
-        configuration: {
-          version: 'v2',
-          botName: ' ',
-          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
-          botDescription: '',
-          color: '#3A7C86',
-          variant: 'soft',
-          headerVariant: 'glass',
-          themeMode: getEffectiveTheme(),
-          fontFamily: 'inter',
-          radius: 1,
-          feedbackEnabled: false,
-          soundEnabled: false,
-          conversationHistory: false
-        }
-      });
+      try {
+        await window.botpress.restartConversation();
+        console.log('[Alo] New conversation started via restartConversation()');
+      } catch (e) {
+        console.error('[Alo] restartConversation failed, reloading page:', e);
+        window.location.reload();
+        return;
+      }
 
-      var reinitCheck = setInterval(function() {
-        if (window.botpress) {
-          try {
-            window.botpress.open();
-            if (clientId) {
-              var hwSummary = activeHomework.length > 0
-                ? activeHomework.map(function(h) { return { title: h.title, type: h.homework_type, goal: h.goal }; })
-                : [];
-              window.botpress.updateUser({
-                data: {
-                  sessionNonce: sessionNonce,
-                  clientId: clientId,
-                  homeworkActive: JSON.stringify(hwSummary),
-                  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                }
-              });
-            }
-            authBridgeSent = false;
-            sendAuthBridge();
-            clearInterval(reinitCheck);
-          } catch (e) {
-            // Not ready yet
-          }
-        }
-      }, 200);
-
-      setTimeout(function() { clearInterval(reinitCheck); }, 5000);
+      // Identity data persists across restart (confirmed via testing).
+      // Re-send auth bridge for the new conversation's server-side flow.
+      authBridgeSent = false;
+      sendAuthBridge();
     }
 
     function checkGuestMemoryPrompt() {
@@ -2948,14 +2905,25 @@ async function togglePin(conversationId) {
       // --- Wire up Bring this to Alo ---
       var bringBtn = document.getElementById('journalBringToAlo');
       if (bringBtn) {
-        bringBtn.addEventListener('click', function() {
+        bringBtn.addEventListener('click', async function() {
+          var entryContent = entry.content;
           document.querySelector('.modal-overlay')?.remove();
           switchTab('chat');
           showToast('Starting a new conversation...');
-          startNewConversation(true);
+          await startNewConversation(true);
+
+          // Send the journal entry as the user's first message.
+          // This triggers Init_State (turnCount === 1), which loads
+          // memory + journal context from Supabase. Alo sees both
+          // the full journal context AND this specific entry.
+          try {
+            await window.botpress.sendMessage(entryContent);
+            console.log('[Alo] Journal entry sent as first message');
+          } catch (e) {
+            console.warn('[Alo] sendMessage after restart failed:', e);
+          }
         });
       }
-    }
 
     // =====================================================
     // JOURNAL — Post-save safety keyword check
