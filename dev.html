@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=6">
 </head>
 
 <body>
@@ -2551,10 +2551,14 @@ async function togglePin(conversationId) {
         if (chatContainer) chatContainer.style.display = 'none';
         if (homeworkContainer) homeworkContainer.style.display = 'none';
         if (webchatEl) {
-          webchatEl.style.visibility = 'hidden';
-          webchatEl.style.position = 'absolute';
-          webchatEl.style.height = '0';
-          webchatEl.style.overflow = 'hidden';
+          // Must use cssText with !important to override positionWebchat's !important declarations
+          webchatEl.style.cssText =
+            'visibility:hidden!important;' +
+            'position:absolute!important;' +
+            'width:0!important;' +
+            'height:0!important;' +
+            'overflow:hidden!important;' +
+            'pointer-events:none!important;';
         }
         if (journalContainer) journalContainer.classList.remove('hidden');
         initJournalView();
@@ -2567,10 +2571,8 @@ async function togglePin(conversationId) {
           homeworkContainer.style.display = '';
         }
         if (webchatEl) {
-          webchatEl.style.visibility = 'visible';
-          webchatEl.style.position = 'fixed';
-          webchatEl.style.height = '';
-          webchatEl.style.overflow = '';
+          // Clear then let positionWebchat rebuild via resize event
+          webchatEl.style.cssText = '';
           window.dispatchEvent(new Event('resize'));
         }
       }
@@ -3024,6 +3026,7 @@ async function togglePin(conversationId) {
         }
 
         function positionWebchat() {
+          if (activeTab !== 'chat') return;
           var rect = chatContainer.getBoundingClientRect();
           var top = rect.top;
           var height = rect.height;
