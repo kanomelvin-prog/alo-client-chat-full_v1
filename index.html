@@ -3026,6 +3026,7 @@ async function togglePin(conversationId) {
         }
 
         function positionWebchat() {
+          if (activeTab !== 'chat') return;
           var rect = chatContainer.getBoundingClientRect();
           var top = rect.top;
           var height = rect.height;
