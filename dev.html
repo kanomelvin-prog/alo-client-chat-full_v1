@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=7">
+  <link rel="stylesheet" href="dev.css?v=8">
 </head>
 
 <body>
@@ -179,6 +179,12 @@
           <p>Alo doesn't store your conversations word for word. When memory is on, it keeps brief notes — just enough to pick up where you left off next time.</p>
           <p>You're always in control: turn memory off, go private for a session, or ask Alo to forget something.</p>
           <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory is available when you're signed in. Guests start fresh every visit.</p>
+        </section>
+
+        <section class="about-section">
+          <h3>Your Journal</h3>
+          <p>Journal entries are private by default. You choose what to share. Your therapist can only see entries you explicitly share — and you can revoke sharing at any time.</p>
+          <p>Alo may reference your journal entries naturally in conversation to provide better continuity, but never comments on the act of journaling itself.</p>
         </section>
 
         <section class="about-section" style="border-top: none; padding-top: 0;">
@@ -2637,6 +2643,17 @@ async function togglePin(conversationId) {
           textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
         });
 
+        // Focus writing mode
+        textarea.addEventListener('focus', function() {
+          document.body.classList.add('journal-focus-mode');
+        });
+
+        textarea.addEventListener('blur', function() {
+          setTimeout(function() {
+            document.body.classList.remove('journal-focus-mode');
+          }, 150);
+        });
+
         saveBtn.addEventListener('click', async function() {
           var content = textarea.value.trim();
           if (!content || !clientId) return;
@@ -2661,7 +2678,7 @@ async function togglePin(conversationId) {
             textarea.value = '';
             textarea.style.height = '';
             saveBtn.textContent = 'Save';
-            showToast('Entry saved');
+            showToast('Saved');
             showNextPrompt();
             loadJournalEntries();
 
@@ -2687,7 +2704,7 @@ async function togglePin(conversationId) {
       if (!clientId) return;
 
       try {
-        var entries = await api('/rest/v1/journal_entries?client_id=eq.' + clientId + '&order=is_pinned.desc,created_at.desc&limit=50');
+        var entries = await api('/rest/v1/journal_entries?client_id=eq.' + clientId + '&order=created_at.desc&limit=50');
         var timeline = document.getElementById('journalTimeline');
         var emptyState = document.getElementById('journalEmptyState');
 
@@ -2698,43 +2715,81 @@ async function togglePin(conversationId) {
           return;
         }
 
-        // Track newest entry timestamp for badge detection
         lastJournalNewestTimestamp = entries[0].created_at;
 
-        // Hide empty state title, keep composer visible
         if (emptyState) emptyState.style.display = 'none';
         if (timeline) {
           timeline.classList.remove('hidden');
-          timeline.innerHTML = '<div class="journal-timeline-header">Your entries</div>' +
-            entries.map(function(entry) {
-              var date = new Date(entry.created_at);
-              var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              var isAlo = entry.source === 'alo';
-              var badge = isAlo ? '<span class="journal-entry-badge">From your conversation</span>' : '';
-              var preview = (entry.content || '').substring(0, 120);
-              if ((entry.content || '').length > 120) preview += '...';
-              var pinnedClass = entry.is_pinned ? ' pinned' : '';
-              var aloClass = isAlo ? ' alo-generated' : '';
 
-              return '<div class="journal-entry-card' + pinnedClass + aloClass + '" data-id="' + entry.id + '">' +
-                '<div class="journal-entry-header">' +
-                  '<span class="journal-entry-date">' + dateStr + '</span>' +
-                  badge +
-                '</div>' +
-                '<div class="journal-entry-preview">' + esc(preview) + '</div>' +
-              '</div>';
-            }).join('');
+          var pinned = entries.filter(function(e) { return e.is_pinned; });
+          var unpinned = entries.filter(function(e) { return !e.is_pinned; });
 
-          // Tap to view detail (placeholder for Phase 2)
+          var html = '';
+
+          if (pinned.length > 0) {
+            html += '<div class="journal-pinned-section" id="journalPinnedSection">';
+            html += '<div class="journal-pinned-header">';
+            html += '<span>Pinned (' + pinned.length + ')</span>';
+            html += '<button class="journal-pinned-toggle" onclick="togglePinnedSection()" aria-label="Toggle pinned section">';
+            html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+            html += '</button>';
+            html += '</div>';
+            html += '<div class="journal-pinned-entries">';
+            html += pinned.map(function(entry) { return renderEntryCard(entry); }).join('');
+            html += '</div>';
+            html += '</div>';
+            html += '<div class="journal-pinned-divider"></div>';
+          }
+
+          if (unpinned.length > 0) {
+            if (pinned.length > 0) {
+              html += '<div class="journal-recent-header">Recent</div>';
+            }
+            html += unpinned.map(function(entry) { return renderEntryCard(entry); }).join('');
+          }
+
+          timeline.innerHTML = html;
+
+          var allEntries = entries;
           timeline.querySelectorAll('.journal-entry-card').forEach(function(card) {
             card.addEventListener('click', function() {
-              viewJournalEntry(this.dataset.id, entries);
+              viewJournalEntry(this.dataset.id, allEntries);
             });
           });
         }
       } catch (err) {
         console.error('[Journal] Load failed:', err);
       }
+    }
+
+    function renderEntryCard(entry) {
+      var date = new Date(entry.created_at);
+      var dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      var isAlo = entry.source === 'alo';
+      var badge = isAlo ? '<span class="journal-entry-badge">From your conversation</span>' : '';
+      var preview = (entry.content || '').substring(0, 120);
+      if ((entry.content || '').length > 120) preview += '...';
+      var pinnedClass = entry.is_pinned ? ' pinned' : '';
+      var aloClass = isAlo ? ' alo-generated' : '';
+
+      var sharedBadge = '';
+      if (entry.shared_with_therapist && connectedTherapistName) {
+        sharedBadge = '<span class="journal-entry-badge journal-shared-badge">Shared with ' + esc(connectedTherapistName) + '</span>';
+      }
+
+      return '<div class="journal-entry-card' + pinnedClass + aloClass + '" data-id="' + entry.id + '">' +
+        '<div class="journal-entry-header">' +
+          '<span class="journal-entry-date">' + dateStr + '</span>' +
+          badge +
+          sharedBadge +
+        '</div>' +
+        '<div class="journal-entry-preview">' + esc(preview) + '</div>' +
+      '</div>';
+    }
+
+    function togglePinnedSection() {
+      var section = document.getElementById('journalPinnedSection');
+      if (section) section.classList.toggle('collapsed');
     }
 
     function showJournalBadge() {
@@ -2868,7 +2923,7 @@ async function togglePin(conversationId) {
             editSave.disabled = false;
             editSave.textContent = 'Save changes';
 
-            showToast('Entry updated');
+            showToast('Updated');
             loadJournalEntries();
           } catch (err) {
             console.error('[Journal] Edit save failed:', err);
