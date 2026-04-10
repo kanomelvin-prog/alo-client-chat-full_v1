@@ -2867,6 +2867,7 @@ footer a {
 .tab-bar.hidden { display: none; }
 
 .tab-bar-btn {
+  position: relative;
   flex: 1 1 0%;
   display: flex;
   flex-direction: column;
@@ -2909,6 +2910,20 @@ footer a {
     stroke: var(--primary);
   }
 }
+
+/* === JOURNAL TAB BADGE === */
+.journal-tab-badge {
+  position: absolute;
+  top: 7px;
+  right: calc(50% - 18px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid var(--surface);
+  pointer-events: none;
+}
+.journal-tab-badge.hidden { display: none; }
 
 /* === JOURNAL CONTAINER === */
 .journal-container {
@@ -3184,6 +3199,18 @@ footer a {
 .journal-edit-btn.hidden,
 #journalDetailContent.hidden {
   display: none;
+}
+
+/* === JOURNAL PIN BUTTON === */
+.journal-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.journal-pin-btn.pinned {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-glow);
 }
 
 /* === JOURNAL SECONDARY ACTIONS (share, bring to alo) === */
