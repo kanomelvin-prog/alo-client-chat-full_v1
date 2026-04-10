@@ -3150,15 +3150,18 @@ footer a {
 .journal-detail-badge {
   font-size: 0.8125rem;
   color: var(--primary);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   font-style: italic;
+  opacity: 0.85;
 }
 
 .journal-detail-content {
-  font-size: 0.9375rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.85;
   color: var(--text-primary);
   white-space: pre-wrap;
+  letter-spacing: 0.005em;
+  padding: 4px 0;
 }
 
 .journal-detail-actions {
@@ -3348,4 +3351,124 @@ footer a {
 
 [data-theme="dark"] .journal-safety-banner {
   background: var(--surface);
+}
+
+/* ============================================================
+   JOURNAL ENHANCEMENTS — Pinned section, focus mode, badges
+   Added: Apr 10, 2026 — Review Synthesis v3 items
+   ============================================================ */
+
+/* === PINNED SECTION === */
+.journal-pinned-section {
+  margin-bottom: 8px;
+}
+
+.journal-pinned-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--warm-bg);
+  padding: 8px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.journal-pinned-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.journal-pinned-section.collapsed .journal-pinned-entries {
+  display: none;
+}
+
+.journal-pinned-section.collapsed .journal-pinned-toggle svg {
+  transform: rotate(-90deg);
+}
+
+.journal-pinned-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.journal-pinned-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0 12px;
+}
+
+.journal-entry-card.pinned {
+  box-shadow: 0 1px 3px var(--modal-shadow);
+}
+
+.journal-recent-header {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--warm-bg);
+  padding: 8px 0 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* === SHARED BADGE (timeline cards) === */
+.journal-shared-badge {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* === FOCUS WRITING MODE === */
+body.journal-focus-mode .journal-prompt-card {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+body.journal-focus-mode .journal-timeline,
+body.journal-focus-mode .journal-pinned-section,
+body.journal-focus-mode .journal-pinned-divider,
+body.journal-focus-mode .journal-recent-header,
+body.journal-focus-mode .journal-empty-state {
+  opacity: 0.15;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+body.journal-focus-mode .journal-textarea {
+  min-height: 160px;
+  transition: min-height 0.25s ease;
+}
+
+body.journal-focus-mode .tab-bar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+@media (min-width: 641px) {
+  body.journal-focus-mode .journal-textarea {
+    min-height: 200px;
+  }
 }
