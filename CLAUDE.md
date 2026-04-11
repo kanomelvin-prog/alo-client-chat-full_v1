@@ -42,11 +42,42 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
 - Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
 - Never send conversation content anywhere except through Botpress
-## Git Workflow
-- Always work on a feature branch, never directly on main
-- Commit message format: "chat: [what changed]"
-- Push to main triggers GitHub Pages deploy (allow 1-2 min)
-- Verify alowen.ai on actual iPhone after every deploy if possible
+## Working Rules
+
+### Git workflow
+- Work directly on `main`. No feature branches at this stage.
+- Solo developer, single-environment project. Branches add overhead without benefit.
+- Verify every push actually landed: after `git push`, run `git status` and `git log --oneline -3` to confirm the commit is on `origin/main`, not just locally.
+- Push to main triggers GitHub Pages deploy (allow 1-2 min). Verify alowen.ai on actual iPhone after every deploy if possible.
+
+### File discipline
+- This repo has a dev/production file split:
+  - `dev.html` + `dev.css` → tested at `alowen.ai/dev.html` (client repo) or `dashboard.alowen.ai/dev.html` (dashboard repo)
+  - `index.html` + `styles.css` → production, live immediately on push
+- **Never touch production files unless explicitly told to.** Every prompt should name the files to modify.
+- When copying dev to production, check whether `index.html` references a different CSS filename than `dev.html`. If `dev.html` references `dev.css?v=N` and `index.html` references `styles.css?v=N`, rewrite the stylesheet reference during the copy — do not blindly `cp dev.html index.html` without fixing this.
+- Always increment the cache buster version (`?v=N`) when CSS changes.
+
+### Commit messages
+- No required format. Plain descriptive messages are fine.
+- Examples of good messages:
+  - `Phase 1A: Share journal entry toggle + improved shared visibility`
+  - `Fix: timeline badge now refreshes immediately after share/revoke`
+  - `Dashboard: shared journal entries view for therapists`
+- Messages should describe what changed, not how.
+
+### Code safety
+- Scan for zero-width characters (U+200B, U+200C, U+200D, U+FEFF, U+2060) before every commit. One invisible character in inline JavaScript silently breaks the page. This is a known hazard with Claude-generated code.
+- Scan command: `grep -P "[\x{200B}\x{200C}\x{200D}\x{FEFF}\x{2060}]" dev.html dev.css` — should return nothing.
+
+### Schema changes
+- Supabase schema changes (ALTER TABLE, CREATE POLICY, etc.) run in Supabase SQL Editor by the developer, not by Claude Code.
+- If a change file includes schema changes, flag them as a prerequisite step and do not attempt to run them.
+
+### Security reminders
+- API keys and secrets never go in commits. The Supabase anon key in `dev.html`/`index.html` is the only exception — it's the public anon key and is designed to be exposed client-side.
+- Flag any other credential-looking strings before committing.
+- Flag any public vs. private access issues in plain language before making changes.
 ## What Claude Code Must Never Do
 - Do not modify Botpress conversation flows — those live in Botpress Studio
 - Do not modify the system prompt — that lives in Botpress Studio
