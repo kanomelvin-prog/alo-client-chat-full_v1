@@ -3239,9 +3239,25 @@ footer a {
 }
 
 .journal-share-btn.shared {
-  color: var(--primary);
+  color: #fff;
   border-color: var(--primary);
-  background: var(--primary-glow);
+  background: var(--primary);
+  font-weight: 600;
+}
+
+.journal-share-btn.shared svg {
+  stroke: #fff;
+}
+
+@media (hover: hover) {
+  .journal-share-btn.shared:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: #fff;
+  }
+  .journal-share-btn.shared:hover svg {
+    stroke: #fff;
+  }
 }
 
 @media (hover: hover) {
@@ -3431,12 +3447,12 @@ footer a {
 /* === SHARED BADGE (timeline cards) === */
 .journal-shared-badge {
   font-size: 0.6875rem;
-  color: var(--text-secondary);
-  background: var(--surface);
-  border: 1px solid var(--border-subtle);
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
   padding: 2px 8px;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* === FOCUS WRITING MODE === */

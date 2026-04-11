@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=8">
+  <link rel="stylesheet" href="dev.css?v=9">
 </head>
 
 <body>
@@ -1658,7 +1658,7 @@ function showGuestBenefitsCard() {
         const clientName = clientProfileName || therapistLabel || 'there';
 
         // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
-        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history`);
+        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history,allow_journal_sharing`);
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
@@ -2827,13 +2827,13 @@ async function togglePin(conversationId) {
       var badge = isAlo ? '<div class="journal-detail-badge">From your conversation on ' + dateStr + '</div>' : '';
       var isShared = !!entry.shared_with_therapist;
 
-      // Share toggle (only for therapist-connected users)
+      // Share toggle (only for therapist-connected users whose therapist allows journal sharing)
       var shareHTML = '';
-      if (therapistLink) {
+      if (therapistLink && chatSettings.allow_journal_sharing !== false) {
         var shareIcon = isShared
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>';
-        var shareLabel = isShared ? 'Shared with therapist' : 'Share with therapist';
+        var shareLabel = isShared ? 'Shared — tap to revoke' : 'Share with therapist';
         var shareClass = isShared ? 'journal-share-btn shared' : 'journal-share-btn';
         shareHTML = '<button class="' + shareClass + '" id="journalShareToggle">' + shareIcon + ' ' + shareLabel + '</button>';
       }
@@ -2993,6 +2993,7 @@ async function togglePin(conversationId) {
               shareBtn.className = 'journal-share-btn';
               shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg> Share with therapist';
               showToast('Share revoked');
+              loadJournalEntries();
             } catch (err) {
               showToast('Could not update. Try again.');
             }
@@ -3010,8 +3011,9 @@ async function togglePin(conversationId) {
               isShared = true;
               entry.shared_with_therapist = true;
               shareBtn.className = 'journal-share-btn shared';
-              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Shared with therapist';
+              shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Shared — tap to revoke';
               showToast('Entry shared');
+              loadJournalEntries();
             } catch (err) {
               showToast('Could not share. Try again.');
             }
