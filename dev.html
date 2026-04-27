@@ -43,7 +43,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=9">
+  <link rel="stylesheet" href="dev.css?v=10">
 </head>
 
 <body>
@@ -308,13 +308,17 @@
 
     <!-- Chat iframe -->
     <div class="chat-container">
+      <button id="privateChatBtn" class="private-chat-btn hidden" onclick="togglePrivateChatFromHeader()" aria-label="Start private chat" title="Start private chat — won't be saved">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <span class="private-chat-btn-label">Private chat</span>
+      </button>
       <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-message">
           <div class="spinner"></div>
           <p>Loading Alo...</p>
         </div>
       </div>
-      
+
       <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
     </div>
 
@@ -648,14 +652,16 @@
     // =====================================================
     async function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
-      
+
       badge.className = 'trust-badge';
       badge.innerHTML = '<span id="trustBadgeText">Logged in</span>';
-      
+
       // Show header icons: threads, memory, theme
       document.getElementById('threadsBtn').classList.remove('hidden');
       document.getElementById('memoryIconBtn').classList.remove('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
+      var pcBtn = document.getElementById('privateChatBtn');
+      if (pcBtn) pcBtn.classList.remove('hidden');
       await loadMemorySettings();
       
       // Show hamburger menu, hide guest auth button
@@ -851,9 +857,11 @@ function showGuestBenefitsCard() {
       const badgeText = document.getElementById('trustBadgeText');
       badge.className = 'trust-badge guest';
       badgeText.textContent = '';
-      
+
       // Hide threads button for guests
       document.getElementById('threadsBtn').classList.add('hidden');
+      var pcBtnGuest = document.getElementById('privateChatBtn');
+      if (pcBtnGuest) pcBtnGuest.classList.add('hidden');
       
       const svg = badge.querySelector('svg');
       if (svg) svg.remove();
@@ -1662,10 +1670,12 @@ function showGuestBenefitsCard() {
         chatSettings = settings?.[0] || {};
 
         showConnectedUI(therapistName, clientName);
-        
+
         // Show threads button and memory icon, load memory settings
         document.getElementById('threadsBtn').classList.remove('hidden');
         document.getElementById('memoryIconBtn').classList.remove('hidden');
+        var pcBtn2 = document.getElementById('privateChatBtn');
+        if (pcBtn2) pcBtn2.classList.remove('hidden');
         await loadMemorySettings();
         
         await loadHomework();
@@ -2377,6 +2387,16 @@ async function togglePin(conversationId) {
       if (banner) {
         banner.style.display = isPrivateSession ? 'flex' : 'none';
       }
+
+      // Chat container tint — peripheral-vision reminder of private state
+      var chatContainer = document.querySelector('.chat-container');
+      if (chatContainer) {
+        if (isPrivateSession) {
+          chatContainer.classList.add('private-mode');
+        } else {
+          chatContainer.classList.remove('private-mode');
+        }
+      }
     }
 
     // --- Memory popover ---
@@ -2431,7 +2451,12 @@ async function togglePin(conversationId) {
     function startPrivateSession() {
       isPrivateSession = true;
       updateMemoryUI();
-      toggleMemoryPopover();
+      updatePrivateChatBtn();
+      // Only close popover if it's open (this function is called from header button too)
+      var pop = document.getElementById('memoryPopover');
+      if (pop && !pop.classList.contains('hidden')) {
+        toggleMemoryPopover();
+      }
       showToast('Private session — this conversation won\'t be remembered');
 
       // Tell Botpress to skip memory for this conversation
@@ -2445,12 +2470,45 @@ async function togglePin(conversationId) {
     function endPrivateSession() {
       isPrivateSession = false;
       updateMemoryUI();
+      updatePrivateChatBtn();
       showToast('Private session ended');
 
       if (window.botpress) {
         window.botpress.updateUser({
           data: { privateSession: false }
         });
+      }
+    }
+
+    // Top-of-chat button: one-tap toggle.
+    // If memory is off globally, treat private mode as redundant and just toast a hint.
+    function togglePrivateChatFromHeader() {
+      if (isPrivateSession) {
+        endPrivateSession();
+      } else {
+        if (!memoryGlobalEnabled) {
+          showToast('Memory is already off — nothing is being remembered');
+          return;
+        }
+        startPrivateSession();
+      }
+    }
+
+    function updatePrivateChatBtn() {
+      var btn = document.getElementById('privateChatBtn');
+      if (!btn) return;
+      var label = btn.querySelector('.private-chat-btn-label');
+
+      if (isPrivateSession) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-label', 'End private chat');
+        btn.setAttribute('title', 'End private chat');
+        if (label) label.textContent = 'End private';
+      } else {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-label', 'Start private chat');
+        btn.setAttribute('title', "Start private chat — won't be saved");
+        if (label) label.textContent = 'Private chat';
       }
     }
 
@@ -2498,8 +2556,10 @@ async function togglePin(conversationId) {
         if (!confirmed) return;
       }
 
-      isPrivateSession = false;
-      updateMemoryUI();
+      // Cleanly exit private mode if active (informs Botpress, updates UI together)
+      if (isPrivateSession) {
+        endPrivateSession();
+      }
       resetPersistenceState();
 
       // Only toggle sidebar if it's open
@@ -2559,6 +2619,8 @@ async function togglePin(conversationId) {
         // Hide chat, show journal
         if (chatContainer) chatContainer.style.display = 'none';
         if (homeworkContainer) homeworkContainer.style.display = 'none';
+        var pcBtnTab = document.getElementById('privateChatBtn');
+        if (pcBtnTab) pcBtnTab.style.display = 'none';
         if (webchatEl) {
           // Must use cssText with !important to override positionWebchat's !important declarations
           webchatEl.style.cssText =
@@ -2580,6 +2642,8 @@ async function togglePin(conversationId) {
         if (homeworkContainer && homeworkContainer.innerHTML.trim()) {
           homeworkContainer.style.display = '';
         }
+        var pcBtnTab2 = document.getElementById('privateChatBtn');
+        if (pcBtnTab2 && clientId) pcBtnTab2.style.display = '';
         if (webchatEl) {
           // Clear then let positionWebchat rebuild via resize event
           webchatEl.style.cssText = '';

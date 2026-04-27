@@ -734,6 +734,89 @@ main {
   min-height: 0;
   position: relative;
   background: var(--warm-bg);
+  transition: background 0.3s var(--ease-spring-soft);
+}
+
+/* Private-mode tint — peripheral-vision reminder, not loud.
+   Uses accent color (warm clay) at very low opacity so it reads as
+   "different state" without being alarming. */
+.chat-container.private-mode {
+  background: linear-gradient(180deg, var(--accent-light) 0%, var(--warm-bg) 60%);
+}
+
+[data-theme="dark"] .chat-container.private-mode {
+  background: linear-gradient(180deg, rgba(209, 154, 110, 0.06) 0%, var(--warm-bg) 60%);
+}
+
+/* Private chat button — top-right of chat container */
+.private-chat-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 11; /* above .bpWebchat (z:10) */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border-visible);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: 0 1px 3px var(--modal-shadow);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.2s var(--ease-spring-soft);
+}
+
+.private-chat-btn svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}
+
+.private-chat-btn:active {
+  transform: scale(0.96);
+  transition-duration: 0.06s;
+}
+
+.private-chat-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.private-chat-btn.active svg {
+  stroke: #fff;
+}
+
+@media (hover: hover) {
+  .private-chat-btn:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+  .private-chat-btn.active:hover {
+    background: var(--accent-hover);
+    color: #fff;
+    border-color: var(--accent-hover);
+  }
+}
+
+/* Phone tweaks: tighter, label visible but slightly smaller */
+@media (max-width: 640px) {
+  .private-chat-btn {
+    top: 8px;
+    right: 8px;
+    padding: 5px 8px;
+    font-size: 0.6875rem;
+    min-height: 30px;
+  }
+}
+
+/* Hide button when keyboard is open — same pattern as other floating UI */
+body.keyboard-open .private-chat-btn {
+  display: none !important;
 }
 
 .chat-container #aloFrame {
