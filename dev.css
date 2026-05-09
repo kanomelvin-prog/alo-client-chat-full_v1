@@ -361,7 +361,7 @@ header {
 }
 
 [data-theme="dark"] .more-btn {
-  color: var(--primary);
+  color: var(--text-secondary);
 }
 
 /* === MORE MENU PANEL === */
