@@ -1671,8 +1671,12 @@ function showGuestBenefitsCard() {
 
         showConnectedUI(therapistName, clientName);
 
-        // Show threads button and memory icon, load memory settings
-        document.getElementById('threadsBtn').classList.remove('hidden');
+        showConnectedUI(therapistName, clientName);
+        
+        // Show threads button (if allowed by therapist) and memory icon
+        if (chatSettings.allow_history !== false) {
+          document.getElementById('threadsBtn').classList.remove('hidden');
+        }
         document.getElementById('memoryIconBtn').classList.remove('hidden');
         var pcBtn2 = document.getElementById('privateChatBtn');
         if (pcBtn2) pcBtn2.classList.remove('hidden');
