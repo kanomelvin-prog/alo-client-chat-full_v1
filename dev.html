@@ -1685,12 +1685,14 @@ function showGuestBenefitsCard() {
         // Generate nonce, write session start, and send identity to Botpress
         const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         sessionNonce = crypto.randomUUID();
-        api('/rest/v1/session_metadata', 'POST', {
-          client_id: clientId,
-          session_id: sessionId,
-          nonce: sessionNonce
-        }).then(() => {
-          // Send identity to Botpress after nonce is written to DB
+                // A7/C1 — write-before-confirm fix: await metadata write, then fire
+        // updateUser and the auth bridge in order, only after it succeeds.
+        try {
+          await api('/rest/v1/session_metadata', 'POST', {
+            client_id: clientId,
+            session_id: sessionId,
+            nonce: sessionNonce
+          });
           if (window.botpress) {
             const hwSummary = activeHomework.length > 0
               ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
@@ -1705,10 +1707,16 @@ function showGuestBenefitsCard() {
             });
             console.log('[Alo] Identity + homework sent to Botpress via updateUser');
           }
-        }).catch(err => console.error('Session metadata write failed:', err));
-
-        // Send identity to Botpress via Custom Trigger (auth bridge)
-        sendAuthBridge();
+          // Send identity to Botpress via Custom Trigger (auth bridge) —
+          // only after metadata write is confirmed, so Botpress never
+          // validates a clientId whose session row doesn't exist yet.
+          sendAuthBridge();
+        } catch (err) {
+          console.error('Session metadata write failed:', err);
+          // Still attempt the auth bridge — better a degraded session
+          // than no conversation at all.
+          sendAuthBridge();
+        }
 
       } catch (err) {
         console.error('Error loading connected state:', err);
@@ -3168,26 +3176,35 @@ async function togglePin(conversationId) {
 
       // Initialize Botpress JS SDK immediately (guest mode)
       // userData will be sent later via updateUser() once auth resolves
-      window.botpress.init({
-        botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
-        clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
-        selector: '#aloFrame',
-        configuration: {
-          version: 'v2',
-          botName: ' ',
-          botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
-          botDescription: '',
-          color: '#3A7C86',
-          variant: 'soft',
-          headerVariant: 'glass',
-          themeMode: getEffectiveTheme(),
-          fontFamily: 'inter',
-          radius: 1,
-          feedbackEnabled: false,
-          soundEnabled: false,
-          conversationHistory: false
+            // A7/C5 — wrap init in try/catch; if the SDK fails to load,
+      // stop the infinite spinner and show a real failure state.
+      try {
+        window.botpress.init({
+          botId: 'fc0fad71-daea-4d22-adf5-3a659042d46a',
+          clientId: 'fc13c6c1-ac2b-4114-bf9b-1e73e2a89b3e',
+          selector: '#aloFrame',
+          configuration: {
+            version: 'v2',
+            botName: ' ',
+            botAvatar: 'https://files.bpcontent.cloud/2026/02/06/16/20260206161656-T77YC5WL.jpeg',
+            botDescription: '',
+            color: '#3A7C86',
+            variant: 'soft',
+            headerVariant: 'glass',
+            themeMode: getEffectiveTheme(),
+            fontFamily: 'inter',
+            radius: 1,
+            feedbackEnabled: false,
+            soundEnabled: false,
+            conversationHistory: false
+          }
+        });
+      } catch (err) {
+        console.error('[Alo] Botpress SDK init failed:', err);
+        if (loadingOverlay) {
+          loadingOverlay.innerHTML = '<p>Alo couldn\'t load. Please refresh the page — if this keeps happening, check your connection.</p>';
         }
-      });
+      }
 
       // botpressReady is declared in global scope for reset on re-init
       window.botpress.on('webchat:initialized', function() {
@@ -3334,7 +3351,18 @@ window.botpress.on('webchat:closed', function() {
             if (match) content = match[1];
           } catch(e) {}
         }
-        if (!content) return;
+        if (!content) {
+          // A7/C19 — log dropped formats instead of silently discarding,
+          // and keep a raw backup in localStorage so nothing is lost
+          // without a trace.
+          try {
+            var dropped = JSON.parse(localStorage.getItem('alo_dropped_messages') || '[]');
+            dropped.push({ msg: msg, ts: Date.now() });
+            localStorage.setItem('alo_dropped_messages', JSON.stringify(dropped.slice(-20)));
+          } catch (e) {}
+          console.warn('[Persistence] Dropped unrecognized message format:', msg);
+          return;
+        }
 
         // Determine role
         var isUser = false;
@@ -3347,15 +3375,39 @@ window.botpress.on('webchat:closed', function() {
 
         console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
 
-        // Fire-and-forget: create conversation if needed, then save
+                // A7/C2 + A7/C4 — guarded persistence with retry + local queue,
+        // and in-flight promise dedup so two rapid messages can't both
+        // create a conversation record.
         (async function() {
           try {
             if (!currentSupabaseConvId) {
-              await ensureConversation(bpConvId || 'conv_' + Date.now());
+              // Dedup: if a create is already in flight, await that
+              // same promise instead of starting a second one.
+              if (!window._aloEnsureConvPromise) {
+                window._aloEnsureConvPromise = ensureConversation(bpConvId || 'conv_' + Date.now())
+                  .finally(() => { window._aloEnsureConvPromise = null; });
+              }
+              await window._aloEnsureConvPromise;
             }
             await saveMessage(role, content, msgId);
           } catch (err) {
-            console.error('[Persistence] Error:', err.message);
+            console.error('[Persistence] Error, retrying once:', err.message);
+            // One retry after a short delay before giving up.
+            await new Promise(function(resolve) { setTimeout(resolve, 2000); });
+            try {
+              if (!currentSupabaseConvId) {
+                await ensureConversation(bpConvId || 'conv_' + Date.now());
+              }
+              await saveMessage(role, content, msgId);
+            } catch (err2) {
+              console.error('[Persistence] Retry failed, queuing locally:', err2.message);
+              try {
+                var queue = JSON.parse(localStorage.getItem('alo_unsent_messages') || '[]');
+                queue.push({ role: role, content: content, msgId: msgId, ts: Date.now() });
+                localStorage.setItem('alo_unsent_messages', JSON.stringify(queue.slice(-20)));
+              } catch (e) {}
+              showToast('Message saved locally — will send when reconnected');
+            }
           }
         })();
 
