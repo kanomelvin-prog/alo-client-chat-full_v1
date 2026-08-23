@@ -7,6 +7,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+       <meta http-equiv="Content-Security-Policy-Report-Only" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' https://cdn.botpress.cloud https://cdn.jsdelivr.net https://files.bpcontent.cloud;
+    style-src 'self' 'unsafe-inline' https://cdn.botpress.cloud;
+    img-src 'self' data: blob: https://files.bpcontent.cloud https://*.supabase.co;
+    connect-src 'self' https://lelsdezstbnzyxvsvbyx.supabase.co https://*.botpress.cloud wss://*.botpress.cloud https://files.bpcontent.cloud;
+    frame-src 'self' https://cdn.botpress.cloud;
+    font-src 'self' data:;
+    object-src 'none';
+    base-uri 'self';
+  ">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   
   <meta name="apple-mobile-web-app-capable" content="yes">
