@@ -2495,13 +2495,18 @@ async function togglePin(conversationId) {
       }
       showToast('Private session — this conversation won\'t be remembered');
 
-      // Tell Botpress to skip memory for this conversation
+            // Tell Botpress to skip memory for this conversation
+      // A7-bonus — privateSession must be a string, not boolean.
+      // Botpress's webchat:getUserData schema rejects boolean values here,
+      // which silently broke every subsequent turn once this was set.
       if (window.botpress) {
         window.botpress.updateUser({
-          data: { privateSession: true }
+          data: { privateSession: 'true' }
         });
       }
     }
+
+    function endPrivateSession() {
 
     function endPrivateSession() {
       isPrivateSession = false;
@@ -2509,9 +2514,9 @@ async function togglePin(conversationId) {
       updatePrivateChatBtn();
       showToast('Private session ended');
 
-      if (window.botpress) {
+            if (window.botpress) {
         window.botpress.updateUser({
-          data: { privateSession: false }
+          data: { privateSession: 'false' }
         });
       }
     }
