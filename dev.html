@@ -2506,15 +2506,13 @@ async function togglePin(conversationId) {
       }
     }
 
-    function endPrivateSession() {
-
-    function endPrivateSession() {
+        function endPrivateSession() {
       isPrivateSession = false;
       updateMemoryUI();
       updatePrivateChatBtn();
       showToast('Private session ended');
 
-            if (window.botpress) {
+      if (window.botpress) {
         window.botpress.updateUser({
           data: { privateSession: 'false' }
         });
