@@ -7,14 +7,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-              <meta http-equiv="Content-Security-Policy" content="
+                     <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' 'unsafe-inline' https://cdn.botpress.cloud https://cdn.jsdelivr.net https://files.bpcontent.cloud;
-    style-src 'self' 'unsafe-inline' https://cdn.botpress.cloud;
+    style-src 'self' 'unsafe-inline' https://cdn.botpress.cloud https://fonts.googleapis.com;
     img-src 'self' data: blob: https://files.bpcontent.cloud https://*.supabase.co;
     connect-src 'self' https://lelsdezstbnzyxvsvbyx.supabase.co https://*.botpress.cloud wss://*.botpress.cloud https://files.bpcontent.cloud;
     frame-src 'self' https://cdn.botpress.cloud;
-    font-src 'self' data:;
+    font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com;
+    media-src 'self' data:;
     object-src 'none';
     base-uri 'self';
   ">
