@@ -60,7 +60,7 @@
 
 <body>
   <header>
-    <div class="brand">
+        <div class="brand" onclick="handleLogoClick()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleLogoClick();}" role="button" tabindex="0" aria-label="Go to chat or start a new conversation" style="cursor:pointer;">
       <div class="brand-icon">A</div>
       <div class="brand-text">
         <h1 class="brand-name">Alowen</h1>
@@ -126,7 +126,15 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Message Therapist
       </button>
-      <div class="more-menu-divider" role="separator"></div>
+            <div class="more-menu-divider" role="separator"></div>
+      <button class="more-menu-item" role="menuitem" id="morePrivateToggleBtn" onclick="toggleMoreMenu(); togglePrivateChatFromHeader()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        <span id="morePrivateToggleLabel">Make this conversation private</span>
+      </button>
+      <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        Start new private conversation
+      </button>
       <div class="more-menu-settings" id="moreMenuMemory">
         <div class="more-menu-settings-header">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -320,10 +328,6 @@
 
     <!-- Chat iframe -->
     <div class="chat-container">
-      <button id="privateChatBtn" class="private-chat-btn hidden" onclick="togglePrivateChatFromHeader()" aria-label="Start private chat" title="Start private chat — won't be saved">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        <span class="private-chat-btn-label">Private chat</span>
-      </button>
       <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-message">
           <div class="spinner"></div>
@@ -2519,7 +2523,7 @@ async function togglePin(conversationId) {
       }
     }
 
-    // Top-of-chat button: one-tap toggle.
+        // Menu item: one-tap privacy toggle for the current conversation.
     // If memory is off globally, treat private mode as redundant and just toast a hint.
     function togglePrivateChatFromHeader() {
       if (isPrivateSession) {
@@ -2533,22 +2537,34 @@ async function togglePin(conversationId) {
       }
     }
 
+        // Updates the hamburger-menu private-session item label.
+    // (Replaces the old floating privateChatBtn, removed in the Item 3 UI batch.)
     function updatePrivateChatBtn() {
-      var btn = document.getElementById('privateChatBtn');
-      if (!btn) return;
-      var label = btn.querySelector('.private-chat-btn-label');
-
-      if (isPrivateSession) {
-        btn.classList.add('active');
-        btn.setAttribute('aria-label', 'End private chat');
-        btn.setAttribute('title', 'End private chat');
-        if (label) label.textContent = 'End private';
-      } else {
-        btn.classList.remove('active');
-        btn.setAttribute('aria-label', 'Start private chat');
-        btn.setAttribute('title', "Start private chat — won't be saved");
-        if (label) label.textContent = 'Private chat';
+      var label = document.getElementById('morePrivateToggleLabel');
+      if (label) {
+        label.textContent = isPrivateSession ? 'End private session' : 'Make this conversation private';
       }
+    }
+
+    // Menu action: fresh thread first (explicit intent, so skip the confirm),
+    // then begin the private session on it.
+    async function startNewPrivateConversation() {
+      if (!memoryGlobalEnabled) {
+        showToast('Memory is already off — nothing is being remembered');
+        return;
+      }
+      await startNewConversation(true);
+      startPrivateSession();
+    }
+
+    // Logo click: from Journal, return to Chat. From Chat, offer a fresh start.
+    // startNewConversation shows its own confirm — never a silent reset.
+    function handleLogoClick() {
+      if (activeTab !== 'chat') {
+        switchTab('chat');
+        return;
+      }
+      startNewConversation();
     }
 
     // --- Memory onboarding (opt-in on 2nd visit) ---
