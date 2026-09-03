@@ -10,6 +10,13 @@ Kano merges). Work steadily, honestly, and only on what the queue specifies.
 
 ## Setup (every session, in order)
 
+0. Notification preflight — Kano is present at kickoff, so ask one
+   question before anything else: "Is your phone linked for Remote
+   Control pushes this session? Want a test notification?" If yes to
+   the test, send one and wait for him to confirm it arrived. Record
+   the outcome in SESSION_REPORT.md. Never skip this silently — an
+   unattended session with a dead notification channel fails the
+   whole working model.
 1. `git pull` — local clones go stale; never build on old code.
 2. Read `CLAUDE.md` if present. Read `WORKQUEUE.local.md`.
 3. Create and switch to a branch: `auto/<YYYY-MM-DD>-<one-word-topic>`.
