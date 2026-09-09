@@ -2005,6 +2005,14 @@ function showGuestBenefitsCard() {
     let threadListOffset = THREAD_PAGE_SIZE;
     let guestTurnCount = 0;
 
+    // Phase 2 item 4 -- server-side paging past the 50-row batch
+    // loadThreads() fetches. THREAD_FETCH_SIZE mirrors that query's own
+    // limit; threadsExhausted flips true once a fetch returns fewer rows
+    // than it asked for, meaning the server has nothing left to give.
+    const THREAD_FETCH_SIZE = 50;
+    let threadsExhausted = false;
+    let _threadsLoadingMore = false;
+
     function toggleThreadSidebar() {
       const sidebar = document.getElementById('threadSidebar');
       const backdrop = document.getElementById('threadBackdrop');
@@ -2028,8 +2036,9 @@ function showGuestBenefitsCard() {
       if (!user) return;
 
       try {
-        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=${THREAD_FETCH_SIZE}`);
         allThreads = threads || [];
+        threadsExhausted = allThreads.length < THREAD_FETCH_SIZE;
         threadListOffset = THREAD_PAGE_SIZE;
         renderThreadList();
         _aloMaybeShowIOSInstallCard();
@@ -2134,12 +2143,41 @@ function showGuestBenefitsCard() {
     // next page of already-fetched unpinned threads and re-renders; the
     // button hides itself once every fetched unpinned thread is shown
     // (renderThreadList's own `unpinned.length > threadListOffset` check).
-    // Note: loadThreads() fetches at most 50 conversations total (its own
-    // `limit=50`), so this pages within that batch -- it does not reach a
-    // 51st+ conversation. That is a separate, narrower gap from BROKEN-1 and
-    // is flagged in the report rather than fixed here.
-    function loadMoreThreads() {
+    //
+    // Phase 2 item 4: when revealing the next local page would run past the
+    // end of what's actually been fetched, and the server might still have
+    // more (!threadsExhausted), fetch the next THREAD_FETCH_SIZE-row batch
+    // via offset before re-rendering -- this is what reaches a 51st+
+    // conversation, which the original local-only paging could not.
+    async function loadMoreThreads() {
+      if (_threadsLoadingMore) return;
       threadListOffset += THREAD_PAGE_SIZE;
+
+      const unpinnedCount = allThreads.filter(function(t) { return !t.pinned; }).length;
+      if (threadListOffset >= unpinnedCount && !threadsExhausted) {
+        _threadsLoadingMore = true;
+        const btn = document.querySelector('.thread-load-more');
+        if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const nextBatch = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=${THREAD_FETCH_SIZE}&offset=${allThreads.length}`);
+            threadsExhausted = !nextBatch || nextBatch.length < THREAD_FETCH_SIZE;
+            if (nextBatch && nextBatch.length) {
+              const existingIds = new Set(allThreads.map(function(t) { return t.id; }));
+              allThreads = allThreads.concat(nextBatch.filter(function(t) { return !existingIds.has(t.id); }));
+            }
+          }
+        } catch (err) {
+          console.error('Error loading more threads:', err);
+          // Leave threadsExhausted as-is so the next click retries the fetch
+          // instead of silently pretending the server is out of threads.
+        } finally {
+          _threadsLoadingMore = false;
+        }
+      }
+
       renderThreadList();
     }
 
