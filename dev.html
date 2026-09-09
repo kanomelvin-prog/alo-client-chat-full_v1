@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=13">
+  <link rel="stylesheet" href="dev.css?v=14">
 </head>
 
 <body>
@@ -567,6 +567,46 @@
     }
 
     // =====================================================
+    // PHASE 2B, ITEM 10 -- CONTEXTUAL TIPS (spec §3.4)
+    // One line, shown once per key, dismissed by any interaction,
+    // persisted in localStorage so it never shows again.
+    // =====================================================
+    function _aloShowTip(key, text) {
+      var storageKey = 'alo_tip_' + key + '_seen';
+      try {
+        if (localStorage.getItem(storageKey)) return;
+        localStorage.setItem(storageKey, '1');
+      } catch (err) {
+        // No localStorage (private mode, quota) -- fail open and just skip
+        // the tip rather than showing it every time.
+        return;
+      }
+
+      var tip = document.createElement('div');
+      tip.className = 'alo-contextual-tip';
+      tip.textContent = text;
+      tip.setAttribute('role', 'status');
+      document.body.appendChild(tip);
+
+      function dismiss() {
+        tip.remove();
+        document.removeEventListener('click', dismiss, true);
+        document.removeEventListener('touchstart', dismiss, true);
+        document.removeEventListener('keydown', dismiss, true);
+      }
+
+      // Wait a tick so the interaction that triggered this tip (e.g. the
+      // tap that opened the journal tab) doesn't immediately dismiss it.
+      setTimeout(function() {
+        document.addEventListener('click', dismiss, true);
+        document.addEventListener('touchstart', dismiss, true);
+        document.addEventListener('keydown', dismiss, true);
+      }, 0);
+
+      setTimeout(dismiss, 8000);
+    }
+
+    // =====================================================
     // MODAL SYSTEM
     // =====================================================
 
@@ -1015,7 +1055,7 @@ function showGuestBenefitsCard() {
 
         container.classList.add('show');
 
-        
+        _aloShowTip('homework', (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see that, not what you wrote.');
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -2585,6 +2625,7 @@ async function togglePin(conversationId) {
       if (isHidden) {
         pop.classList.remove('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'true');
+        _aloShowTip('memory', 'Alo remembers a little between conversations so you don\'t have to start over. You can clear it anytime.');
       } else {
         pop.classList.add('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'false');
@@ -2634,6 +2675,7 @@ async function togglePin(conversationId) {
         toggleMemoryPopover();
       }
       showToast('Private session — this conversation won\'t be remembered');
+      _aloShowTip('privateSession', 'This conversation won\'t be saved. Alo won\'t remember it next time.');
 
             // Tell Botpress to skip memory for this conversation
       // A7-bonus — privateSession must be a string, not boolean.
@@ -2829,6 +2871,7 @@ async function togglePin(conversationId) {
         clearJournalBadge();
         initJournalView();
         loadJournalEntries();
+        _aloShowTip('journal', 'Entries stay private unless you choose to share one.');
       } else {
         // Show chat, hide journal
         if (journalContainer) journalContainer.classList.add('hidden');

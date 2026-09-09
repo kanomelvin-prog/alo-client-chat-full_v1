@@ -3600,6 +3600,23 @@ body.journal-focus-mode .tab-bar {
 }
 
 /* === PHASE 2, ITEM 13a: INSTALLABLE APP (functional placeholder) === */
+/* === CONTEXTUAL TIPS (Phase 2B item 10) === */
+.alo-contextual-tip {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  top: max(16px, env(safe-area-inset-top));
+  z-index: 8000;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px var(--modal-shadow);
+  text-align: center;
+}
+
 .install-banner {
   position: fixed;
   left: 16px;
