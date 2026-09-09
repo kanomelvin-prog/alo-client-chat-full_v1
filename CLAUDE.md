@@ -10,10 +10,15 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Zero-Knowledge: clinical signals go to therapist dashboard, never transcripts.
 - Craft integrity: nothing ships until it's done right. No shortcuts.
 ## File Structure
-- `chat_index.html` — client chat interface
-- `chat_styles.css` — chat stylesheet
-- `dashboard_index.html` — dashboard HTML reference copy
-- `dashboard_styles.css` — dashboard CSS reference copy
+*(Corrected 2026-09-09. The four filenames previously listed here —
+`chat_index.html`, `chat_styles.css`, `dashboard_index.html`,
+`dashboard_styles.css` — do not exist in this repo and never did under those
+names. Verified against `ls`.)*
+- `index.html` — production client chat interface (live at alowen.ai on push)
+- `styles.css` — production stylesheet
+- `dev.html` — development copy; **edit this, not `index.html`**
+- `dev.css` — development stylesheet; **edit this, not `styles.css`**
+- `backup.html` / `backup.css` — snapshots, not served
 - `CLAUDE.md` — this file
 ## Stack
 - Frontend: Vanilla HTML/CSS/JS
@@ -21,6 +26,24 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Conversation Engine: Botpress Cloud (webchat v3.3 SDK, iframe embed)
 - LLM: Claude Sonnet 4.5 API (via Botpress)
 - Database: Supabase (auth, memory, homework, crisis logging)
+- **Supabase access — the SDK is in use here.** `index.html` loads
+  `@supabase/supabase-js@2.39.0` (UMD, jsDelivr CDN, index.html:391) and calls
+  `window.supabase.createClient` (index.html:399). It is a **hybrid**:
+  - **Auth and session: the SDK.** `supabase.auth.signInWithPassword`,
+    `.signUp` (index.html:1168), `.getUser`, `.getSession`, `.signOut`,
+    `.updateUser`, `.resetPasswordForEmail`, `.onAuthStateChange` — roughly 19
+    call sites.
+  - **Data reads and writes: raw `fetch`**, through the `api()` helper
+    (index.html:1567), which takes its bearer token from
+    `supabase.auth.getSession()`. There are **no** raw `fetch` calls to
+    Supabase auth endpoints, and one use of the `supabase.from()` query builder.
+
+  *Recorded 2026-09-09, ruling Q5.* Guidance elsewhere describes this repo as
+  "raw `fetch`, no SDK". That was never true of this code. The running system is
+  the fact; this note is the correction. **Do not "fix" the code to match the
+  older description** — removing the SDK would mean rewriting every auth path in
+  a live app, and no one has asked for that. If the SDK should genuinely be
+  removed, that is a project decision and a scoped task, not a cleanup.
 - Supabase URL: https://lelsdezstbnzyxvsvbyx.supabase.co
 - Botpress Bot ID: fc0fad71-daea-4d22-adf5-3a659042d46a
 ## Account Types
@@ -40,7 +63,8 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
   that silently break JavaScript. Verify page loads after every large code block.
   Check with: grep -rP '[\x{200B}]' . --include="*.html" --include="*.js"
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
-- Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
+- Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test.
+  It runs through the Supabase JS SDK, not raw `fetch` — see Stack above.
 - Never send conversation content anywhere except through Botpress
 ## Working Rules
 
