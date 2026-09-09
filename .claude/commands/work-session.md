@@ -51,29 +51,10 @@ Kano merges). Work steadily, honestly, and only on what the queue specifies.
 3. Run the task's acceptance checks. All of them. A task without passing
    checks is not done — never mark it done on the strength of "should work."
 4. Invisible-character scan before committing. Run on every file changed by
-   the task. **Use this heredoc form, not a `python3 -c "..."` one-liner**
-   (ruling D3, 2026-09-09, extended from alo-supabase's own Q3 ruling of the
-   same date -- see alo-supabase `docs/decisions.md`, "Invisible-character
-   scan convention (standing)" for the reason: a one-liner's character class
-   was mangled by shell quoting and produced 2312 false positives; the same
-   mangling can produce a false negative, and this check is trusted to catch
-   a bug that silently breaks the page):
+   the task, using the shared script (ruling D5, 2026-09-09 -- see alo-supabase
+   `docs/decisions.md`, "Invisible-character scan convention (standing)"):
    ```bash
-   python3 - <file> [<file> ...] <<'PY'
-   import sys, io, collections
-   BAD = {0x200B:'ZWSP', 0x200C:'ZWNJ', 0x200D:'ZWJ', 0xFEFF:'BOM', 0x2060:'WJ',
-          0x00A0:'NBSP', 0x2018:'LSQUO', 0x2019:'RSQUO', 0x201C:'LDQUO', 0x201D:'RDQUO'}
-   bad = 0
-   for path in sys.argv[1:]:
-       s = io.open(path, encoding='utf-8').read()
-       hits = collections.Counter(BAD[ord(c)] for c in s if ord(c) in BAD)
-       lines = sorted({i for i, ln in enumerate(s.split('\n'), 1)
-                       for c in ln if ord(c) in BAD})
-       bad += sum(hits.values())
-       print(f'{path}: {dict(hits) if hits else "CLEAN"}'
-             + (f'  lines: {lines}' if lines else ''))
-   sys.exit(1 if bad else 0)
-   PY
+   python3 scripts/scan-invisible.py <file> [<file> ...]
    ```
    Exit 0 and `CLEAN` on every line means pass. Any hit: remove, re-scan, then
    commit. It takes many files at once, names the codepoint, and gives the line
