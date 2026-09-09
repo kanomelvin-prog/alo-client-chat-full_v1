@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=14">
+  <link rel="stylesheet" href="dev.css?v=15">
 </head>
 
 <body>
@@ -134,6 +134,14 @@
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showAboutModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         About Alo
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); _aloOpenOnboardingScreens('readonly')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        How Alo works
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); _aloShowPrivacyModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Your privacy
       </button>
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -425,6 +433,14 @@
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Phase 2B, item 8: four-screen onboarding + consent (spec §3.2).
+       Reused read-only (no consent gate) for the client menu's
+       "How Alo works" item -- see _aloOpenOnboardingScreens(mode). -->
+  <div class="alo-onboarding-overlay" id="aloOnboardingOverlay" role="dialog" aria-modal="true" aria-label="How Alo works">
+    <button class="alo-onboarding-close" id="aloOnboardingCloseBtn" onclick="_aloCloseOnboardingScreens()" aria-label="Close" style="display:none;">&times;</button>
+    <div class="alo-onboarding-card" id="aloOnboardingBody"></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <script>
     // =====================================================
@@ -604,6 +620,13 @@
       }, 0);
 
       setTimeout(dismiss, 8000);
+    }
+
+    // Phase 2B item 11: client menu "Your privacy" -- reuses the wired
+    // #privacyLink modal (D27) instead of duplicating its copy.
+    function _aloShowPrivacyModal() {
+      var link = document.getElementById('privacyLink');
+      if (link) link.click();
     }
 
     // =====================================================
@@ -1191,6 +1214,163 @@ function showGuestBenefitsCard() {
     }
 
     // =====================================================
+    // PHASE 2B, ITEM 8 -- FOUR-SCREEN ONBOARDING + CONSENT (spec §3.2)
+    // Fires once, after a successful invite-code signup only (never a
+    // returning sign-in). Reused read-only (mode 'readonly', no consent
+    // gate, no PATCH) for the client menu's "How Alo works" item (P2B-11).
+    // =====================================================
+    const ALO_ONBOARDING_SCREENS = [
+      {
+        title: 'What this is',
+        body: 'Alo is here for the time between sessions. When something comes up on a Tuesday night, you can talk it through instead of sitting on it until your next appointment.\n\nAlo asks more than it tells. It isn\'t a therapist, and it isn\'t trying to be one.'
+      },
+      {
+        title: 'What\'s yours',
+        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Nothing is shared unless you share it.',
+        mockJournal: true
+      },
+      {
+        title: 'If things get hard',
+        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will let your therapist know something happened. Not what you said. Just that you might need them.'
+      }
+    ];
+
+    let _aloOnboardingStep = 0;
+    let _aloOnboardingMode = 'gate'; // 'gate' | 'readonly'
+
+    function _aloOnboardingMockJournal() {
+      // Non-interactive -- injected via innerHTML with no listeners attached,
+      // so nothing here is clickable regardless of markup reused from the
+      // real journal entry / share-toggle styles.
+      return `
+        <div class="alo-onboarding-mock-journal" aria-hidden="true">
+          <div class="journal-entry-card">
+            <div class="journal-entry-header">
+              <span class="journal-entry-date">Mar 12</span>
+            </div>
+            <div class="journal-entry-preview">Had a rough morning but talked it through before it spiraled...</div>
+          </div>
+          <button class="journal-share-btn" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
+            Share with therapist
+          </button>
+        </div>
+      `;
+    }
+
+    function _aloOpenOnboardingScreens(mode) {
+      _aloOnboardingMode = mode === 'readonly' ? 'readonly' : 'gate';
+      _aloOnboardingStep = 0;
+      var closeBtn = document.getElementById('aloOnboardingCloseBtn');
+      if (closeBtn) closeBtn.style.display = _aloOnboardingMode === 'readonly' ? 'block' : 'none';
+      _aloRenderOnboardingScreen();
+      document.getElementById('aloOnboardingOverlay').classList.add('show');
+    }
+
+    function _aloCloseOnboardingScreens() {
+      // Only reachable in readonly mode -- the close button is hidden in
+      // gate mode, and gate mode has no backdrop/Escape dismiss.
+      document.getElementById('aloOnboardingOverlay').classList.remove('show');
+    }
+
+    function _aloOnboardingNext() {
+      if (_aloOnboardingStep < 3) {
+        _aloOnboardingStep++;
+        _aloRenderOnboardingScreen();
+      }
+    }
+
+    function _aloOnboardingBack() {
+      if (_aloOnboardingStep > 0) {
+        _aloOnboardingStep--;
+        _aloRenderOnboardingScreen();
+      }
+    }
+
+    function _aloOnboardingSkipToGate() {
+      _aloOnboardingStep = 3;
+      _aloRenderOnboardingScreen();
+    }
+
+    function _aloOnboardingConsentToggled(checked) {
+      var btn = document.getElementById('aloOnboardingStartBtn');
+      if (btn) btn.disabled = !checked;
+    }
+
+    function _aloRenderOnboardingScreen() {
+      var body = document.getElementById('aloOnboardingBody');
+      if (!body) return;
+
+      if (_aloOnboardingStep < 3) {
+        var s = ALO_ONBOARDING_SCREENS[_aloOnboardingStep];
+        var skipOrBack = _aloOnboardingMode === 'gate'
+          ? '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingSkipToGate()">Skip</button>'
+          : (_aloOnboardingStep > 0 ? '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' : '<span></span>');
+
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">' + (_aloOnboardingStep + 1) + ' of 4</div>' +
+          '<h2 class="alo-onboarding-title">' + esc(s.title) + '</h2>' +
+          '<p class="alo-onboarding-text">' + esc(s.body).replace(/\n\n/g, '<br><br>') + '</p>' +
+          (s.mockJournal ? _aloOnboardingMockJournal() : '') +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" onclick="_aloOnboardingNext()">Next</button>' +
+            skipOrBack +
+          '</div>';
+        return;
+      }
+
+      // Screen 4
+      if (_aloOnboardingMode === 'gate') {
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">4 of 4</div>' +
+          '<h2 class="alo-onboarding-title">Before you start</h2>' +
+          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours — nothing is shared unless you choose to. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
+          '<label class="alo-onboarding-checkbox-row">' +
+            '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
+            '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
+          '</label>' +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" id="aloOnboardingStartBtn" disabled onclick="_aloOnboardingComplete()">Start talking to Alo</button>' +
+          '</div>';
+      } else {
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">4 of 4</div>' +
+          '<h2 class="alo-onboarding-title">Getting started</h2>' +
+          '<p class="alo-onboarding-text">Before your first conversation, you confirmed: "I understand what Alo is and isn\'t, and how sharing works." Then you tapped "Start talking to Alo."</p>' +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" onclick="_aloCloseOnboardingScreens()">Done</button>' +
+            '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' +
+          '</div>';
+      }
+    }
+
+    // Fire-and-forget: the overlay closes immediately so a slow or failed
+    // write never strands the client mid-consent. consent_acknowledged_at
+    // may not exist on therapist_clients yet (schema change is Kano's) --
+    // on failure this falls back to a localStorage flag and only logs.
+    async function _aloOnboardingComplete() {
+      _aloCloseOnboardingScreens();
+      try {
+        var uid = clientId;
+        if (!uid) {
+          var authRes = await supabase.auth.getUser();
+          uid = authRes.data?.user?.id || null;
+        }
+        if (!uid) return;
+        await api('/rest/v1/therapist_clients?client_id=eq.' + uid, 'PATCH', {
+          consent_acknowledged_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('consent_acknowledged_at write failed (column may not exist yet):', err);
+        try {
+          localStorage.setItem('alo_consent_acknowledged_fallback', new Date().toISOString());
+        } catch (storageErr) {
+          // Nothing more we can do -- never block the client on this.
+        }
+      }
+    }
+
+    // =====================================================
     // CONNECT MODAL
     // =====================================================
     function showConnectModal() {
@@ -1299,9 +1479,14 @@ function showGuestBenefitsCard() {
             localStorage.setItem('alo_pending_invite', inviteCode);
           }
 
+          // Phase 2B item 8: the four-screen onboarding + consent flow
+          // fires only for a brand-new invite-code signup, never for a
+          // returning sign-in. Set only in the signUp() branch below.
+          let isNewInviteSignup = false;
+
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          
+
           // If sign in fails, check whether user exists before trying signup
           if (error && error.message.includes('Invalid login credentials')) {
             // Attempt signup to distinguish "no account" from "wrong password"
@@ -1347,6 +1532,7 @@ function showGuestBenefitsCard() {
             
             data = signUpResult.data;
             error = null;
+            isNewInviteSignup = !!inviteCode;
 
             // Profile creation handled by Supabase auth trigger (handle_new_user)
             // Trigger fires on INSERT to auth.users, creates profile with role='individual'
@@ -1364,6 +1550,10 @@ function showGuestBenefitsCard() {
             await handleConnectSubmit(inviteCode);
           } else {
             await loadConnectedState();
+          }
+
+          if (isNewInviteSignup) {
+            _aloOpenOnboardingScreens('gate');
           }
         }
       });

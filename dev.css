@@ -3600,6 +3600,123 @@ body.journal-focus-mode .tab-bar {
 }
 
 /* === PHASE 2, ITEM 13a: INSTALLABLE APP (functional placeholder) === */
+/* === FOUR-SCREEN ONBOARDING + CONSENT (Phase 2B item 8) === */
+.alo-onboarding-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--warm-bg);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 15000;
+  padding: 20px;
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+
+.alo-onboarding-overlay.show { display: flex; }
+
+.alo-onboarding-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alo-onboarding-close {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  right: 16px;
+  z-index: 15001;
+  background: none;
+  border: none;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.alo-onboarding-progress {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.alo-onboarding-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.alo-onboarding-text {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.alo-onboarding-mock-journal {
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-raised);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alo-onboarding-mock-journal .journal-entry-card {
+  cursor: default;
+}
+
+.alo-onboarding-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.alo-onboarding-checkbox-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.alo-onboarding-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.alo-onboarding-actions .btn-primary {
+  width: 100%;
+}
+
+.alo-onboarding-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alo-onboarding-skip {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
 /* === CONTEXTUAL TIPS (Phase 2B item 10) === */
 .alo-contextual-tip {
   position: fixed;
