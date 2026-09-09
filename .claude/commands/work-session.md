@@ -50,11 +50,15 @@ Kano merges). Work steadily, honestly, and only on what the queue specifies.
    not a half-implementation.
 3. Run the task's acceptance checks. All of them. A task without passing
    checks is not done — never mark it done on the strength of "should work."
-4. Zero-width scan before committing (Python, all five codepoints):
+4. Invisible-character scan before committing. Run on every file changed by
+   the task, using the shared script (ruling D5, 2026-09-09 -- see alo-supabase
+   `docs/decisions.md`, "Invisible-character scan convention (standing)"):
+   ```bash
+   python3 scripts/scan-invisible.py <file> [<file> ...]
    ```
-   python3 -c "import sys,re; s=open(sys.argv[1],encoding='utf-8').read(); m=re.findall(r'[\u200b\u200c\u200d\ufeff\u2060]',s); sys.exit(1 if m else 0)" <file>
-   ```
-   Run on every file changed by the task. Any hit: remove, re-scan, then commit.
+   Exit 0 and `CLEAN` on every line means pass. Any hit: remove, re-scan, then
+   commit. It takes many files at once, names the codepoint, and gives the line
+   number -- so a hit is actionable instead of just a failing exit code.
 5. Commit: one commit per task, message `auto: [task-id] <summary>`.
 6. On failure: two genuine attempts maximum. Still failing → revert the
    task's changes, mark SKIPPED with what was tried and why it failed,

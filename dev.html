@@ -26,6 +26,11 @@
   <meta name="apple-mobile-web-app-title" content="Alowen">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#F3EDE4" id="metaThemeColor">
+  <!-- Phase 2, item 13a: installable app. Same-origin, dev.html only -- not linked from index.html. -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
   
   <!-- Prevent flash of wrong theme — runs before first paint --> 
   <script>
@@ -55,10 +60,26 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=11">
+  <link rel="stylesheet" href="dev.css?v=13">
 </head>
 
 <body>
+  <!-- Phase 2, item 13a: dismissible Android install affordance. Never auto-prompted. -->
+  <div class="install-banner" id="installBanner" style="display:none;" role="status">
+    <span class="install-banner-text">Install Alo for quicker access.</span> <!-- COPY: Kano review -->
+    <button class="install-banner-btn" id="installBannerInstallBtn" onclick="_aloInstallPrompt()">Install</button>
+    <button class="install-banner-close" onclick="_aloDismissInstallBanner()" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <!-- Phase 2, item 13a: iOS "Add to Home Screen" card. Shown once, only
+       after the first real conversation, dismissed by any interaction. -->
+  <div class="ios-install-card" id="iosInstallCard" style="display:none;" role="status">
+    <div class="ios-install-card-body">
+      <span class="ios-install-card-title">Add Alo to your Home Screen</span> <!-- COPY: Kano review -->
+      <span class="ios-install-card-steps">Tap <strong>Share</strong> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>, then <strong>Add to Home Screen</strong>.</span> <!-- COPY: Kano review -->
+    </div>
+  </div>
+
   <header>
         <div class="brand" onclick="handleLogoClick()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleLogoClick();}" role="button" tabindex="0" aria-label="Go to chat or start a new conversation" style="cursor:pointer;">
       <div class="brand-icon">A</div>
@@ -548,6 +569,52 @@
     // =====================================================
     // MODAL SYSTEM
     // =====================================================
+
+    // COSMETIC-1/-2 (Phase 3, backlog N3): shared focus trap. Every modal in
+    // this app is built by createModal() below, so wiring the trap in there
+    // covers all of them from one place -- share, connect, login, message,
+    // name edit, privacy, set-new-password and journal-entry modals included.
+    // Tabbing off either end of the visible modal wraps back inside it
+    // instead of reaching the page behind. Returns a release function that
+    // removes the listener; createModal() calls it from closeModal().
+    var FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), ' +
+      'input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function trapFocus(container) {
+      function getFocusable() {
+        return Array.prototype.filter.call(
+          container.querySelectorAll(FOCUSABLE_SELECTOR),
+          function(el) { return el.offsetParent !== null; } // visible only
+        );
+      }
+
+      function handleKeydown(e) {
+        if (e.key !== 'Tab') return;
+        var focusables = getFocusable();
+        if (focusables.length === 0) return;
+        var first = focusables[0];
+        var last = focusables[focusables.length - 1];
+        var active = document.activeElement;
+
+        if (e.shiftKey) {
+          if (active === first || !container.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last || !container.contains(active)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+
+      container.addEventListener('keydown', handleKeydown);
+      return function releaseFocusTrap() {
+        container.removeEventListener('keydown', handleKeydown);
+      };
+    }
+
     function createModal(title, bodyHTML, options = {}) {
       const {
         confirmLabel = 'Confirm',
@@ -600,7 +667,10 @@
         setTimeout(() => closeBtn.focus(), 100);
       }
 
+      const releaseFocusTrap = trapFocus(modal);
+
       function closeModal() {
+        releaseFocusTrap();
         modal.classList.add('closing');
         setTimeout(() => modal.remove(), 300);
       }
@@ -955,6 +1025,10 @@ function showGuestBenefitsCard() {
                 viewed_at: new Date().toISOString()
               });
             } catch (viewErr) {
+              // Deliberately console-only: background bookkeeping (marks a
+              // homework card as viewed). The card already rendered
+              // successfully; a toast here would report a failure the user
+              // did not cause and cannot act on.
               console.error('Error writing viewed_at:', viewErr);
             }
           }
@@ -990,6 +1064,12 @@ function showGuestBenefitsCard() {
 
       } catch (err) {
         console.error('Error loading homework:', err);
+        var hwErrContainer = document.getElementById('homeworkContainer');
+        if (hwErrContainer) {
+          hwErrContainer.innerHTML = '<div class="load-error">Couldn\'t load your homework.<br>' +
+            '<button class="load-retry-btn" onclick="loadHomework()">Try again</button></div>';
+          hwErrContainer.classList.add('show');
+        }
       }
     }
 
@@ -1650,6 +1730,11 @@ function showGuestBenefitsCard() {
               console.log('[Auth] Created missing profile for confirmed user');
             }
           } catch (profileErr) {
+            // Deliberately console-only: this is a fallback for a race with
+            // the profile-creation trigger, so failure here most often means
+            // the profile already exists -- not a real error the user needs
+            // to see. If the profile genuinely is missing, later reads will
+            // surface their own failures.
             console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
           }
 
@@ -1664,6 +1749,7 @@ function showGuestBenefitsCard() {
               await supabase.auth.updateUser({ data: { invite_code: null } });
             } catch (inviteErr) {
               console.log('[Auth] Invite claim failed:', inviteErr.message);
+              showToast('Could not connect using your invite code. You can try again from the menu.');
               showLoggedInNoConnection();
             }
             return;
@@ -1732,6 +1818,7 @@ function showGuestBenefitsCard() {
           // validates a clientId whose session row doesn't exist yet.
           sendAuthBridge();
         } catch (err) {
+          // Deliberately console-only: already resilient by design.
           console.error('Session metadata write failed:', err);
           // Still attempt the auth bridge — better a degraded session
           // than no conversation at all.
@@ -1740,6 +1827,7 @@ function showGuestBenefitsCard() {
 
       } catch (err) {
         console.error('Error loading connected state:', err);
+        showToast('Some things may not have loaded correctly. Try refreshing the page.');
       }
     }
 
@@ -1790,6 +1878,10 @@ function showGuestBenefitsCard() {
         .single();
 
       if (error) {
+        // Deliberately console-only: background persistence write. The
+        // conversation is already live in Botpress regardless of whether
+        // this row exists; a toast on every transient write failure would
+        // be noisy and the user cannot act on it directly.
         console.error('[Persistence] Failed to create conversation:', error.message);
         return null;
       }
@@ -1830,6 +1922,11 @@ function showGuestBenefitsCard() {
           .upsert(insertData, { onConflict: 'botpress_msg_id' });
 
         if (error) {
+          // Deliberately console-only, both here and in the .catch() below:
+          // background message-persistence write queue. The message is
+          // already shown to the user via Botpress regardless of whether
+          // this write succeeds, and a toast per failed background save
+          // would be very noisy during a connectivity blip.
           console.error('[Persistence] FAILED ' + role + ':', error.message, error.details, error.hint);
         } else {
           console.log('[Persistence] Saved ' + role + ' message OK');
@@ -1863,6 +1960,8 @@ function showGuestBenefitsCard() {
         });
         console.log('[Alo] Auth bridge sent to Botpress');
       } catch (e) {
+        // Deliberately console-only: self-retrying (schedules another
+        // attempt below) and has no user-facing container of its own.
         console.warn('[Alo] Auth bridge sendEvent failed:', e);
     authBridgeSent = false;
     setTimeout(sendAuthBridge, 1000);
@@ -1872,7 +1971,10 @@ function showGuestBenefitsCard() {
           userKey: clientId,
           data: { clientId: clientId }
         });
-      } catch (e) {}
+      } catch (e) {
+        // Deliberately silent: best-effort identity sync: sendEvent above
+        // already carries clientId, so this is redundant when it succeeds.
+      }
     } 
 
     // =====================================================
@@ -1895,7 +1997,21 @@ function showGuestBenefitsCard() {
     // =====================================================
     
     let allThreads = [];
+    // BROKEN-1 fix: how many unpinned threads are currently revealed.
+    // Reset to THREAD_PAGE_SIZE on every fresh loadThreads(); bumped by
+    // loadMoreThreads() below. renderThreadList() reads it instead of a
+    // hardcoded slice bound, so "Load older conversations" actually pages.
+    const THREAD_PAGE_SIZE = 30;
+    let threadListOffset = THREAD_PAGE_SIZE;
     let guestTurnCount = 0;
+
+    // Phase 2 item 4 -- server-side paging past the 50-row batch
+    // loadThreads() fetches. THREAD_FETCH_SIZE mirrors that query's own
+    // limit; threadsExhausted flips true once a fetch returns fewer rows
+    // than it asked for, meaning the server has nothing left to give.
+    const THREAD_FETCH_SIZE = 50;
+    let threadsExhausted = false;
+    let _threadsLoadingMore = false;
 
     function toggleThreadSidebar() {
       const sidebar = document.getElementById('threadSidebar');
@@ -1920,11 +2036,19 @@ function showGuestBenefitsCard() {
       if (!user) return;
 
       try {
-        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
+        const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=${THREAD_FETCH_SIZE}`);
         allThreads = threads || [];
+        threadsExhausted = allThreads.length < THREAD_FETCH_SIZE;
+        threadListOffset = THREAD_PAGE_SIZE;
         renderThreadList();
+        _aloMaybeShowIOSInstallCard();
       } catch (err) {
         console.error('Error loading threads:', err);
+        var threadErrContainer = document.getElementById('threadList');
+        if (threadErrContainer) {
+          threadErrContainer.innerHTML = '<div class="load-error">Couldn\'t load your conversations.<br>' +
+            '<button class="load-retry-btn" onclick="loadThreads()">Try again</button></div>';
+        }
       }
     }
 
@@ -1979,10 +2103,10 @@ function showGuestBenefitsCard() {
         }
       }
 
-      var visibleUnpinned = unpinned.slice(0, 30);
+      var visibleUnpinned = unpinned.slice(0, threadListOffset);
       for (var ui = 0; ui < visibleUnpinned.length; ui++) { html += renderThreadRow(visibleUnpinned[ui]); }
 
-      if (unpinned.length > 30) {
+      if (unpinned.length > threadListOffset) {
         html += '<button class="thread-load-more" onclick="loadMoreThreads()">Load older conversations</button>';
       }
 
@@ -2012,6 +2136,49 @@ function showGuestBenefitsCard() {
           deleteThread(this.dataset.id);
         });
       });
+    }
+
+    // BROKEN-1 fix: this was referenced by the "Load older conversations"
+    // button but never defined, so threads 31+ were unreachable. Reveals the
+    // next page of already-fetched unpinned threads and re-renders; the
+    // button hides itself once every fetched unpinned thread is shown
+    // (renderThreadList's own `unpinned.length > threadListOffset` check).
+    //
+    // Phase 2 item 4: when revealing the next local page would run past the
+    // end of what's actually been fetched, and the server might still have
+    // more (!threadsExhausted), fetch the next THREAD_FETCH_SIZE-row batch
+    // via offset before re-rendering -- this is what reaches a 51st+
+    // conversation, which the original local-only paging could not.
+    async function loadMoreThreads() {
+      if (_threadsLoadingMore) return;
+      threadListOffset += THREAD_PAGE_SIZE;
+
+      const unpinnedCount = allThreads.filter(function(t) { return !t.pinned; }).length;
+      if (threadListOffset >= unpinnedCount && !threadsExhausted) {
+        _threadsLoadingMore = true;
+        const btn = document.querySelector('.thread-load-more');
+        if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const nextBatch = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=${THREAD_FETCH_SIZE}&offset=${allThreads.length}`);
+            threadsExhausted = !nextBatch || nextBatch.length < THREAD_FETCH_SIZE;
+            if (nextBatch && nextBatch.length) {
+              const existingIds = new Set(allThreads.map(function(t) { return t.id; }));
+              allThreads = allThreads.concat(nextBatch.filter(function(t) { return !existingIds.has(t.id); }));
+            }
+          }
+        } catch (err) {
+          console.error('Error loading more threads:', err);
+          // Leave threadsExhausted as-is so the next click retries the fetch
+          // instead of silently pretending the server is out of threads.
+        } finally {
+          _threadsLoadingMore = false;
+        }
+      }
+
+      renderThreadList();
     }
 
     async function viewTranscript(conversationId) {
@@ -2625,6 +2792,9 @@ async function togglePin(conversationId) {
         await window.botpress.restartConversation();
         console.log('[Alo] New conversation started via restartConversation()');
       } catch (e) {
+        // Deliberately console-only, no toast: the page reloads immediately
+        // below, so a toast would not be visible before navigation replaces
+        // it. The reload itself is the visible recovery action.
         console.error('[Alo] restartConversation failed, reloading page:', e);
         window.location.reload();
         return;
@@ -2878,6 +3048,14 @@ async function togglePin(conversationId) {
         }
       } catch (err) {
         console.error('[Journal] Load failed:', err);
+        var jTimeline = document.getElementById('journalTimeline');
+        var jEmptyState = document.getElementById('journalEmptyState');
+        if (jEmptyState) jEmptyState.style.display = 'none';
+        if (jTimeline) {
+          jTimeline.classList.remove('hidden');
+          jTimeline.innerHTML = '<div class="load-error">Couldn\'t load your journal entries.<br>' +
+            '<button class="load-retry-btn" onclick="loadJournalEntries()">Try again</button></div>';
+        }
       }
     }
 
@@ -3160,6 +3338,7 @@ async function togglePin(conversationId) {
             console.log('[Alo] Journal entry sent as first message');
           } catch (e) {
             console.warn('[Alo] sendMessage after restart failed:', e);
+            showToast('Started a new conversation, but could not send your journal entry automatically. You can paste it in.');
           }
         });
       }
@@ -3247,7 +3426,8 @@ async function togglePin(conversationId) {
       } catch (err) {
         console.error('[Alo] Botpress SDK init failed:', err);
         if (loadingOverlay) {
-          loadingOverlay.innerHTML = '<p>Alo couldn\'t load. Please refresh the page — if this keeps happening, check your connection.</p>';
+          loadingOverlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
+            '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
         }
       }
 
@@ -3590,6 +3770,84 @@ window.botpress.on('webchat:closed', function() {
         setTimeout(function() { showGuestBenefitsCard(); }, 2000);
       }
     });
+
+    // =====================================================
+    // PHASE 2, ITEM 13a -- INSTALLABLE APP
+    // =====================================================
+
+    // --- Android: captured, never auto-prompted ---
+    let _aloDeferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _aloDeferredInstallPrompt = e;
+      if (localStorage.getItem('alo_install_dismissed') === '1') return;
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'flex';
+    });
+
+    async function _aloInstallPrompt() {
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+      if (!_aloDeferredInstallPrompt) return;
+      _aloDeferredInstallPrompt.prompt();
+      try {
+        await _aloDeferredInstallPrompt.userChoice;
+      } catch (err) {
+        console.warn('Install prompt outcome unavailable:', err);
+      }
+      _aloDeferredInstallPrompt = null;
+    }
+
+    function _aloDismissInstallBanner() {
+      localStorage.setItem('alo_install_dismissed', '1');
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    window.addEventListener('appinstalled', () => {
+      _aloDeferredInstallPrompt = null;
+      localStorage.setItem('alo_install_dismissed', '1');
+    });
+
+    // --- iOS: instruction card, shown once, only after the first real
+    // conversation exists, dismissed by any interaction ---
+    function _aloIsIOSNotInstalled() {
+      const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isStandalone = window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+      return isIOS && !isStandalone;
+    }
+
+    function _aloMaybeShowIOSInstallCard() {
+      if (!_aloIsIOSNotInstalled()) return;
+      if (localStorage.getItem('alo_ios_install_card_shown') === '1') return;
+      const hasConversation = Array.isArray(allThreads) && allThreads.some(t => (t.turn_count || 0) > 0);
+      if (!hasConversation) return;
+
+      const card = document.getElementById('iosInstallCard');
+      if (!card) return;
+
+      // Persisted at show-time, not at dismiss-time: this card must never
+      // reappear, even if the page is reloaded before the user interacts.
+      localStorage.setItem('alo_ios_install_card_shown', '1');
+      card.style.display = 'flex';
+
+      const dismiss = () => {
+        card.style.display = 'none';
+        document.removeEventListener('click', dismiss, true);
+        document.removeEventListener('touchstart', dismiss, true);
+        document.removeEventListener('keydown', dismiss, true);
+      };
+      // Deferred one tick so the click/tap that revealed the card (e.g. the
+      // one that just sent the first message) doesn't immediately dismiss it.
+      setTimeout(() => {
+        document.addEventListener('click', dismiss, true);
+        document.addEventListener('touchstart', dismiss, true);
+        document.addEventListener('keydown', dismiss, true);
+      }, 0);
+    }
   </script>
 </body>
 </html>

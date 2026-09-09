@@ -2536,6 +2536,33 @@ footer a {
   flex-shrink: 0;
 }
 
+/* === LOAD / ERROR STATE (Phase 3, SILENT-6 loader fixes) === */
+.load-error {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.load-retry-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.load-retry-btn:hover {
+  background: var(--primary-light);
+}
+
 /* === LOAD MORE BUTTON === */
 .thread-load-more {
   width: 100%;
@@ -3571,3 +3598,80 @@ body.journal-focus-mode .tab-bar {
     min-height: 200px;
   }
 }
+
+/* === PHASE 2, ITEM 13a: INSTALLABLE APP (functional placeholder) === */
+.install-banner {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+}
+.install-banner-text {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+.install-banner-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  min-height: 44px;
+  cursor: pointer;
+}
+.install-banner-btn:hover { background: var(--primary-hover); }
+.install-banner-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.ios-install-card {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 9000;
+  align-items: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-visible);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+}
+.ios-install-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ios-install-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.ios-install-card-steps {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.ios-install-card-steps svg { vertical-align: -2px; }

@@ -38,7 +38,11 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 ## Critical Warnings
 - INVISIBLE CHARACTER BUG: AI-generated code can contain U+200B zero-width spaces
   that silently break JavaScript. Verify page loads after every large code block.
-  Check with: grep -rP '[\x{200B}]' . --include="*.html" --include="*.js"
+  Scan command (ruling D3, 2026-09-09, versioned per D20 into `scripts/scan-invisible.py`
+  instead of a duplicated heredoc — see the "Code safety" section below for why):
+```bash
+  python3 scripts/scan-invisible.py dev.html dev.css
+  ```
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
 - Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
 - Never send conversation content anywhere except through Botpress
@@ -68,7 +72,10 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 
 ### Code safety
 - Scan for zero-width characters (U+200B, U+200C, U+200D, U+FEFF, U+2060) before every commit. One invisible character in inline JavaScript silently breaks the page. This is a known hazard with Claude-generated code.
-- Scan command: `grep -P "[\x{200B}\x{200C}\x{200D}\x{FEFF}\x{2060}]" dev.html dev.css` — should return nothing.
+- Scan command (ruling D3, 2026-09-09, versioned per D20 into `scripts/scan-invisible.py` instead of a duplicated heredoc — not a `grep -P`/`python3 -c` one-liner, whose character class was mangled by shell quoting on 2026-09-08 and produced 2312 false positives; the same mangling can produce a false negative, and this check exists to catch a bug that silently breaks the page. Covers NBSP and smart quotes too, which the old five-codepoint form missed). Exit 0 and `CLEAN` on every line is a pass:
+```bash
+  python3 scripts/scan-invisible.py dev.html dev.css
+  ```
 
 ### Schema changes
 - Supabase schema changes (ALTER TABLE, CREATE POLICY, etc.) run in Supabase SQL Editor by the developer, not by Claude Code.
