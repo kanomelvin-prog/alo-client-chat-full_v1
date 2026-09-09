@@ -3361,11 +3361,32 @@ async function togglePin(conversationId) {
     // =====================================================
     
     // =====================================================
+    // PHASE 2B, ITEM 9 -- ?invite= PARAM PREFILL (12a)
+    // =====================================================
+    function _aloHandleInviteParam() {
+      const params = new URLSearchParams(window.location.search);
+      const invite = params.get('invite');
+      if (!invite) return;
+
+      // Strip the param immediately so a reload doesn't re-trigger this.
+      params.delete('invite');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      history.replaceState({}, '', newUrl);
+
+      showConnectModal();
+      const input = document.getElementById('inviteCodeInput');
+      if (input) input.value = invite;
+    }
+
+    // =====================================================
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
+
+      _aloHandleInviteParam();
 
       // Initialize Botpress JS SDK immediately (guest mode)
       // userData will be sent later via updateUser() once auth resolves
