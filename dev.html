@@ -1495,37 +1495,6 @@ function showGuestBenefitsCard() {
     }
 
     // =====================================================
-    // PRIVACY MODAL
-    // =====================================================
-    function showPrivacyModal() {
-      const therapistName = connectedTherapistName || 'your therapist';
-      
-      createModal('Your Privacy', `
-        <h3 class="modal-section-title">What ${therapistName} sees</h3>
-        <ul class="modal-list">
-          <li>Whether you're connected to Alo</li>
-          <li>If you completed homework exercises</li>
-          <li>Messages you send them directly</li>
-          <li>How often you use Alo (not what you discuss)</li>
-        </ul>
-        
-        <h3 class="modal-section-title">What they never see</h3>
-        <ul class="modal-list">
-          <li><strong>Your conversations with Alo</strong> — there is no way for them to access these</li>
-          <li>What you talked about or how you're feeling</li>
-          <li>Only you decide what to share with your therapist</li>
-        </ul>
-        
-        <p class="modal-divider">
-          Alo is your space. Your therapist trusts you to share what matters when you're ready.
-        </p>
-      `, {
-        confirmLabel: 'Got it',
-        showCancel: false
-      });
-    }
-
-    // =====================================================
     // SHARE MODAL (3-option: Summary/Full/Range)
     // =====================================================
     function showShareModal() {
@@ -3692,7 +3661,7 @@ window.botpress.on('webchat:closed', function() {
 
       document.getElementById('privacyLink').addEventListener('click', function(e) {
         e.preventDefault();
-        createModal('Privacy Policy', `
+        createModal('Your Privacy', `
           <h3 class="modal-section-title">What we store</h3>
           <ul class="modal-list">
             <li>Account information (email, password hash)</li>
@@ -3723,6 +3692,7 @@ window.botpress.on('webchat:closed', function() {
           <ul class="modal-list">
             <li>Your therapist sees homework status, messages you send them, and any journal entries you explicitly share</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
+            <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
             <li>We don't sell or share your data with third parties</li>
           </ul>
 
@@ -3734,7 +3704,7 @@ window.botpress.on('webchat:closed', function() {
           </ul>
 
           <p class="modal-divider">
-            Questions about your privacy? Ask your therapist.
+            Alo is your space. Your therapist trusts you to share what matters when you're ready.
           </p>
         `, {
           confirmLabel: 'Got it',
