@@ -955,6 +955,10 @@ function showGuestBenefitsCard() {
                 viewed_at: new Date().toISOString()
               });
             } catch (viewErr) {
+              // Deliberately console-only: background bookkeeping (marks a
+              // homework card as viewed). The card already rendered
+              // successfully; a toast here would report a failure the user
+              // did not cause and cannot act on.
               console.error('Error writing viewed_at:', viewErr);
             }
           }
@@ -990,6 +994,12 @@ function showGuestBenefitsCard() {
 
       } catch (err) {
         console.error('Error loading homework:', err);
+        var hwErrContainer = document.getElementById('homeworkContainer');
+        if (hwErrContainer) {
+          hwErrContainer.innerHTML = '<div class="load-error">Couldn\'t load your homework.<br>' +
+            '<button class="load-retry-btn" onclick="loadHomework()">Try again</button></div>';
+          hwErrContainer.classList.add('show');
+        }
       }
     }
 
@@ -1650,6 +1660,11 @@ function showGuestBenefitsCard() {
               console.log('[Auth] Created missing profile for confirmed user');
             }
           } catch (profileErr) {
+            // Deliberately console-only: this is a fallback for a race with
+            // the profile-creation trigger, so failure here most often means
+            // the profile already exists -- not a real error the user needs
+            // to see. If the profile genuinely is missing, later reads will
+            // surface their own failures.
             console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
           }
 
@@ -1664,6 +1679,7 @@ function showGuestBenefitsCard() {
               await supabase.auth.updateUser({ data: { invite_code: null } });
             } catch (inviteErr) {
               console.log('[Auth] Invite claim failed:', inviteErr.message);
+              showToast('Could not connect using your invite code. You can try again from the menu.');
               showLoggedInNoConnection();
             }
             return;
@@ -1732,6 +1748,7 @@ function showGuestBenefitsCard() {
           // validates a clientId whose session row doesn't exist yet.
           sendAuthBridge();
         } catch (err) {
+          // Deliberately console-only: already resilient by design.
           console.error('Session metadata write failed:', err);
           // Still attempt the auth bridge — better a degraded session
           // than no conversation at all.
@@ -1740,6 +1757,7 @@ function showGuestBenefitsCard() {
 
       } catch (err) {
         console.error('Error loading connected state:', err);
+        showToast('Some things may not have loaded correctly. Try refreshing the page.');
       }
     }
 
@@ -1790,6 +1808,10 @@ function showGuestBenefitsCard() {
         .single();
 
       if (error) {
+        // Deliberately console-only: background persistence write. The
+        // conversation is already live in Botpress regardless of whether
+        // this row exists; a toast on every transient write failure would
+        // be noisy and the user cannot act on it directly.
         console.error('[Persistence] Failed to create conversation:', error.message);
         return null;
       }
@@ -1830,6 +1852,11 @@ function showGuestBenefitsCard() {
           .upsert(insertData, { onConflict: 'botpress_msg_id' });
 
         if (error) {
+          // Deliberately console-only, both here and in the .catch() below:
+          // background message-persistence write queue. The message is
+          // already shown to the user via Botpress regardless of whether
+          // this write succeeds, and a toast per failed background save
+          // would be very noisy during a connectivity blip.
           console.error('[Persistence] FAILED ' + role + ':', error.message, error.details, error.hint);
         } else {
           console.log('[Persistence] Saved ' + role + ' message OK');
@@ -1863,6 +1890,8 @@ function showGuestBenefitsCard() {
         });
         console.log('[Alo] Auth bridge sent to Botpress');
       } catch (e) {
+        // Deliberately console-only: self-retrying (schedules another
+        // attempt below) and has no user-facing container of its own.
         console.warn('[Alo] Auth bridge sendEvent failed:', e);
     authBridgeSent = false;
     setTimeout(sendAuthBridge, 1000);
@@ -1872,7 +1901,10 @@ function showGuestBenefitsCard() {
           userKey: clientId,
           data: { clientId: clientId }
         });
-      } catch (e) {}
+      } catch (e) {
+        // Deliberately silent: best-effort identity sync: sendEvent above
+        // already carries clientId, so this is redundant when it succeeds.
+      }
     } 
 
     // =====================================================
@@ -1925,6 +1957,11 @@ function showGuestBenefitsCard() {
         renderThreadList();
       } catch (err) {
         console.error('Error loading threads:', err);
+        var threadErrContainer = document.getElementById('threadList');
+        if (threadErrContainer) {
+          threadErrContainer.innerHTML = '<div class="load-error">Couldn\'t load your conversations.<br>' +
+            '<button class="load-retry-btn" onclick="loadThreads()">Try again</button></div>';
+        }
       }
     }
 
@@ -2625,6 +2662,9 @@ async function togglePin(conversationId) {
         await window.botpress.restartConversation();
         console.log('[Alo] New conversation started via restartConversation()');
       } catch (e) {
+        // Deliberately console-only, no toast: the page reloads immediately
+        // below, so a toast would not be visible before navigation replaces
+        // it. The reload itself is the visible recovery action.
         console.error('[Alo] restartConversation failed, reloading page:', e);
         window.location.reload();
         return;
@@ -2878,6 +2918,14 @@ async function togglePin(conversationId) {
         }
       } catch (err) {
         console.error('[Journal] Load failed:', err);
+        var jTimeline = document.getElementById('journalTimeline');
+        var jEmptyState = document.getElementById('journalEmptyState');
+        if (jEmptyState) jEmptyState.style.display = 'none';
+        if (jTimeline) {
+          jTimeline.classList.remove('hidden');
+          jTimeline.innerHTML = '<div class="load-error">Couldn\'t load your journal entries.<br>' +
+            '<button class="load-retry-btn" onclick="loadJournalEntries()">Try again</button></div>';
+        }
       }
     }
 
@@ -3160,6 +3208,7 @@ async function togglePin(conversationId) {
             console.log('[Alo] Journal entry sent as first message');
           } catch (e) {
             console.warn('[Alo] sendMessage after restart failed:', e);
+            showToast('Started a new conversation, but could not send your journal entry automatically. You can paste it in.');
           }
         });
       }
@@ -3247,7 +3296,8 @@ async function togglePin(conversationId) {
       } catch (err) {
         console.error('[Alo] Botpress SDK init failed:', err);
         if (loadingOverlay) {
-          loadingOverlay.innerHTML = '<p>Alo couldn\'t load. Please refresh the page — if this keeps happening, check your connection.</p>';
+          loadingOverlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
+            '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
         }
       }
 

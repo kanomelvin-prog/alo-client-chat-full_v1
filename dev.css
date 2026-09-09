@@ -2536,6 +2536,33 @@ footer a {
   flex-shrink: 0;
 }
 
+/* === LOAD / ERROR STATE (Phase 3, SILENT-6 loader fixes) === */
+.load-error {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.load-retry-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.load-retry-btn:hover {
+  background: var(--primary-light);
+}
+
 /* === LOAD MORE BUTTON === */
 .thread-load-more {
   width: 100%;
