@@ -1927,6 +1927,12 @@ function showGuestBenefitsCard() {
     // =====================================================
     
     let allThreads = [];
+    // BROKEN-1 fix: how many unpinned threads are currently revealed.
+    // Reset to THREAD_PAGE_SIZE on every fresh loadThreads(); bumped by
+    // loadMoreThreads() below. renderThreadList() reads it instead of a
+    // hardcoded slice bound, so "Load older conversations" actually pages.
+    const THREAD_PAGE_SIZE = 30;
+    let threadListOffset = THREAD_PAGE_SIZE;
     let guestTurnCount = 0;
 
     function toggleThreadSidebar() {
@@ -1954,6 +1960,7 @@ function showGuestBenefitsCard() {
       try {
         const threads = await api(`/rest/v1/conversations?client_id=eq.${user.id}&select=id,title,turn_count,created_at,updated_at,pinned,pinned_at&order=pinned.desc,created_at.desc&limit=50`);
         allThreads = threads || [];
+        threadListOffset = THREAD_PAGE_SIZE;
         renderThreadList();
       } catch (err) {
         console.error('Error loading threads:', err);
@@ -2016,10 +2023,10 @@ function showGuestBenefitsCard() {
         }
       }
 
-      var visibleUnpinned = unpinned.slice(0, 30);
+      var visibleUnpinned = unpinned.slice(0, threadListOffset);
       for (var ui = 0; ui < visibleUnpinned.length; ui++) { html += renderThreadRow(visibleUnpinned[ui]); }
 
-      if (unpinned.length > 30) {
+      if (unpinned.length > threadListOffset) {
         html += '<button class="thread-load-more" onclick="loadMoreThreads()">Load older conversations</button>';
       }
 
@@ -2049,6 +2056,20 @@ function showGuestBenefitsCard() {
           deleteThread(this.dataset.id);
         });
       });
+    }
+
+    // BROKEN-1 fix: this was referenced by the "Load older conversations"
+    // button but never defined, so threads 31+ were unreachable. Reveals the
+    // next page of already-fetched unpinned threads and re-renders; the
+    // button hides itself once every fetched unpinned thread is shown
+    // (renderThreadList's own `unpinned.length > threadListOffset` check).
+    // Note: loadThreads() fetches at most 50 conversations total (its own
+    // `limit=50`), so this pages within that batch -- it does not reach a
+    // 51st+ conversation. That is a separate, narrower gap from BROKEN-1 and
+    // is flagged in the report rather than fixed here.
+    function loadMoreThreads() {
+      threadListOffset += THREAD_PAGE_SIZE;
+      renderThreadList();
     }
 
     async function viewTranscript(conversationId) {
