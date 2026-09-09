@@ -3594,6 +3594,94 @@ async function togglePin(conversationId) {
     // =====================================================
     
     // =====================================================
+    // D29-03 -- "OPEN AS CLIENT" TOKEN EXCHANGE (spec section 6 step 4 /
+    // section 7 / section 10, ruling D31)
+    // =====================================================
+    //
+    // Strip-then-exchange, in that order, deliberately. See spec section 6
+    // step 4: the token in `?t=` must not linger in the URL bar, browser
+    // history, or a Referer header a moment longer than necessary, and a
+    // page reload or a copied/shared link must not re-present an
+    // already-spent token to the exchange endpoint. Stripping is therefore
+    // synchronous and happens before ANY other async work this file does --
+    // before the Botpress init, before getSession(), before
+    // _aloHandleInviteParam(). The actual exchange (network round trip) is
+    // NOT under that same ordering constraint and runs later, at the same
+    // point in DOMContentLoaded the ordinary getSession() check already
+    // ran -- see the call site below.
+    //
+    // detectSessionInUrl (createClient() options, ~line 458) does not
+    // interact with any of this: it only recognises hash-fragment tokens
+    // (#access_token=...) for the implicit flow and a `?code=` query param
+    // for PKCE. `?t=` matches neither pattern, so Supabase's own client
+    // never looks at it.
+    function _aloHandleTokenParam() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('t');
+      if (!token) return null;
+
+      params.delete('t');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      history.replaceState({}, '', newUrl);
+
+      return token;
+    }
+
+    // D31 (Kano, 2026-09-09): spec section 10's intent -- never reveal WHY
+    // the link failed -- is preserved by exactly ONE constant message for
+    // every failure mode (bad token, already used, expired, network error,
+    // CORS block, malformed response, verifyOtp rejection). Per-cause
+    // messages are FORBIDDEN; do not add one even for a case that feels
+    // safe to disclose. The normal signed-out UI (the header's existing
+    // Sign In button) is left completely alone on failure -- this function
+    // never touches it -- so it stays visible under the toast.
+    const ALO_TOKEN_EXCHANGE_FAILURE_MESSAGE =
+      "That link didn't work — ask your therapist for a new one.";
+
+    // Spec section 7: the token is consumed server-side on the FIRST
+    // attempt regardless of outcome ("past this line the token is SPENT").
+    // Retrying here cannot recover a failed exchange and would only spend
+    // an attacker's guesses faster -- do not add a retry.
+    async function _aloExchangeClientToken(token) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/exchange-client-token`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token })
+        });
+
+        if (!res.ok) throw new Error('exchange_rejected');
+
+        const body = await res.json();
+        if (!body || typeof body.token_hash !== 'string') throw new Error('exchange_no_hash');
+
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: body.token_hash,
+          type: 'magiclink'
+        });
+        if (error) throw error;
+
+        // Success: verifyOtp() establishes the session, which fires
+        // SIGNED_IN on the onAuthStateChange listener registered earlier in
+        // this same DOMContentLoaded handler (see below), which already
+        // calls loadConnectedState() -- section 10's "everything downstream
+        // is unchanged" is satisfied by NOT duplicating that call here.
+      } catch {
+        // Deliberately bare catch: nothing that could carry the token, the
+        // response body, or a server-supplied reason is ever interpolated
+        // into the message, logged, or written to the DOM. Mirrors the
+        // dashboard's openAsClient() failure path (alo-dashboard dev.html,
+        // D29-01) for the same reason.
+        showToast(ALO_TOKEN_EXCHANGE_FAILURE_MESSAGE, 6000);
+      }
+    }
+
+    // =====================================================
     // PHASE 2B, ITEM 9 -- ?invite= PARAM PREFILL (12a)
     // =====================================================
     function _aloHandleInviteParam() {
@@ -3618,6 +3706,15 @@ async function togglePin(conversationId) {
     document.addEventListener('DOMContentLoaded', async function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
+
+      // D29-03: must run before ANY other async work in this handler,
+      // including _aloHandleInviteParam() -- see the comment on the
+      // function itself. `let`, not `const`: cleared right after the
+      // exchange attempt below (security review finding -- token lifetime
+      // in memory) rather than staying reachable in this closure for the
+      // rest of the page's life, which the exchange attempt itself does not
+      // need past that one call.
+      let _aloClientToken = _aloHandleTokenParam();
 
       _aloHandleInviteParam();
 
@@ -3983,6 +4080,22 @@ window.botpress.on('webchat:closed', function() {
           console.log('[Auth] Token refreshed');
         }
       });
+
+      // D29-03: a token in the URL takes over the sign-in check entirely.
+      // Deliberately NOT falling through to the ordinary getSession() check
+      // below on either outcome: on success verifyOtp() already established
+      // the session and the SIGNED_IN listener above already called
+      // loadConnectedState() by the time this line runs or shortly after --
+      // calling getSession()+loadConnectedState() again here would race it
+      // and duplicate every downstream side effect (Botpress identity sync,
+      // the session_metadata write, homework/memory loads). On failure
+      // there is no session to find either way.
+      if (_aloClientToken) {
+        await _aloExchangeClientToken(_aloClientToken);
+        _aloClientToken = null;
+        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        return;
+      }
 
       // Check for existing session
       const { data: { session } } = await supabase.auth.getSession();
