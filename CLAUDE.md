@@ -38,24 +38,10 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 ## Critical Warnings
 - INVISIBLE CHARACTER BUG: AI-generated code can contain U+200B zero-width spaces
   that silently break JavaScript. Verify page loads after every large code block.
-  Scan command (ruling D3, 2026-09-09: heredoc with explicit codepoints, not a
-  `grep -rP`/`python3 -c` one-liner — see the "Code safety" section below for why):
+  Scan command (ruling D3, 2026-09-09, versioned per D20 into `scripts/scan-invisible.py`
+  instead of a duplicated heredoc — see the "Code safety" section below for why):
 ```bash
-  python3 - dev.html dev.css <<'PYEOF'
-  import sys, io, collections
-  BAD = {0x200B:'ZWSP', 0x200C:'ZWNJ', 0x200D:'ZWJ', 0xFEFF:'BOM', 0x2060:'WJ',
-         0x00A0:'NBSP', 0x2018:'LSQUO', 0x2019:'RSQUO', 0x201C:'LDQUO', 0x201D:'RDQUO'}
-  bad = 0
-  for path in sys.argv[1:]:
-      s = io.open(path, encoding='utf-8').read()
-      hits = collections.Counter(BAD[ord(c)] for c in s if ord(c) in BAD)
-      lines = sorted({i for i, ln in enumerate(s.split('\n'), 1)
-                      for c in ln if ord(c) in BAD})
-      bad += sum(hits.values())
-      print(f'{path}: {dict(hits) if hits else "CLEAN"}'
-            + (f'  lines: {lines}' if lines else ''))
-  sys.exit(1 if bad else 0)
-  PYEOF
+  python3 scripts/scan-invisible.py dev.html dev.css
   ```
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
 - Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
@@ -86,23 +72,9 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 
 ### Code safety
 - Scan for zero-width characters (U+200B, U+200C, U+200D, U+FEFF, U+2060) before every commit. One invisible character in inline JavaScript silently breaks the page. This is a known hazard with Claude-generated code.
-- Scan command (ruling D3, 2026-09-09: heredoc with explicit codepoints, not a `grep -P`/`python3 -c` one-liner — a one-liner's character class was mangled by shell quoting on 2026-09-08 and produced 2312 false positives; the same mangling can produce a false negative, and this check exists to catch a bug that silently breaks the page). Covers NBSP and smart quotes too, which the old five-codepoint form missed. Exit 0 and `CLEAN` on every line is a pass:
+- Scan command (ruling D3, 2026-09-09, versioned per D20 into `scripts/scan-invisible.py` instead of a duplicated heredoc — not a `grep -P`/`python3 -c` one-liner, whose character class was mangled by shell quoting on 2026-09-08 and produced 2312 false positives; the same mangling can produce a false negative, and this check exists to catch a bug that silently breaks the page. Covers NBSP and smart quotes too, which the old five-codepoint form missed). Exit 0 and `CLEAN` on every line is a pass:
 ```bash
-  python3 - dev.html dev.css <<'PYEOF'
-  import sys, io, collections
-  BAD = {0x200B:'ZWSP', 0x200C:'ZWNJ', 0x200D:'ZWJ', 0xFEFF:'BOM', 0x2060:'WJ',
-         0x00A0:'NBSP', 0x2018:'LSQUO', 0x2019:'RSQUO', 0x201C:'LDQUO', 0x201D:'RDQUO'}
-  bad = 0
-  for path in sys.argv[1:]:
-      s = io.open(path, encoding='utf-8').read()
-      hits = collections.Counter(BAD[ord(c)] for c in s if ord(c) in BAD)
-      lines = sorted({i for i, ln in enumerate(s.split('\n'), 1)
-                      for c in ln if ord(c) in BAD})
-      bad += sum(hits.values())
-      print(f'{path}: {dict(hits) if hits else "CLEAN"}'
-            + (f'  lines: {lines}' if lines else ''))
-  sys.exit(1 if bad else 0)
-  PYEOF
+  python3 scripts/scan-invisible.py dev.html dev.css
   ```
 
 ### Schema changes
