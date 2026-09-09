@@ -26,6 +26,11 @@
   <meta name="apple-mobile-web-app-title" content="Alowen">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#F3EDE4" id="metaThemeColor">
+  <!-- Phase 2, item 13a: installable app. Same-origin, dev.html only -- not linked from index.html. -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
   
   <!-- Prevent flash of wrong theme — runs before first paint --> 
   <script>
@@ -55,10 +60,26 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=12">
+  <link rel="stylesheet" href="dev.css?v=13">
 </head>
 
 <body>
+  <!-- Phase 2, item 13a: dismissible Android install affordance. Never auto-prompted. -->
+  <div class="install-banner" id="installBanner" style="display:none;" role="status">
+    <span class="install-banner-text">Install Alo for quicker access.</span> <!-- COPY: Kano review -->
+    <button class="install-banner-btn" id="installBannerInstallBtn" onclick="_aloInstallPrompt()">Install</button>
+    <button class="install-banner-close" onclick="_aloDismissInstallBanner()" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <!-- Phase 2, item 13a: iOS "Add to Home Screen" card. Shown once, only
+       after the first real conversation, dismissed by any interaction. -->
+  <div class="ios-install-card" id="iosInstallCard" style="display:none;" role="status">
+    <div class="ios-install-card-body">
+      <span class="ios-install-card-title">Add Alo to your Home Screen</span> <!-- COPY: Kano review -->
+      <span class="ios-install-card-steps">Tap <strong>Share</strong> <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>, then <strong>Add to Home Screen</strong>.</span> <!-- COPY: Kano review -->
+    </div>
+  </div>
+
   <header>
         <div class="brand" onclick="handleLogoClick()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();handleLogoClick();}" role="button" tabindex="0" aria-label="Go to chat or start a new conversation" style="cursor:pointer;">
       <div class="brand-icon">A</div>
@@ -2011,6 +2032,7 @@ function showGuestBenefitsCard() {
         allThreads = threads || [];
         threadListOffset = THREAD_PAGE_SIZE;
         renderThreadList();
+        _aloMaybeShowIOSInstallCard();
       } catch (err) {
         console.error('Error loading threads:', err);
         var threadErrContainer = document.getElementById('threadList');
@@ -3710,6 +3732,84 @@ window.botpress.on('webchat:closed', function() {
         setTimeout(function() { showGuestBenefitsCard(); }, 2000);
       }
     });
+
+    // =====================================================
+    // PHASE 2, ITEM 13a -- INSTALLABLE APP
+    // =====================================================
+
+    // --- Android: captured, never auto-prompted ---
+    let _aloDeferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _aloDeferredInstallPrompt = e;
+      if (localStorage.getItem('alo_install_dismissed') === '1') return;
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'flex';
+    });
+
+    async function _aloInstallPrompt() {
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+      if (!_aloDeferredInstallPrompt) return;
+      _aloDeferredInstallPrompt.prompt();
+      try {
+        await _aloDeferredInstallPrompt.userChoice;
+      } catch (err) {
+        console.warn('Install prompt outcome unavailable:', err);
+      }
+      _aloDeferredInstallPrompt = null;
+    }
+
+    function _aloDismissInstallBanner() {
+      localStorage.setItem('alo_install_dismissed', '1');
+      const banner = document.getElementById('installBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    window.addEventListener('appinstalled', () => {
+      _aloDeferredInstallPrompt = null;
+      localStorage.setItem('alo_install_dismissed', '1');
+    });
+
+    // --- iOS: instruction card, shown once, only after the first real
+    // conversation exists, dismissed by any interaction ---
+    function _aloIsIOSNotInstalled() {
+      const isIOS = /iP(hone|od|ad)/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isStandalone = window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+      return isIOS && !isStandalone;
+    }
+
+    function _aloMaybeShowIOSInstallCard() {
+      if (!_aloIsIOSNotInstalled()) return;
+      if (localStorage.getItem('alo_ios_install_card_shown') === '1') return;
+      const hasConversation = Array.isArray(allThreads) && allThreads.some(t => (t.turn_count || 0) > 0);
+      if (!hasConversation) return;
+
+      const card = document.getElementById('iosInstallCard');
+      if (!card) return;
+
+      // Persisted at show-time, not at dismiss-time: this card must never
+      // reappear, even if the page is reloaded before the user interacts.
+      localStorage.setItem('alo_ios_install_card_shown', '1');
+      card.style.display = 'flex';
+
+      const dismiss = () => {
+        card.style.display = 'none';
+        document.removeEventListener('click', dismiss, true);
+        document.removeEventListener('touchstart', dismiss, true);
+        document.removeEventListener('keydown', dismiss, true);
+      };
+      // Deferred one tick so the click/tap that revealed the card (e.g. the
+      // one that just sent the first message) doesn't immediately dismiss it.
+      setTimeout(() => {
+        document.addEventListener('click', dismiss, true);
+        document.addEventListener('touchstart', dismiss, true);
+        document.addEventListener('keydown', dismiss, true);
+      }, 0);
+    }
   </script>
 </body>
 </html>
