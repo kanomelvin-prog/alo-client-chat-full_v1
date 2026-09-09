@@ -548,6 +548,52 @@
     // =====================================================
     // MODAL SYSTEM
     // =====================================================
+
+    // COSMETIC-1/-2 (Phase 3, backlog N3): shared focus trap. Every modal in
+    // this app is built by createModal() below, so wiring the trap in there
+    // covers all of them from one place -- share, connect, login, message,
+    // name edit, privacy, set-new-password and journal-entry modals included.
+    // Tabbing off either end of the visible modal wraps back inside it
+    // instead of reaching the page behind. Returns a release function that
+    // removes the listener; createModal() calls it from closeModal().
+    var FOCUSABLE_SELECTOR = 'a[href], button:not([disabled]), textarea:not([disabled]), ' +
+      'input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    function trapFocus(container) {
+      function getFocusable() {
+        return Array.prototype.filter.call(
+          container.querySelectorAll(FOCUSABLE_SELECTOR),
+          function(el) { return el.offsetParent !== null; } // visible only
+        );
+      }
+
+      function handleKeydown(e) {
+        if (e.key !== 'Tab') return;
+        var focusables = getFocusable();
+        if (focusables.length === 0) return;
+        var first = focusables[0];
+        var last = focusables[focusables.length - 1];
+        var active = document.activeElement;
+
+        if (e.shiftKey) {
+          if (active === first || !container.contains(active)) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (active === last || !container.contains(active)) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+
+      container.addEventListener('keydown', handleKeydown);
+      return function releaseFocusTrap() {
+        container.removeEventListener('keydown', handleKeydown);
+      };
+    }
+
     function createModal(title, bodyHTML, options = {}) {
       const {
         confirmLabel = 'Confirm',
@@ -600,7 +646,10 @@
         setTimeout(() => closeBtn.focus(), 100);
       }
 
+      const releaseFocusTrap = trapFocus(modal);
+
       function closeModal() {
+        releaseFocusTrap();
         modal.classList.add('closing');
         setTimeout(() => modal.remove(), 300);
       }
