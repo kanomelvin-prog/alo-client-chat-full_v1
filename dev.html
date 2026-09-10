@@ -60,13 +60,13 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=13">
+  <link rel="stylesheet" href="dev.css?v=15">
 </head>
 
 <body>
   <!-- Phase 2, item 13a: dismissible Android install affordance. Never auto-prompted. -->
   <div class="install-banner" id="installBanner" style="display:none;" role="status">
-    <span class="install-banner-text">Install Alo for quicker access.</span> <!-- COPY: Kano review -->
+    <span class="install-banner-text">Add Alo to your home screen for one-tap access.</span>
     <button class="install-banner-btn" id="installBannerInstallBtn" onclick="_aloInstallPrompt()">Install</button>
     <button class="install-banner-close" onclick="_aloDismissInstallBanner()" aria-label="Dismiss">&times;</button>
   </div>
@@ -134,6 +134,14 @@
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showAboutModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         About Alo
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); _aloOpenOnboardingScreens('readonly')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        How Alo works
+      </button>
+      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); _aloShowPrivacyModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        Your privacy
       </button>
       <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -425,6 +433,14 @@
   <!-- Toast container -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- Phase 2B, item 8: four-screen onboarding + consent (spec §3.2).
+       Reused read-only (no consent gate) for the client menu's
+       "How Alo works" item -- see _aloOpenOnboardingScreens(mode). -->
+  <div class="alo-onboarding-overlay" id="aloOnboardingOverlay" role="dialog" aria-modal="true" aria-label="How Alo works">
+    <button class="alo-onboarding-close" id="aloOnboardingCloseBtn" onclick="_aloCloseOnboardingScreens()" aria-label="Close" style="display:none;">&times;</button>
+    <div class="alo-onboarding-card" id="aloOnboardingBody"></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
   <script>
     // =====================================================
@@ -564,6 +580,53 @@
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
       }, duration);
+    }
+
+    // =====================================================
+    // PHASE 2B, ITEM 10 -- CONTEXTUAL TIPS (spec §3.4)
+    // One line, shown once per key, dismissed by any interaction,
+    // persisted in localStorage so it never shows again.
+    // =====================================================
+    function _aloShowTip(key, text) {
+      var storageKey = 'alo_tip_' + key + '_seen';
+      try {
+        if (localStorage.getItem(storageKey)) return;
+        localStorage.setItem(storageKey, '1');
+      } catch (err) {
+        // No localStorage (private mode, quota) -- fail open and just skip
+        // the tip rather than showing it every time.
+        return;
+      }
+
+      var tip = document.createElement('div');
+      tip.className = 'alo-contextual-tip';
+      tip.textContent = text;
+      tip.setAttribute('role', 'status');
+      document.body.appendChild(tip);
+
+      function dismiss() {
+        tip.remove();
+        document.removeEventListener('click', dismiss, true);
+        document.removeEventListener('touchstart', dismiss, true);
+        document.removeEventListener('keydown', dismiss, true);
+      }
+
+      // Wait a tick so the interaction that triggered this tip (e.g. the
+      // tap that opened the journal tab) doesn't immediately dismiss it.
+      setTimeout(function() {
+        document.addEventListener('click', dismiss, true);
+        document.addEventListener('touchstart', dismiss, true);
+        document.addEventListener('keydown', dismiss, true);
+      }, 0);
+
+      setTimeout(dismiss, 8000);
+    }
+
+    // Phase 2B item 11: client menu "Your privacy" -- reuses the wired
+    // #privacyLink modal (D27) instead of duplicating its copy.
+    function _aloShowPrivacyModal() {
+      var link = document.getElementById('privacyLink');
+      if (link) link.click();
     }
 
     // =====================================================
@@ -1015,7 +1078,7 @@ function showGuestBenefitsCard() {
 
         container.classList.add('show');
 
-        
+        _aloShowTip('homework', (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see that, not what you wrote.');
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -1151,6 +1214,163 @@ function showGuestBenefitsCard() {
     }
 
     // =====================================================
+    // PHASE 2B, ITEM 8 -- FOUR-SCREEN ONBOARDING + CONSENT (spec §3.2)
+    // Fires once, after a successful invite-code signup only (never a
+    // returning sign-in). Reused read-only (mode 'readonly', no consent
+    // gate, no PATCH) for the client menu's "How Alo works" item (P2B-11).
+    // =====================================================
+    const ALO_ONBOARDING_SCREENS = [
+      {
+        title: 'What this is',
+        body: 'Alo is here for the time between sessions. When something comes up on a Tuesday night, you can talk it through instead of sitting on it until your next appointment.\n\nAlo asks more than it tells. It isn\'t a therapist, and it isn\'t trying to be one.'
+      },
+      {
+        title: 'What\'s yours',
+        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Nothing is shared unless you share it.',
+        mockJournal: true
+      },
+      {
+        title: 'If things get hard',
+        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will let your therapist know something happened. Not what you said. Just that you might need them.'
+      }
+    ];
+
+    let _aloOnboardingStep = 0;
+    let _aloOnboardingMode = 'gate'; // 'gate' | 'readonly'
+
+    function _aloOnboardingMockJournal() {
+      // Non-interactive -- injected via innerHTML with no listeners attached,
+      // so nothing here is clickable regardless of markup reused from the
+      // real journal entry / share-toggle styles.
+      return `
+        <div class="alo-onboarding-mock-journal" aria-hidden="true">
+          <div class="journal-entry-card">
+            <div class="journal-entry-header">
+              <span class="journal-entry-date">Mar 12</span>
+            </div>
+            <div class="journal-entry-preview">Had a rough morning but talked it through before it spiraled...</div>
+          </div>
+          <button class="journal-share-btn" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 019.9-1"/></svg>
+            Share with therapist
+          </button>
+        </div>
+      `;
+    }
+
+    function _aloOpenOnboardingScreens(mode) {
+      _aloOnboardingMode = mode === 'readonly' ? 'readonly' : 'gate';
+      _aloOnboardingStep = 0;
+      var closeBtn = document.getElementById('aloOnboardingCloseBtn');
+      if (closeBtn) closeBtn.style.display = _aloOnboardingMode === 'readonly' ? 'block' : 'none';
+      _aloRenderOnboardingScreen();
+      document.getElementById('aloOnboardingOverlay').classList.add('show');
+    }
+
+    function _aloCloseOnboardingScreens() {
+      // Only reachable in readonly mode -- the close button is hidden in
+      // gate mode, and gate mode has no backdrop/Escape dismiss.
+      document.getElementById('aloOnboardingOverlay').classList.remove('show');
+    }
+
+    function _aloOnboardingNext() {
+      if (_aloOnboardingStep < 3) {
+        _aloOnboardingStep++;
+        _aloRenderOnboardingScreen();
+      }
+    }
+
+    function _aloOnboardingBack() {
+      if (_aloOnboardingStep > 0) {
+        _aloOnboardingStep--;
+        _aloRenderOnboardingScreen();
+      }
+    }
+
+    function _aloOnboardingSkipToGate() {
+      _aloOnboardingStep = 3;
+      _aloRenderOnboardingScreen();
+    }
+
+    function _aloOnboardingConsentToggled(checked) {
+      var btn = document.getElementById('aloOnboardingStartBtn');
+      if (btn) btn.disabled = !checked;
+    }
+
+    function _aloRenderOnboardingScreen() {
+      var body = document.getElementById('aloOnboardingBody');
+      if (!body) return;
+
+      if (_aloOnboardingStep < 3) {
+        var s = ALO_ONBOARDING_SCREENS[_aloOnboardingStep];
+        var skipOrBack = _aloOnboardingMode === 'gate'
+          ? '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingSkipToGate()">Skip</button>'
+          : (_aloOnboardingStep > 0 ? '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' : '<span></span>');
+
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">' + (_aloOnboardingStep + 1) + ' of 4</div>' +
+          '<h2 class="alo-onboarding-title">' + esc(s.title) + '</h2>' +
+          '<p class="alo-onboarding-text">' + esc(s.body).replace(/\n\n/g, '<br><br>') + '</p>' +
+          (s.mockJournal ? _aloOnboardingMockJournal() : '') +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" onclick="_aloOnboardingNext()">Next</button>' +
+            skipOrBack +
+          '</div>';
+        return;
+      }
+
+      // Screen 4
+      if (_aloOnboardingMode === 'gate') {
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">4 of 4</div>' +
+          '<h2 class="alo-onboarding-title">Before you start</h2>' +
+          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours — nothing is shared unless you choose to. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
+          '<label class="alo-onboarding-checkbox-row">' +
+            '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
+            '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
+          '</label>' +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" id="aloOnboardingStartBtn" disabled onclick="_aloOnboardingComplete()">Start talking to Alo</button>' +
+          '</div>';
+      } else {
+        body.innerHTML =
+          '<div class="alo-onboarding-progress">4 of 4</div>' +
+          '<h2 class="alo-onboarding-title">Getting started</h2>' +
+          '<p class="alo-onboarding-text">Before your first conversation, you confirmed: "I understand what Alo is and isn\'t, and how sharing works." Then you tapped "Start talking to Alo."</p>' +
+          '<div class="alo-onboarding-actions">' +
+            '<button class="btn-primary alo-onboarding-next" onclick="_aloCloseOnboardingScreens()">Done</button>' +
+            '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' +
+          '</div>';
+      }
+    }
+
+    // Fire-and-forget: the overlay closes immediately so a slow or failed
+    // write never strands the client mid-consent. consent_acknowledged_at
+    // may not exist on therapist_clients yet (schema change is Kano's) --
+    // on failure this falls back to a localStorage flag and only logs.
+    async function _aloOnboardingComplete() {
+      _aloCloseOnboardingScreens();
+      try {
+        var uid = clientId;
+        if (!uid) {
+          var authRes = await supabase.auth.getUser();
+          uid = authRes.data?.user?.id || null;
+        }
+        if (!uid) return;
+        await api('/rest/v1/therapist_clients?client_id=eq.' + uid, 'PATCH', {
+          consent_acknowledged_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.warn('consent_acknowledged_at write failed (column may not exist yet):', err);
+        try {
+          localStorage.setItem('alo_consent_acknowledged_fallback', new Date().toISOString());
+        } catch (storageErr) {
+          // Nothing more we can do -- never block the client on this.
+        }
+      }
+    }
+
+    // =====================================================
     // CONNECT MODAL
     // =====================================================
     function showConnectModal() {
@@ -1259,9 +1479,14 @@ function showGuestBenefitsCard() {
             localStorage.setItem('alo_pending_invite', inviteCode);
           }
 
+          // Phase 2B item 8: the four-screen onboarding + consent flow
+          // fires only for a brand-new invite-code signup, never for a
+          // returning sign-in. Set only in the signUp() branch below.
+          let isNewInviteSignup = false;
+
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-          
+
           // If sign in fails, check whether user exists before trying signup
           if (error && error.message.includes('Invalid login credentials')) {
             // Attempt signup to distinguish "no account" from "wrong password"
@@ -1307,6 +1532,7 @@ function showGuestBenefitsCard() {
             
             data = signUpResult.data;
             error = null;
+            isNewInviteSignup = !!inviteCode;
 
             // Profile creation handled by Supabase auth trigger (handle_new_user)
             // Trigger fires on INSERT to auth.users, creates profile with role='individual'
@@ -1324,6 +1550,10 @@ function showGuestBenefitsCard() {
             await handleConnectSubmit(inviteCode);
           } else {
             await loadConnectedState();
+          }
+
+          if (isNewInviteSignup) {
+            _aloOpenOnboardingScreens('gate');
           }
         }
       });
@@ -1491,37 +1721,6 @@ function showGuestBenefitsCard() {
             return false;
           }
         }
-      });
-    }
-
-    // =====================================================
-    // PRIVACY MODAL
-    // =====================================================
-    function showPrivacyModal() {
-      const therapistName = connectedTherapistName || 'your therapist';
-      
-      createModal('Your Privacy', `
-        <h3 class="modal-section-title">What ${therapistName} sees</h3>
-        <ul class="modal-list">
-          <li>Whether you're connected to Alo</li>
-          <li>If you completed homework exercises</li>
-          <li>Messages you send them directly</li>
-          <li>How often you use Alo (not what you discuss)</li>
-        </ul>
-        
-        <h3 class="modal-section-title">What they never see</h3>
-        <ul class="modal-list">
-          <li><strong>Your conversations with Alo</strong> — there is no way for them to access these</li>
-          <li>What you talked about or how you're feeling</li>
-          <li>Only you decide what to share with your therapist</li>
-        </ul>
-        
-        <p class="modal-divider">
-          Alo is your space. Your therapist trusts you to share what matters when you're ready.
-        </p>
-      `, {
-        confirmLabel: 'Got it',
-        showCancel: false
       });
     }
 
@@ -2616,6 +2815,7 @@ async function togglePin(conversationId) {
       if (isHidden) {
         pop.classList.remove('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'true');
+        _aloShowTip('memory', 'Alo remembers a little between conversations so you don\'t have to start over. You can clear it anytime.');
       } else {
         pop.classList.add('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'false');
@@ -2665,6 +2865,7 @@ async function togglePin(conversationId) {
         toggleMemoryPopover();
       }
       showToast('Private session — this conversation won\'t be remembered');
+      _aloShowTip('privateSession', 'This conversation won\'t be saved. Alo won\'t remember it next time.');
 
             // Tell Botpress to skip memory for this conversation
       // A7-bonus — privateSession must be a string, not boolean.
@@ -2860,6 +3061,7 @@ async function togglePin(conversationId) {
         clearJournalBadge();
         initJournalView();
         loadJournalEntries();
+        _aloShowTip('journal', 'Entries stay private unless you choose to share one.');
       } else {
         // Show chat, hide journal
         if (journalContainer) journalContainer.classList.add('hidden');
@@ -3392,11 +3594,129 @@ async function togglePin(conversationId) {
     // =====================================================
     
     // =====================================================
+    // D29-03 -- "OPEN AS CLIENT" TOKEN EXCHANGE (spec section 6 step 4 /
+    // section 7 / section 10, ruling D31)
+    // =====================================================
+    //
+    // Strip-then-exchange, in that order, deliberately. See spec section 6
+    // step 4: the token in `?t=` must not linger in the URL bar, browser
+    // history, or a Referer header a moment longer than necessary, and a
+    // page reload or a copied/shared link must not re-present an
+    // already-spent token to the exchange endpoint. Stripping is therefore
+    // synchronous and happens before ANY other async work this file does --
+    // before the Botpress init, before getSession(), before
+    // _aloHandleInviteParam(). The actual exchange (network round trip) is
+    // NOT under that same ordering constraint and runs later, at the same
+    // point in DOMContentLoaded the ordinary getSession() check already
+    // ran -- see the call site below.
+    //
+    // detectSessionInUrl (createClient() options, ~line 458) does not
+    // interact with any of this: it only recognises hash-fragment tokens
+    // (#access_token=...) for the implicit flow and a `?code=` query param
+    // for PKCE. `?t=` matches neither pattern, so Supabase's own client
+    // never looks at it.
+    function _aloHandleTokenParam() {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('t');
+      if (!token) return null;
+
+      params.delete('t');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      history.replaceState({}, '', newUrl);
+
+      return token;
+    }
+
+    // D31 (Kano, 2026-09-09): spec section 10's intent -- never reveal WHY
+    // the link failed -- is preserved by exactly ONE constant message for
+    // every failure mode (bad token, already used, expired, network error,
+    // CORS block, malformed response, verifyOtp rejection). Per-cause
+    // messages are FORBIDDEN; do not add one even for a case that feels
+    // safe to disclose. The normal signed-out UI (the header's existing
+    // Sign In button) is left completely alone on failure -- this function
+    // never touches it -- so it stays visible under the toast.
+    const ALO_TOKEN_EXCHANGE_FAILURE_MESSAGE =
+      "That link didn't work — ask your therapist for a new one.";
+
+    // Spec section 7: the token is consumed server-side on the FIRST
+    // attempt regardless of outcome ("past this line the token is SPENT").
+    // Retrying here cannot recover a failed exchange and would only spend
+    // an attacker's guesses faster -- do not add a retry.
+    async function _aloExchangeClientToken(token) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/exchange-client-token`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ token })
+        });
+
+        if (!res.ok) throw new Error('exchange_rejected');
+
+        const body = await res.json();
+        if (!body || typeof body.token_hash !== 'string') throw new Error('exchange_no_hash');
+
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: body.token_hash,
+          type: 'magiclink'
+        });
+        if (error) throw error;
+
+        // Success: verifyOtp() establishes the session, which fires
+        // SIGNED_IN on the onAuthStateChange listener registered earlier in
+        // this same DOMContentLoaded handler (see below), which already
+        // calls loadConnectedState() -- section 10's "everything downstream
+        // is unchanged" is satisfied by NOT duplicating that call here.
+      } catch {
+        // Deliberately bare catch: nothing that could carry the token, the
+        // response body, or a server-supplied reason is ever interpolated
+        // into the message, logged, or written to the DOM. Mirrors the
+        // dashboard's openAsClient() failure path (alo-dashboard dev.html,
+        // D29-01) for the same reason.
+        showToast(ALO_TOKEN_EXCHANGE_FAILURE_MESSAGE, 6000);
+      }
+    }
+
+    // =====================================================
+    // PHASE 2B, ITEM 9 -- ?invite= PARAM PREFILL (12a)
+    // =====================================================
+    function _aloHandleInviteParam() {
+      const params = new URLSearchParams(window.location.search);
+      const invite = params.get('invite');
+      if (!invite) return;
+
+      // Strip the param immediately so a reload doesn't re-trigger this.
+      params.delete('invite');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      history.replaceState({}, '', newUrl);
+
+      showConnectModal();
+      const input = document.getElementById('inviteCodeInput');
+      if (input) input.value = invite;
+    }
+
+    // =====================================================
     // INITIALIZATION
     // =====================================================
     document.addEventListener('DOMContentLoaded', async function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       let loadTimeout;
+
+      // D29-03: must run before ANY other async work in this handler,
+      // including _aloHandleInviteParam() -- see the comment on the
+      // function itself. `let`, not `const`: cleared right after the
+      // exchange attempt below (security review finding -- token lifetime
+      // in memory) rather than staying reachable in this closure for the
+      // rest of the page's life, which the exchange attempt itself does not
+      // need past that one call.
+      let _aloClientToken = _aloHandleTokenParam();
+
+      _aloHandleInviteParam();
 
       // Initialize Botpress JS SDK immediately (guest mode)
       // userData will be sent later via updateUser() once auth resolves
@@ -3692,7 +4012,7 @@ window.botpress.on('webchat:closed', function() {
 
       document.getElementById('privacyLink').addEventListener('click', function(e) {
         e.preventDefault();
-        createModal('Privacy Policy', `
+        createModal('Your Privacy', `
           <h3 class="modal-section-title">What we store</h3>
           <ul class="modal-list">
             <li>Account information (email, password hash)</li>
@@ -3723,6 +4043,7 @@ window.botpress.on('webchat:closed', function() {
           <ul class="modal-list">
             <li>Your therapist sees homework status, messages you send them, and any journal entries you explicitly share</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
+            <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
             <li>We don't sell or share your data with third parties</li>
           </ul>
 
@@ -3734,7 +4055,7 @@ window.botpress.on('webchat:closed', function() {
           </ul>
 
           <p class="modal-divider">
-            Questions about your privacy? Ask your therapist.
+            Alo is your space. Your therapist trusts you to share what matters when you're ready.
           </p>
         `, {
           confirmLabel: 'Got it',
@@ -3759,6 +4080,22 @@ window.botpress.on('webchat:closed', function() {
           console.log('[Auth] Token refreshed');
         }
       });
+
+      // D29-03: a token in the URL takes over the sign-in check entirely.
+      // Deliberately NOT falling through to the ordinary getSession() check
+      // below on either outcome: on success verifyOtp() already established
+      // the session and the SIGNED_IN listener above already called
+      // loadConnectedState() by the time this line runs or shortly after --
+      // calling getSession()+loadConnectedState() again here would race it
+      // and duplicate every downstream side effect (Botpress identity sync,
+      // the session_metadata write, homework/memory loads). On failure
+      // there is no session to find either way.
+      if (_aloClientToken) {
+        await _aloExchangeClientToken(_aloClientToken);
+        _aloClientToken = null;
+        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        return;
+      }
 
       // Check for existing session
       const { data: { session } } = await supabase.auth.getSession();

@@ -45,6 +45,7 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
   ```
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
 - Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
+- **`?t=` on load is a one-time test-client session token** (D29-03, 2026-09-09, spec section 6/7/10 in alo-supabase's `Alo_Therapist_Signup_Edge_Function_Spec_v1_0.md`). Stripped from the URL synchronously, before any other async work, then exchanged server-side for a session. Every failure mode shows one constant, cause-neutral message (ruling D31) — do not add a per-cause error message here, ever, even one that feels harmless. Full writeup: alo-dashboard's `OPEN_AS_CLIENT_REPORT.md`.
 - Never send conversation content anywhere except through Botpress
 ## Working Rules
 
