@@ -1591,10 +1591,6 @@ footer a {
     color: #f87171;
   }
 
-  .memory-prompt-btn:hover {
-    background: var(--primary-hover);
-  }
-
   .transcript-share-icon:hover {
     background: var(--primary-light);
     color: var(--text-primary);
@@ -1603,12 +1599,6 @@ footer a {
   .transcript-share-cancel:hover {
     color: var(--text-primary);
   }
-
-  .guest-benefits-dismiss:hover { color: var(--text-primary); }
-
-  .guest-benefits-btn:hover { background: var(--primary-dark); }
-
-  .guest-benefits-later:hover { color: var(--text-secondary); }
 
   .info-btn:hover {
     background: var(--primary-light);
@@ -1648,7 +1638,6 @@ footer a {
     height: 18px;
   }
   
-  #shareGuestBtn { padding: 6px 10px; font-size: 0.7rem; }
   #signInBtn { padding: 6px 10px; font-size: 0.7rem; min-height: 36px; }
   
   button:not(.more-menu-item):not(.more-btn):not(.mem-pop-action) {
@@ -1673,7 +1662,6 @@ footer a {
   body.keyboard-open #homeworkContainer,
   body.keyboard-open #privateSessionBanner,
   body.keyboard-open #memoryOnboardCard,
-  body.keyboard-open #memoryPromptBar,
   body.keyboard-open footer {
     display: none !important;
   }
@@ -2402,62 +2390,6 @@ footer a {
     margin: 8px 12px 0;
   }
 }
-.memory-prompt-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--surface);
-  border-top: 1px solid var(--border-visible);
-  padding: 12px 20px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  z-index: 50;
-  transform: translateY(100%);
-  transition: transform 0.3s ease;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
-}
-
-.memory-prompt-bar.show {
-  transform: translateY(0);
-}
-
-.memory-prompt-text {
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.4;
-  flex: 1;
-}
-
-.memory-prompt-btn {
-  padding: 8px 16px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  white-space: nowrap;
-  min-height: 36px;
-}
-
-.memory-prompt-dismiss {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
 /* ============================================================
    CONVERSATION LIFECYCLE — Pin, sections, clear history
    Added: Feb 28, 2026
@@ -2721,101 +2653,6 @@ footer a {
   cursor: pointer;
   text-align: center;
   box-shadow: none;
-}
-
-/* === GUEST BENEFITS CARD === */
-.guest-benefits-card {
-  flex-shrink: 0;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border-subtle);
-  padding: 14px 20px;
-  padding-left: max(20px, env(safe-area-inset-left));
-  padding-right: max(20px, env(safe-area-inset-right));
-}
-
-.guest-benefits-card.hidden { display: none; }
-
-.guest-benefits-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.guest-benefits-icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  background: var(--primary-light);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary);
-}
-
-.guest-benefits-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.guest-benefits-desc {
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.guest-benefits-dismiss {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  font-size: 18px;
-  line-height: 1;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 4px;
-  min-width: 32px;
-  min-height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none;
-}
-
-.guest-benefits-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  padding-left: 48px;
-}
-
-.guest-benefits-btn {
-  padding: 8px 16px;
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  min-height: 36px;
-  box-shadow: none;
-}
-
-.guest-benefits-later {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  cursor: pointer;
-  padding: 8px 4px;
-  box-shadow: none;
-}
-
-@media (max-width: 640px) {
-  .guest-benefits-actions { padding-left: 0; }
 }
 
 /* === INFO BUTTON === */
@@ -3600,6 +3437,89 @@ body.journal-focus-mode .tab-bar {
 }
 
 /* === PHASE 2, ITEM 13a: INSTALLABLE APP (functional placeholder) === */
+/* === S4A (BRIEF 1a, 4.A): WAITING ROOM === */
+/* Lives inside .chat-container (position: relative) and fills it.
+   Shown for every access state except 'chat'. No countdown, no urgency. */
+.alo-waiting-room {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 6;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--warm-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+}
+
+.alo-wr-inner {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: auto 0;
+}
+
+.alo-wr-heading {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.alo-wr-text {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.alo-wr-note {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.alo-wr-note:empty { display: none; }
+
+.alo-wr-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.alo-wr-code {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alo-wr-btn {
+  width: 100%;
+  min-height: 44px;
+}
+
+.alo-wr-data {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* 4.A.3: journal is read-only without an open chat -- no new writing */
+body.alo-journal-readonly .journal-prompt-card,
+body.alo-journal-readonly .journal-composer {
+  display: none;
+}
+
 /* === FOUR-SCREEN ONBOARDING + CONSENT (Phase 2B item 8) === */
 .alo-onboarding-overlay {
   position: fixed;

@@ -104,7 +104,6 @@
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
-      <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
       <div id="guestAuthActions" class="guest-auth-actions">
         <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
       </div>
@@ -123,7 +122,7 @@
   <div id="moreMenu" class="more-menu hidden">
     <div class="more-menu-backdrop" onclick="toggleMoreMenu()"></div>
     <div class="more-menu-panel" role="menu" aria-label="More options">
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleThreadSidebar()">
+      <button class="more-menu-item" role="menuitem" id="moreConversationsBtn" onclick="toggleMoreMenu(); toggleThreadSidebar()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Conversations
       </button>
@@ -143,19 +142,15 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         Your privacy
       </button>
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
+      <button class="more-menu-item" role="menuitem" id="moreShareBtn" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Share
-      </button>
-      <button class="more-menu-item" role="menuitem" id="moreConnectBtn" onclick="toggleMoreMenu(); showConnectModal()" style="display: none;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
-        Connect to Therapist
       </button>
       <button class="more-menu-item" role="menuitem" id="moreMessageBtn" onclick="toggleMoreMenu(); showMessageModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Message Therapist
       </button>
-            <div class="more-menu-divider" role="separator"></div>
+            <div class="more-menu-divider" role="separator" id="moreChatDivider"></div>
       <button class="more-menu-item" role="menuitem" id="morePrivateToggleBtn" onclick="toggleMoreMenu(); togglePrivateChatFromHeader()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         <span id="morePrivateToggleLabel">Make this conversation private</span>
@@ -276,23 +271,6 @@
     <span>Private session — Alo won't remember this conversation</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
-<!-- Guest benefits card (shown for unauthenticated users after a brief delay) -->
-  <div id="guestBenefitsCard" class="guest-benefits-card hidden">
-    <div class="guest-benefits-content">
-      <div class="guest-benefits-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </div>
-      <div>
-        <div class="guest-benefits-title">Get more from Alo</div>
-        <div class="guest-benefits-desc">Create a free account and Alo can remember your conversations, pick up where you left off, and connect with your therapist if you have one.</div>
-      </div>
-      <button class="guest-benefits-dismiss" onclick="dismissGuestBenefits()" aria-label="Dismiss">&times;</button>
-    </div>
-    <div class="guest-benefits-actions">
-      <button class="guest-benefits-btn" onclick="dismissGuestBenefits(); showLoginModal();">Create Account</button>
-      <button class="guest-benefits-later" onclick="dismissGuestBenefits()">Maybe later</button>
-    </div>
-  </div>
   <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
   <div id="memoryOnboardCard" class="memory-onboard-card">
     <div class="memory-onboard-content">
@@ -335,13 +313,6 @@
   </div>
   <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
 
-  <!-- Memory save prompt bar (shown to guests after conversation depth) -->
-  <div id="memoryPromptBar" class="memory-prompt-bar">
-    <span class="memory-prompt-text">Want Alo to remember your conversations?</span>
-    <button class="memory-prompt-btn" onclick="showLoginModal(); hideMemoryPrompt();">Create Account</button>
-    <button class="memory-prompt-dismiss" onclick="hideMemoryPrompt()" aria-label="Dismiss">&times;</button>
-  </div>
-
   <!-- Privacy assurance bar — shown on first visit, dismissible -->
   <div id="privacyBar" class="privacy-bar hidden">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -365,6 +336,12 @@
       </div>
 
       <div id="aloFrame" aria-label="Chatbot Conversation Window"></div>
+
+      <!-- S4A (Brief 1a, 4.A.3): waiting room. Rendered by aloShowWaitingRoom()
+           for every access state other than 'chat'. Lives in the same
+           container the chat occupies; the webchat iframe is only ever
+           created after the gate returns 'chat' (see aloOpenChat). -->
+      <div id="aloWaitingRoom" class="alo-waiting-room hidden"></div>
     </div>
 
     <!-- Journal container (hidden by default, shown via tab bar) -->
@@ -485,6 +462,29 @@
     let activeTab = 'chat';
     var positionWebchatFn = null;
     var botpressReady = false;
+
+    // =====================================================
+    // S4A (BRIEF 1a) -- CONSENT GATE CONSTANTS
+    // Contract: docs/contracts/consent-gate-contract-v1_0.md (implemented
+    // in alo-supabase; the client is coded against it, never ahead of it).
+    // =====================================================
+    const ALO_CONSENT_VERSION = 'consent-2026-09-v1.3';
+    const ALO_PILOT_LOCATION = 'WA';
+    const ALO_DISCLOSURE_RETURN_DAYS = 7;
+    const ALO_DISCLOSURE_INTERVAL_MS = 3 * 60 * 60 * 1000;
+    const ALO_DISCLOSURE_GAP_MS = 30 * 60 * 1000;
+
+    // S4A state. historyEnabled is the client-owned history switch (4.C):
+    // OFF by default, and OFF means no transcript is stored anywhere.
+    let historyEnabled = false;
+    let aloAccessState = null;          // last result of aloComputeAccess(), or 'error'
+    let aloSignedIn = false;
+    let aloAccountCreatedAt = null;     // auth user.created_at, for the return-disclosure heuristic (4.D)
+    let aloJournalReadOnly = false;
+    let aloPrefillCode = null;          // ?invite= or a code typed before signing in
+    let botpressInitStarted = false;    // window.botpress.init() has been called this page load
+    let _aloIdentityReady = false;      // session_metadata row written; identity may go to Botpress
+    let _aloPendingReceipt = null;      // deletion receipt to show on the signed-out waiting room (4.E)
 
     // Journal prompt bank (14 general + 2 therapy-conditional)
     var journalPrompts = [
@@ -803,54 +803,43 @@
     // =====================================================
     // UI STATE MANAGEMENT
     // =====================================================
-    async function showLoggedInNoConnection() {
+    // S4A 4.A.5: header/nav for a signed-in account that is NOT in the
+    // 'chat' state (no link, paused, ended, consent outdated, load error).
+    // Chat-only header icons stay hidden; the tab bar shows so the journal
+    // is reachable read-only. No prompt, no nudge.
+    function showLoggedInNoConnection() {
       const badge = document.getElementById('trustBadge');
-
       badge.className = 'trust-badge';
       badge.innerHTML = '<span id="trustBadgeText">Logged in</span>';
 
-      // Show header icons: threads, memory, theme
-      document.getElementById('threadsBtn').classList.remove('hidden');
-      document.getElementById('memoryIconBtn').classList.remove('hidden');
+      document.getElementById('threadsBtn').classList.add('hidden');
+      document.getElementById('memoryIconBtn').classList.add('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
       var pcBtn = document.getElementById('privateChatBtn');
-      if (pcBtn) pcBtn.classList.remove('hidden');
-      await loadMemorySettings();
-      
-      // Show hamburger menu, hide guest auth button
+      if (pcBtn) pcBtn.classList.add('hidden');
+
       document.getElementById('guestAuthActions').classList.add('hidden');
-      document.getElementById('shareGuestBtn').classList.add('hidden');
-      document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
       document.getElementById('tabBar').classList.remove('hidden');
-      
-      // Show "Connect to Therapist" in menu, hide "Message Therapist"
-      const connectItem = document.getElementById('moreConnectBtn');
-      if (connectItem) connectItem.style.display = '';
-      const msgItem = document.getElementById('moreMessageBtn');
-      if (msgItem) msgItem.style.display = 'none';
-      
-      // Show one-time popup prompting connection
-      if (!sessionStorage.getItem('alo_connect_prompt_dismissed')) {
-        setTimeout(function() { showConnectPrompt(); }, 800);
-      }
+      document.getElementById('homeworkContainer').classList.remove('show');
+      aloSyncMenuForAccess(false);
     }
 
-    function showConnectPrompt() {
-      createModal('Connect with your therapist', `
-        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages between sessions.</p>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No therapist? No problem — Alo works great on its own. You can always connect later from the menu.</p>
-      `, {
-        confirmLabel: 'Enter Code',
-        cancelLabel: 'Not Now',
-        onConfirm: () => {
-          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
-          showConnectModal();
-        },
-        onCancel: () => {
-          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
-        }
+    // Menu items that only make sense with an open chat. Hidden in every
+    // waiting-room state; restored (with their own per-item rules) in chat.
+    function aloSyncMenuForAccess(isChat) {
+      var chatOnly = ['moreConversationsBtn', 'moreShareBtn', 'moreMessageBtn',
+        'morePrivateToggleBtn', 'moreNewPrivateBtn', 'moreChatDivider', 'moreMenuMemory'];
+      chatOnly.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = isChat ? '' : 'none';
       });
+      if (isChat) {
+        var msgItem = document.getElementById('moreMessageBtn');
+        if (msgItem) msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
+        var convItem = document.getElementById('moreConversationsBtn');
+        if (convItem) convItem.style.display = historyEnabled ? '' : 'none';
+      }
     }
 
     function showConnectedUI(therapistName, clientName) {
@@ -879,19 +868,10 @@
       }
        
       document.getElementById('guestAuthActions').classList.add('hidden');
-      document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
       document.getElementById('tabBar').classList.remove('hidden');
-      
-      // Show/hide message option in more menu
-      const msgItem = document.getElementById('moreMessageBtn');
-      if (msgItem) {
-        msgItem.style.display = chatSettings.allow_messages !== false ? '' : 'none';
-      }
-      // Hide "Connect to Therapist" — already connected
-      const connectItem = document.getElementById('moreConnectBtn');
-      if (connectItem) connectItem.style.display = 'none';
+      aloSyncMenuForAccess(true);
 
       showPrivacyBarIfConnected();
     }
@@ -992,39 +972,28 @@ function showAboutModal() {
         }
       });
     }
-function showGuestBenefitsCard() {
-      if (clientId) return;
-      if (sessionStorage.getItem('alo_guest_benefits_dismissed')) return;
-      var card = document.getElementById('guestBenefitsCard');
-      if (card) card.classList.remove('hidden');
-    }
-
-    function dismissGuestBenefits() {
-      var card = document.getElementById('guestBenefitsCard');
-      if (card) card.classList.add('hidden');
-      sessionStorage.setItem('alo_guest_benefits_dismissed', '1');
-    }
-
+    // S4A 4.A.4: there is no guest chat. Signed out means the waiting room.
     function resetToGuestUI() {
-      const badge = document.getElementById('trustBadge');
-      const badgeText = document.getElementById('trustBadgeText');
-      badge.className = 'trust-badge guest';
-      badgeText.textContent = '';
+      aloSignedIn = false;
+      clientId = null;
+      therapistLink = null;
+      chatSettings = {};
+      connectedTherapistName = '';
 
-      // Hide threads button for guests
+      const badge = document.getElementById('trustBadge');
+      badge.className = 'trust-badge guest';
+      badge.innerHTML = '<span id="trustBadgeText"></span>';
+
       document.getElementById('threadsBtn').classList.add('hidden');
+      document.getElementById('memoryIconBtn').classList.add('hidden');
       var pcBtnGuest = document.getElementById('privateChatBtn');
       if (pcBtnGuest) pcBtnGuest.classList.add('hidden');
-      
-      const svg = badge.querySelector('svg');
-      if (svg) svg.remove();
-      
+
       document.getElementById('guestAuthActions').classList.remove('hidden');
       const signInBtn = document.getElementById('signInBtn');
       signInBtn.textContent = 'Sign In';
-      signInBtn.onclick = function() { showLoginModal(); };
+      signInBtn.onclick = function() { showLoginModal(aloPrefillCode || null); };
       signInBtn.classList.remove('hidden');
-      document.getElementById('shareGuestBtn').classList.remove('hidden');
       document.getElementById('themeToggle').classList.remove('hidden');
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
@@ -1032,7 +1001,183 @@ function showGuestBenefitsCard() {
       document.getElementById('tabBar').classList.add('hidden');
       if (activeTab !== 'chat') switchTab('chat');
 
-      setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+      aloShowWaitingRoom('no_link', { signedIn: false, receipt: _aloPendingReceipt });
+    }
+
+    // =====================================================
+    // S4A (BRIEF 1a, 4.A) -- ACCESS GATE + WAITING ROOM
+    // Chat opens only for an account with an ACTIVE therapist link, CURRENT
+    // consent, adult attestation, and no pause. Every other state renders
+    // the waiting room where the chat would be. Fails closed: an unknown
+    // status, a failed link query, or a missing row never opens the chat.
+    // =====================================================
+    function aloComputeAccess(link, settings) {
+      // `settings` is part of the signature for a later client-side gate
+      // (e.g. a per-account flag); the v1.0 contract gates on the link row
+      // alone, so it is intentionally unused here.
+      if (!link) return 'no_link';
+      if (link.status === 'pending') return 'pending';
+      if (link.status === 'archived') return 'ended';
+      if (link.status === 'active') {
+        if (link.paused_at != null) return 'paused';
+        if (link.consent_version !== ALO_CONSENT_VERSION || !link.attest_adult_at) return 'consent_outdated';
+        return 'chat';
+      }
+      // A status this build does not know: closed, code field available.
+      return 'no_link';
+    }
+
+    // Columns the gate, the read-only consent view (4.B.7) and the
+    // therapist's history recommendation (4.C.2) need. Nothing else.
+    const ALO_LINK_SELECT = 'id,therapist_id,display_name,status,paused_at,' +
+      'consent_version,consent_collect_at,consent_share_safety_at,attest_adult_at,' +
+      'attest_location,connected_at,allow_homework,allow_messages,allow_summary,' +
+      'allow_history,allow_journal_sharing';
+
+    // Own rows, any status, newest first. updated_at ordering with a
+    // created_at fallback in case the column is absent on this table.
+    async function aloFetchLatestLink(userId) {
+      var base = '/rest/v1/therapist_clients?client_id=eq.' + userId +
+        '&select=' + ALO_LINK_SELECT + '&limit=1&order=';
+      var rows;
+      try {
+        rows = await api(base + 'updated_at.desc');
+      } catch (err) {
+        rows = await api(base + 'created_at.desc');
+      }
+      return (rows && rows.length) ? rows[0] : null;
+    }
+
+    const ALO_WAITING_COPY = {
+      signed_out: {
+        h: 'Alo works alongside your therapist.',
+        p: 'If your therapist gave you an invite code, sign in or create an account and enter it here.'
+      },
+      no_link: {
+        h: 'You\'re signed in.',
+        p: 'Enter the invite code from your therapist to connect. Until then, your journal is here to read, download, or delete.'
+      },
+      paused: {
+        h: 'Your connection is paused.',
+        p: 'Your therapist has paused Alo for now. Your journal and history are yours — download or delete them any time. If you have questions, your therapist is the person to ask.'
+      },
+      ended: {
+        h: 'This connection has ended.',
+        p: 'Your journal and history are yours to download or delete any time. A new code from any therapist reconnects you.'
+      },
+      consent_outdated: {
+        h: 'A quick review',
+        p: 'A few things changed in how Alo handles your information. Please read and confirm before continuing.'
+      },
+      error: {
+        h: 'Alo couldn\'t load your account.',
+        p: 'Nothing was changed. Try again in a moment.'
+      }
+    };
+
+    // The one place the waiting room is drawn. `state` is an access state
+    // (or 'error' for a failed link query); opts: { signedIn, receipt, link }.
+    function aloShowWaitingRoom(state, opts) {
+      opts = opts || {};
+      var signedIn = !!opts.signedIn;
+      aloAccessState = state;
+
+      var room = document.getElementById('aloWaitingRoom');
+      if (!room) return;
+
+      var copy;
+      if (!signedIn) copy = ALO_WAITING_COPY.signed_out;
+      else if (state === 'pending') copy = ALO_WAITING_COPY.no_link;
+      else copy = ALO_WAITING_COPY[state] || ALO_WAITING_COPY.error;
+
+      var showCode = state === 'no_link' || state === 'pending' || state === 'paused' || state === 'ended';
+      var showData = signedIn && showCode;
+
+      var html = '<div class="alo-wr-inner">';
+      if (opts.receipt && typeof aloReceiptHTML === 'function') html += aloReceiptHTML(opts.receipt);
+      html += '<h2 class="alo-wr-heading">' + esc(copy.h) + '</h2>';
+      html += '<p class="alo-wr-text">' + esc(copy.p) + '</p>';
+      html += '<p class="alo-wr-note" id="aloWaitingNote" role="status"></p>';
+
+      if (showCode) {
+        html += '<form class="alo-wr-code" id="aloInviteForm" novalidate>' +
+          '<label class="alo-wr-label" for="aloInviteCodeInput">Invite code</label>' +
+          '<input type="text" id="aloInviteCodeInput" class="modal-input" autocomplete="off" ' +
+            'autocapitalize="characters" autocorrect="off" spellcheck="false" ' +
+            'placeholder="Enter the code your therapist sent you" value="' + escAttr(aloPrefillCode || '') + '">' +
+          '<button type="submit" class="btn-primary alo-wr-btn" id="aloInviteCodeBtn">Continue</button>' +
+        '</form>';
+        if (!signedIn) {
+          html += '<button type="button" class="btn-secondary alo-wr-btn" id="aloWrSignInBtn">Sign in or create account</button>';
+        }
+      }
+      if (state === 'consent_outdated') {
+        html += '<button type="button" class="btn-primary alo-wr-btn" id="aloWrRenewBtn">Review and continue</button>';
+      }
+      if (state === 'error') {
+        html += '<button type="button" class="btn-secondary alo-wr-btn" id="aloWrRetryBtn">Try again</button>';
+      }
+      if (showData) {
+        html += '<div class="alo-wr-data">' +
+          '<span class="alo-wr-label">Your data</span>' +
+          '<button type="button" class="btn-secondary alo-wr-btn" id="aloWrExportBtn">Export my data</button>' +
+          '<button type="button" class="btn-secondary alo-wr-btn" id="aloWrDeleteBtn">Delete my data</button>' +
+        '</div>';
+      }
+      html += '</div>';
+      room.innerHTML = html;
+
+      var form = document.getElementById('aloInviteForm');
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var code = (document.getElementById('aloInviteCodeInput').value || '').trim();
+          if (!signedIn) { showLoginModal(code || null); return; }
+          aloStartConnectFlow(code);
+        });
+      }
+      var signInBtn = document.getElementById('aloWrSignInBtn');
+      if (signInBtn) signInBtn.addEventListener('click', function() {
+        var code = (document.getElementById('aloInviteCodeInput') || {}).value || '';
+        showLoginModal(code.trim() || null);
+      });
+      var renewBtn = document.getElementById('aloWrRenewBtn');
+      if (renewBtn) renewBtn.addEventListener('click', function() { aloStartRenewal(); });
+      var retryBtn = document.getElementById('aloWrRetryBtn');
+      if (retryBtn) retryBtn.addEventListener('click', function() { loadConnectedState(); });
+      var exportBtn = document.getElementById('aloWrExportBtn');
+      if (exportBtn) exportBtn.addEventListener('click', function() { aloExportMyData(); });
+      var deleteBtn = document.getElementById('aloWrDeleteBtn');
+      if (deleteBtn) deleteBtn.addEventListener('click', function() { aloConfirmDelete('data'); });
+
+      // Show the room where the chat would be; keep the webchat (if one was
+      // ever created this page load) out of the way.
+      var overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.style.display = 'none';
+      var frame = document.getElementById('aloFrame');
+      if (frame) frame.classList.add('hidden');
+      room.classList.remove('hidden');
+      aloSyncWebchatVisibility();
+      aloSetJournalReadOnly(true);
+      if (typeof aloDisclosure !== 'undefined') aloDisclosure.hide();
+    }
+
+    // One status line in the waiting room (invalid code, "Not now", etc.).
+    function aloWaitingRoomNote(text) {
+      var note = document.getElementById('aloWaitingNote');
+      if (note) { note.textContent = text || ''; return; }
+      if (text) showToast(text, 5000);
+    }
+
+    // 4.A.3: unlinked / paused / ended accounts may read, export and delete
+    // journal entries but not write new ones.
+    function aloSetJournalReadOnly(readOnly) {
+      aloJournalReadOnly = !!readOnly;
+      document.body.classList.toggle('alo-journal-readonly', aloJournalReadOnly);
+      var subtitleEl = document.getElementById('journalEmptySubtitle');
+      if (subtitleEl && aloJournalReadOnly) {
+        subtitleEl.textContent = 'Your entries are here to read, download, or delete.';
+      }
     }
 
     // =====================================================
@@ -1370,32 +1515,11 @@ function showGuestBenefitsCard() {
       }
     }
 
-    // =====================================================
-    // CONNECT MODAL
-    // =====================================================
-    function showConnectModal() {
-      createModal('Link to Your Therapist', `
-        <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
-        <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
-        <div style="margin-top: 16px;">
-          <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
-          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
-        </div>
-        <p class="modal-sign-in-link">
-          Already have an account? <button onclick="const c=document.getElementById('inviteCodeInput')?.value?.trim(); document.querySelector('.modal-overlay').remove(); showLoginModal(c||null);">Sign in</button>
-        </p>
-      `, {
-        confirmLabel: 'Link',
-        cancelLabel: 'Maybe later',
-        onConfirm: async () => {
-          const code = document.getElementById('inviteCodeInput').value.trim();
-          if (!code) {
-            showToast('Please enter an invite code');
-            return false;
-          }
-          await handleConnectSubmit(code);
-        }
-      });
+    // S4A 4.A (interim, replaced in 4.B): waiting room -> old claim path.
+    async function aloStartConnectFlow(code) {
+      code = (code || '').trim();
+      if (!code) { aloWaitingRoomNote('Enter the invite code from your therapist.'); return; }
+      await handleConnectSubmit(code);
     }
 
     async function handleConnectSubmit(inviteCode) {
@@ -1446,7 +1570,7 @@ function showGuestBenefitsCard() {
     // =====================================================
     function showLoginModal(inviteCode = null) {
       createModal('Sign In or Create Account', `
-        <p>Create an account to save your conversations and let Alo remember what you've discussed.</p>
+        <p>Sign in to Alo, or create an account. An invite code from your therapist connects you after you sign in.</p>
         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. Signing in does not share anything.</p>
         <form id="loginForm" action="#" method="post" onsubmit="return false;" style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
@@ -1478,11 +1602,6 @@ function showGuestBenefitsCard() {
           if (inviteCode) {
             localStorage.setItem('alo_pending_invite', inviteCode);
           }
-
-          // Phase 2B item 8: the four-screen onboarding + consent flow
-          // fires only for a brand-new invite-code signup, never for a
-          // returning sign-in. Set only in the signUp() branch below.
-          let isNewInviteSignup = false;
 
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -1532,7 +1651,6 @@ function showGuestBenefitsCard() {
             
             data = signUpResult.data;
             error = null;
-            isNewInviteSignup = !!inviteCode;
 
             // Profile creation handled by Supabase auth trigger (handle_new_user)
             // Trigger fires on INSERT to auth.users, creates profile with role='individual'
@@ -1546,15 +1664,11 @@ function showGuestBenefitsCard() {
 
           showToast('Signed in successfully');
 
-          if (inviteCode) {
-            await handleConnectSubmit(inviteCode);
-          } else {
-            await loadConnectedState();
-          }
-
-          if (isNewInviteSignup) {
-            _aloOpenOnboardingScreens('gate');
-          }
+          // S4A 4.B.5: signing in or up never opens the consent gate by
+          // itself. loadConnectedState() renders the waiting room and, if a
+          // code was entered before signing in, hands it to the connect
+          // flow exactly once (aloConsumePendingInvite).
+          await loadConnectedState();
         }
       });
     }
@@ -1902,64 +2016,85 @@ function showGuestBenefitsCard() {
     // Crisis events written directly from Botpress via axios
     // =====================================================
 
-    async function loadConnectedState() {
+    // S4A: SIGNED_IN from onAuthStateChange and the explicit call after a
+    // sign-in can overlap; one in-flight load serves both callers so the
+    // gate, the pending-invite hand-off and the session bookkeeping never
+    // run twice at once.
+    let _aloLoadStatePromise = null;
+    function loadConnectedState() {
+      if (_aloLoadStatePromise) return _aloLoadStatePromise;
+      _aloLoadStatePromise = _aloLoadConnectedState().finally(function() { _aloLoadStatePromise = null; });
+      return _aloLoadStatePromise;
+    }
+
+    async function _aloLoadConnectedState() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (!user) {
           resetToGuestUI();
           return;
         }
 
-        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
+        aloSignedIn = true;
+        clientId = user.id;
+        aloAccountCreatedAt = user.created_at || null;
+        _aloPendingReceipt = null;
 
-        if (!links || links.length === 0) {
-          clientId = user.id;
-
-          // Ensure profile exists (fallback for pre-trigger users)
-          try {
-            var existingProfile = await api('/rest/v1/profiles?id=eq.' + user.id + '&select=id');
-            if (!existingProfile || existingProfile.length === 0) {
-              await api('/rest/v1/profiles', 'POST', {
-                id: user.id,
-                role: 'individual',
-                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'there',
-                email: user.email
-              });
-              console.log('[Auth] Created missing profile for confirmed user');
-            }
-          } catch (profileErr) {
-            // Deliberately console-only: this is a fallback for a race with
-            // the profile-creation trigger, so failure here most often means
-            // the profile already exists -- not a real error the user needs
-            // to see. If the profile genuinely is missing, later reads will
-            // surface their own failures.
-            console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
+        // Ensure profile exists (fallback for pre-trigger users)
+        try {
+          var existingProfile = await api('/rest/v1/profiles?id=eq.' + user.id + '&select=id');
+          if (!existingProfile || existingProfile.length === 0) {
+            await api('/rest/v1/profiles', 'POST', {
+              id: user.id,
+              role: 'individual',
+              display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'there',
+              email: user.email
+            });
+            console.log('[Auth] Created missing profile for confirmed user');
           }
+        } catch (profileErr) {
+          // Deliberately console-only: this is a fallback for a race with
+          // the profile-creation trigger, so failure here most often means
+          // the profile already exists -- not a real error the user needs
+          // to see. If the profile genuinely is missing, later reads will
+          // surface their own failures.
+          console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
+        }
 
-          // Check for pending invite code — first from user_metadata, then localStorage
-          var pendingInvite = user.user_metadata?.invite_code || localStorage.getItem('alo_pending_invite');
-          if (pendingInvite) {
-            localStorage.removeItem('alo_pending_invite');
-            console.log('[Auth] Found pending invite code, attempting to claim');
-            try {
-              await handleConnectSubmit(pendingInvite);
-              // Clear invite_code from user_metadata after successful claim
-              await supabase.auth.updateUser({ data: { invite_code: null } });
-            } catch (inviteErr) {
-              console.log('[Auth] Invite claim failed:', inviteErr.message);
-              showToast('Could not connect using your invite code. You can try again from the menu.');
-              showLoggedInNoConnection();
-            }
-            return;
-          }
-
+        // S4A 4.A.1: one link query, own rows, any status, latest first.
+        let link = null;
+        try {
+          link = await aloFetchLatestLink(user.id);
+        } catch (linkErr) {
+          // Fail closed: an unreadable link is not an open chat.
+          console.error('[Gate] Link query failed:', linkErr);
           showLoggedInNoConnection();
+          aloShowWaitingRoom('error', { signedIn: true });
           return;
         }
 
-        therapistLink = links[0];
-        clientId = user.id;
+        const access = aloComputeAccess(link, null);
+        chatSettings = link ? {
+          allow_homework: link.allow_homework,
+          allow_messages: link.allow_messages,
+          allow_summary: link.allow_summary,
+          allow_history: link.allow_history,
+          allow_journal_sharing: link.allow_journal_sharing
+        } : {};
+
+        if (access !== 'chat') {
+          therapistLink = null;
+          connectedTherapistName = '';
+          showLoggedInNoConnection();
+          aloShowWaitingRoom(access, { signedIn: true, link: link });
+          if (access === 'no_link' || access === 'pending') {
+            await aloConsumePendingInvite(user);
+          }
+          return;
+        }
+
+        therapistLink = link;
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
@@ -1970,27 +2105,22 @@ function showGuestBenefitsCard() {
         const therapistLabel = therapistLink.display_name;
         const clientName = clientProfileName || therapistLabel || 'there';
 
-        // P1: Read ALL chat settings — column names match dashboard's saveClientEdit()
-        const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history,allow_journal_sharing`);
-        chatSettings = settings?.[0] || {};
-
         showConnectedUI(therapistName, clientName);
-        
-        // Show threads button (if allowed by therapist) and memory icon
-        if (chatSettings.allow_history !== false) {
-          document.getElementById('threadsBtn').classList.remove('hidden');
-        }
+
+        // 4.A.2: the webchat is created here and only here.
+        aloOpenChat();
+
+        await loadMemorySettings();
         document.getElementById('memoryIconBtn').classList.remove('hidden');
         var pcBtn2 = document.getElementById('privateChatBtn');
         if (pcBtn2) pcBtn2.classList.remove('hidden');
-        await loadMemorySettings();
-        
+
         await loadHomework();
 
         // Generate nonce, write session start, and send identity to Botpress
         const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
         sessionNonce = crypto.randomUUID();
-                // A7/C1 — write-before-confirm fix: await metadata write, then fire
+        // A7/C1 — write-before-confirm fix: await metadata write, then fire
         // updateUser and the auth bridge in order, only after it succeeds.
         try {
           await api('/rest/v1/session_metadata', 'POST', {
@@ -1998,20 +2128,8 @@ function showGuestBenefitsCard() {
             session_id: sessionId,
             nonce: sessionNonce
           });
-          if (window.botpress) {
-            const hwSummary = activeHomework.length > 0
-              ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
-              : [];
-            window.botpress.updateUser({
-              data: {
-                sessionNonce: sessionNonce,
-                clientId: clientId,
-                homeworkActive: JSON.stringify(hwSummary),
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              }
-            });
-            console.log('[Alo] Identity + homework sent to Botpress via updateUser');
-          }
+          _aloIdentityReady = true;
+          aloSendBotpressUserData();
           // Send identity to Botpress via Custom Trigger (auth bridge) —
           // only after metadata write is confirmed, so Botpress never
           // validates a clientId whose session row doesn't exist yet.
@@ -2030,10 +2148,66 @@ function showGuestBenefitsCard() {
       }
     }
 
+    // S4A: a code entered before signing in (waiting room field -> login
+    // modal) or carried in signup metadata is handed to the connect flow
+    // ONCE. Both stores are cleared before the flow starts, so declining
+    // consent can never re-open the gate on a later load.
+    async function aloConsumePendingInvite(user) {
+      var code = null;
+      try {
+        code = localStorage.getItem('alo_pending_invite');
+        if (code) localStorage.removeItem('alo_pending_invite');
+      } catch (e) {}
+      var metaCode = user && user.user_metadata ? user.user_metadata.invite_code : null;
+      if (!code && metaCode) code = metaCode;
+      if (metaCode) {
+        supabase.auth.updateUser({ data: { invite_code: null } }).then(function() {}, function() {});
+      }
+      if (!code) return;
+      aloPrefillCode = code;
+      var input = document.getElementById('aloInviteCodeInput');
+      if (input) input.value = code;
+      await aloStartConnectFlow(code);
+    }
+
+    // Everything Botpress needs to know about this user, in one place, sent
+    // as strings (webchat user data is string-valued in this code base --
+    // see the privateSession note in startPrivateSession). Re-sent on every
+    // settings change and again when the webchat reports initialized.
+    function aloBotpressAvailable() {
+      return botpressInitStarted && !!window.botpress && typeof window.botpress.updateUser === 'function';
+    }
+
+    function aloSendBotpressUserData() {
+      if (!aloBotpressAvailable() || !clientId || !_aloIdentityReady) return;
+      const hwSummary = activeHomework.length > 0
+        ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
+        : [];
+      try {
+        window.botpress.updateUser({
+          data: {
+            sessionNonce: sessionNonce,
+            clientId: clientId,
+            homeworkActive: JSON.stringify(hwSummary),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            historyEnabled: historyEnabled ? 'true' : 'false',
+            memoryEnabled: memoryGlobalEnabled ? 'true' : 'false',
+            privateSession: isPrivateSession ? 'true' : 'false'
+          }
+        });
+        console.log('[Alo] Identity + settings sent to Botpress via updateUser');
+      } catch (e) {
+        // Deliberately console-only: re-sent on webchat:initialized and on
+        // the next settings change; nothing for the user to act on here.
+        console.warn('[Alo] updateUser failed:', e);
+      }
+    }
+
     // =====================================================
     // CONVERSATION PERSISTENCE
     // =====================================================
     async function ensureConversation(botpressConvId) {
+      if (!historyEnabled) return null;
       if (!clientId || !botpressConvId) return null;
 
       var storageKey = 'alo_conv_' + botpressConvId;
@@ -2092,7 +2266,8 @@ function showGuestBenefitsCard() {
       return data.id;
     }
 
-        async function saveMessage(role, content, botpressMessageId) {
+    async function saveMessage(role, content, botpressMessageId) {
+      if (!historyEnabled) return;
       if (isPrivateSession) return;
       if (!currentSupabaseConvId || !content) return;
       if (botpressMessageId && seenMessageIds.has(botpressMessageId)) return;
@@ -2147,7 +2322,7 @@ function showGuestBenefitsCard() {
 
     function sendAuthBridge() {
       if (authBridgeSent || !clientId) return;
-      if (!window.botpress || typeof window.botpress.sendEvent !== 'function') {
+      if (!botpressInitStarted || !window.botpress || typeof window.botpress.sendEvent !== 'function') {
         setTimeout(sendAuthBridge, 500);
         return;
       }
@@ -2202,7 +2377,6 @@ function showGuestBenefitsCard() {
     // hardcoded slice bound, so "Load older conversations" actually pages.
     const THREAD_PAGE_SIZE = 30;
     let threadListOffset = THREAD_PAGE_SIZE;
-    let guestTurnCount = 0;
 
     // Phase 2 item 4 -- server-side paging past the 50-row batch
     // loadThreads() fetches. THREAD_FETCH_SIZE mirrors that query's own
@@ -2871,7 +3045,7 @@ async function togglePin(conversationId) {
       // A7-bonus — privateSession must be a string, not boolean.
       // Botpress's webchat:getUserData schema rejects boolean values here,
       // which silently broke every subsequent turn once this was set.
-      if (window.botpress) {
+      if (aloBotpressAvailable()) {
         window.botpress.updateUser({
           data: { privateSession: 'true' }
         });
@@ -2884,7 +3058,7 @@ async function togglePin(conversationId) {
       updatePrivateChatBtn();
       showToast('Private session ended');
 
-      if (window.botpress) {
+      if (aloBotpressAvailable()) {
         window.botpress.updateUser({
           data: { privateSession: 'false' }
         });
@@ -2932,6 +3106,7 @@ async function togglePin(conversationId) {
         switchTab('chat');
         return;
       }
+      if (aloAccessState !== 'chat' || !botpressReady) return;
       startNewConversation();
     }
 
@@ -2970,6 +3145,10 @@ async function togglePin(conversationId) {
     }
 
    async function startNewConversation(skipConfirm) {
+      if (aloAccessState !== 'chat' || !botpressReady) {
+        console.warn('[Alo] startNewConversation called without an open chat');
+        return;
+      }
       if (!skipConfirm) {
         const confirmed = await showConfirm(
           'Start new conversation?',
@@ -3007,20 +3186,6 @@ async function togglePin(conversationId) {
       sendAuthBridge();
     }
 
-    function checkGuestMemoryPrompt() {
-      guestTurnCount++;
-      if (guestTurnCount >= 5 && !clientId && !localStorage.getItem('alo_memory_prompt_dismissed')) {
-        const bar = document.getElementById('memoryPromptBar');
-        if (bar) bar.classList.add('show');
-      }
-    }
-
-    function hideMemoryPrompt() {
-      const bar = document.getElementById('memoryPromptBar');
-      if (bar) bar.classList.remove('show');
-      localStorage.setItem('alo_memory_prompt_dismissed', 'true');
-    }
-
     // =====================================================
     // TAB BAR — Chat / Journal switching
     // =====================================================
@@ -3030,7 +3195,6 @@ async function togglePin(conversationId) {
 
       var chatContainer = document.querySelector('.chat-container');
       var journalContainer = document.getElementById('journalContainer');
-      var webchatEl = document.querySelector('.bpWebchat');
       var homeworkContainer = document.getElementById('homeworkContainer');
       var tabBtns = document.querySelectorAll('.tab-bar-btn');
 
@@ -3047,16 +3211,7 @@ async function togglePin(conversationId) {
         if (homeworkContainer) homeworkContainer.style.display = 'none';
         var pcBtnTab = document.getElementById('privateChatBtn');
         if (pcBtnTab) pcBtnTab.style.display = 'none';
-        if (webchatEl) {
-          // Must use cssText with !important to override positionWebchat's !important declarations
-          webchatEl.style.cssText =
-            'visibility:hidden!important;' +
-            'position:absolute!important;' +
-            'width:0!important;' +
-            'height:0!important;' +
-            'overflow:hidden!important;' +
-            'pointer-events:none!important;';
-        }
+        aloSyncWebchatVisibility();
         if (journalContainer) journalContainer.classList.remove('hidden');
         clearJournalBadge();
         initJournalView();
@@ -3071,11 +3226,7 @@ async function togglePin(conversationId) {
         }
         var pcBtnTab2 = document.getElementById('privateChatBtn');
         if (pcBtnTab2 && clientId) pcBtnTab2.style.display = '';
-        if (webchatEl) {
-          // Clear then let positionWebchat rebuild via resize event
-          webchatEl.style.cssText = '';
-          window.dispatchEvent(new Event('resize'));
-        }
+        aloSyncWebchatVisibility();
       }
 
       sessionStorage.setItem('alo_active_tab', tab);
@@ -3107,7 +3258,9 @@ async function togglePin(conversationId) {
       var titleEl = document.getElementById('journalEmptyTitle');
       var subtitleEl = document.getElementById('journalEmptySubtitle');
       if (titleEl && subtitleEl) {
-        if (therapistLink) {
+        if (aloJournalReadOnly) {
+          subtitleEl.textContent = 'Your entries are here to read, download, or delete.';
+        } else if (therapistLink) {
           subtitleEl.textContent = 'A private place to catch what matters between sessions.';
         } else {
           subtitleEl.textContent = 'A private place to hold your thoughts, so Alo picks up where you left off.';
@@ -3337,26 +3490,37 @@ async function togglePin(conversationId) {
         shareHTML = '<button class="' + shareClass + '" id="journalShareToggle">' + shareIcon + ' ' + shareLabel + '</button>';
       }
 
-      createModal(dateStr, badge +
-        '<div class="journal-detail-content" id="journalDetailContent">' + esc(entry.content).replace(/\n/g, '<br>') + '</div>' +
-        '<textarea class="journal-edit-textarea hidden" id="journalEditTextarea">' + esc(entry.content) + '</textarea>' +
-        '<div class="journal-detail-actions">' +
-          '<button class="btn-secondary journal-edit-btn" id="journalEditBtn">Edit</button>' +
+      // S4A 4.A.3: without an open chat the journal is read-only -- viewing,
+      // export (privacy modal / waiting room) and delete. Edit, pin, share
+      // and "Bring this to Alo" are not rendered, so nothing below can wire them.
+      var canWrite = !aloJournalReadOnly;
+      var writeActionsHTML = canWrite
+        ? '<button class="btn-secondary journal-edit-btn" id="journalEditBtn">Edit</button>' +
           '<button class="btn-primary journal-edit-save hidden" id="journalEditSave">Save changes</button>' +
           '<button class="btn-secondary journal-edit-cancel hidden" id="journalEditCancel">Cancel</button>' +
           '<button class="btn-secondary journal-pin-btn' + (entry.is_pinned ? ' pinned' : '') + '" id="journalPinBtn">' +
             '<svg viewBox="0 0 24 24" fill="' + (entry.is_pinned ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></polygon></svg>' +
             (entry.is_pinned ? ' Pinned' : ' Pin') +
-          '</button>' +
+          '</button>'
+        : '';
+      var secondaryHTML = canWrite
+        ? '<div class="journal-detail-secondary-actions">' +
+            shareHTML +
+            '<button class="journal-bring-to-alo-btn" id="journalBringToAlo">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
+              ' Bring this to Alo' +
+            '</button>' +
+          '</div>'
+        : '';
+
+      createModal(dateStr, badge +
+        '<div class="journal-detail-content" id="journalDetailContent">' + esc(entry.content).replace(/\n/g, '<br>') + '</div>' +
+        '<textarea class="journal-edit-textarea hidden" id="journalEditTextarea">' + esc(entry.content) + '</textarea>' +
+        '<div class="journal-detail-actions">' +
+          writeActionsHTML +
           '<button class="btn-secondary journal-delete-btn" data-id="' + entry.id + '">Delete</button>' +
         '</div>' +
-        '<div class="journal-detail-secondary-actions">' +
-          shareHTML +
-          '<button class="journal-bring-to-alo-btn" id="journalBringToAlo">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
-            ' Bring this to Alo' +
-          '</button>' +
-        '</div>'
+        secondaryHTML
       , {
         confirmLabel: 'Close',
         showCancel: false
@@ -3671,6 +3835,7 @@ async function togglePin(conversationId) {
         // this same DOMContentLoaded handler (see below), which already
         // calls loadConnectedState() -- section 10's "everything downstream
         // is unchanged" is satisfied by NOT duplicating that call here.
+        return true;
       } catch {
         // Deliberately bare catch: nothing that could carry the token, the
         // response body, or a server-supplied reason is ever interpolated
@@ -3678,6 +3843,7 @@ async function togglePin(conversationId) {
         // dashboard's openAsClient() failure path (alo-dashboard dev.html,
         // D29-01) for the same reason.
         showToast(ALO_TOKEN_EXCHANGE_FAILURE_MESSAGE, 6000);
+        return false;
       }
     }
 
@@ -3695,32 +3861,58 @@ async function togglePin(conversationId) {
       const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
       history.replaceState({}, '', newUrl);
 
-      showConnectModal();
-      const input = document.getElementById('inviteCodeInput');
+      // S4A 4.A.4: lands in the waiting room with the code field prefilled.
+      aloPrefillCode = invite;
+      const input = document.getElementById('aloInviteCodeInput');
       if (input) input.value = invite;
     }
 
     // =====================================================
-    // INITIALIZATION
+    // S4A (BRIEF 1a, 4.A.2) -- CHAT OPEN
+    // The Botpress webchat is initialised here and nowhere else, and only
+    // after the gate has returned 'chat'. Until then there is no iframe,
+    // no conversation, and nothing a message could land in. Idempotent:
+    // a second call this page load only re-shows the existing webchat.
     // =====================================================
-    document.addEventListener('DOMContentLoaded', async function() {
+    function aloSyncWebchatVisibility() {
+      var webchatEl = document.querySelector('.bpWebchat');
+      if (!webchatEl) return;
+      if (aloAccessState === 'chat' && activeTab === 'chat') {
+        webchatEl.style.cssText = '';
+        if (positionWebchatFn) positionWebchatFn();
+      } else {
+        // Must use cssText with !important to override positionWebchat's !important declarations
+        webchatEl.style.cssText =
+          'visibility:hidden!important;' +
+          'position:absolute!important;' +
+          'width:0!important;' +
+          'height:0!important;' +
+          'overflow:hidden!important;' +
+          'pointer-events:none!important;';
+      }
+    }
+
+    function aloOpenChat() {
+      aloAccessState = 'chat';
+      var room = document.getElementById('aloWaitingRoom');
+      if (room) { room.classList.add('hidden'); room.innerHTML = ''; }
+      var frame = document.getElementById('aloFrame');
+      if (frame) frame.classList.remove('hidden');
+      aloSetJournalReadOnly(false);
+      if (typeof aloDisclosure !== 'undefined') aloDisclosure.onChatOpen();
+
       const loadingOverlay = document.getElementById('loadingOverlay');
+
+      if (botpressInitStarted) {
+        if (loadingOverlay) loadingOverlay.style.display = botpressReady ? 'none' : '';
+        aloSyncWebchatVisibility();
+        return;
+      }
+      botpressInitStarted = true;
+      if (loadingOverlay) loadingOverlay.style.display = '';
       let loadTimeout;
 
-      // D29-03: must run before ANY other async work in this handler,
-      // including _aloHandleInviteParam() -- see the comment on the
-      // function itself. `let`, not `const`: cleared right after the
-      // exchange attempt below (security review finding -- token lifetime
-      // in memory) rather than staying reachable in this closure for the
-      // rest of the page's life, which the exchange attempt itself does not
-      // need past that one call.
-      let _aloClientToken = _aloHandleTokenParam();
-
-      _aloHandleInviteParam();
-
-      // Initialize Botpress JS SDK immediately (guest mode)
-      // userData will be sent later via updateUser() once auth resolves
-            // A7/C5 — wrap init in try/catch; if the SDK fails to load,
+      // A7/C5 — wrap init in try/catch; if the SDK fails to load,
       // stop the infinite spinner and show a real failure state.
       try {
         window.botpress.init({
@@ -3749,6 +3941,7 @@ async function togglePin(conversationId) {
           loadingOverlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
             '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
         }
+        return;
       }
 
       // botpressReady is declared in global scope for reset on re-init
@@ -3771,16 +3964,16 @@ async function togglePin(conversationId) {
         }
 
         function positionWebchat() {
-          if (activeTab !== 'chat') return;
+          if (activeTab !== 'chat' || aloAccessState !== 'chat') return;
           var rect = chatContainer.getBoundingClientRect();
           var top = rect.top;
           var height = rect.height;
           var width = rect.width;
           var left = rect.left;
-          
+
           if (window.visualViewport) {
             var vv = window.visualViewport;
-            
+
             if (document.body.classList.contains('keyboard-open')) {
               // Keyboard open: use visualViewport directly as source of truth.
               // Header/footer are hidden, so iframe should fill the visible area.
@@ -3800,8 +3993,8 @@ async function togglePin(conversationId) {
               }
             }
           }
-          
-          webchatEl.style.cssText = 
+
+          webchatEl.style.cssText =
             'position:fixed!important;' +
             'top:' + top + 'px!important;' +
             'left:' + left + 'px!important;' +
@@ -3814,8 +4007,8 @@ async function togglePin(conversationId) {
             'z-index:10!important;';
         }
 
-        positionWebchat();
         positionWebchatFn = positionWebchat;
+        aloSyncWebchatVisibility();
         console.log('[Alo] Positioned webchat overlay on .chat-container');
 
         // Fight Botpress re-positioning: re-apply for first 3 seconds
@@ -3826,11 +4019,9 @@ async function togglePin(conversationId) {
           if (posRetries >= 15) clearInterval(posInterval);
         }, 200);
 
-                        // Note: MutationObserver removed — it caused infinite loop
+        // Note: MutationObserver removed — it caused infinite loop
         // (setting style triggers observer, which sets style again).
         // setInterval + ResizeObserver + window resize cover repositioning.
-
-
 
         // Keep in sync on resize, orientation change, iOS keyboard
         var ro = new ResizeObserver(positionWebchat);
@@ -3846,10 +4037,10 @@ async function togglePin(conversationId) {
             var vv = window.visualViewport;
             // Update baseline when viewport GROWS (orientation change, keyboard close)
             if (vv.height > initialVVHeight) initialVVHeight = vv.height;
-            
+
             var keyboardOpen = initialVVHeight - vv.height > 150;
             var isOpen = document.body.classList.contains('keyboard-open');
-            
+
             if (keyboardOpen && !isOpen) {
               document.body.classList.add('keyboard-open');
               positionWebchat();
@@ -3864,24 +4055,36 @@ async function togglePin(conversationId) {
           window.visualViewport.addEventListener('scroll', positionWebchat);
         }
 
-        // Init theme label for more menu
-        var menuLabel = document.getElementById('moreMenuThemeLabel');
-        if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
+        // S4A: identity + settings may have been sent before the iframe
+        // existed; send again now that it does (no-op until the session
+        // metadata row has been written -- see aloSendBotpressUserData).
+        aloSendBotpressUserData();
       });
 
-window.botpress.on('webchat:closed', function() {
+      window.botpress.on('webchat:closed', function() {
         if (!botpressReady) return;
         window.botpress.open();
       });
-      
 
-      // Message capture: persistence for signed-in users + guest turn tracking
+      // Message capture: persistence for the signed-in client.
       // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
       window.botpress.on('message', function(msg) {
-        if (!clientId) {
-          checkGuestMemoryPrompt();
-          return;
+        if (!clientId) return;
+
+        // Role first -- needed even when nothing is stored.
+        var isUser = false;
+        try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
+        var role = isUser ? 'user' : 'assistant';
+
+        // Check for new Alo-generated journal entries after each assistant message
+        if (role === 'assistant' && activeTab === 'chat') {
+          checkJournalBadge();
         }
+
+        // S4A 4.C.3: history is the client's switch. OFF means no transcript
+        // is stored anywhere -- not in Supabase, not in the local retry
+        // queue, not in the dropped-format backup below.
+        if (!historyEnabled) return;
 
         // Extract text — try all known paths
         var content = '';
@@ -3899,20 +4102,19 @@ window.botpress.on('webchat:closed', function() {
         if (!content) {
           // A7/C19 — log dropped formats instead of silently discarding,
           // and keep a raw backup in localStorage so nothing is lost
-          // without a trace.
-          try {
-            var dropped = JSON.parse(localStorage.getItem('alo_dropped_messages') || '[]');
-            dropped.push({ msg: msg, ts: Date.now() });
-            localStorage.setItem('alo_dropped_messages', JSON.stringify(dropped.slice(-20)));
-          } catch (e) {}
+          // without a trace. Not during a private session: nothing from
+          // a private session is kept, in any store.
+          if (!isPrivateSession) {
+            try {
+              var dropped = JSON.parse(localStorage.getItem('alo_dropped_messages') || '[]');
+              dropped.push({ msg: msg, ts: Date.now() });
+              localStorage.setItem('alo_dropped_messages', JSON.stringify(dropped.slice(-20)));
+            } catch (e) {}
+          }
           console.warn('[Persistence] Dropped unrecognized message format:', msg);
           return;
         }
 
-        // Determine role
-        var isUser = false;
-        try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
-        var role = isUser ? 'user' : 'assistant';
         var msgId = null;
         try { msgId = msg.id; } catch(e) {}
         var bpConvId = null;
@@ -3920,7 +4122,7 @@ window.botpress.on('webchat:closed', function() {
 
         console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
 
-                // A7/C2 + A7/C4 — guarded persistence with retry + local queue,
+        // A7/C2 + A7/C4 — guarded persistence with retry + local queue,
         // and in-flight promise dedup so two rapid messages can't both
         // create a conversation record.
         (async function() {
@@ -3946,22 +4148,19 @@ window.botpress.on('webchat:closed', function() {
               await saveMessage(role, content, msgId);
             } catch (err2) {
               console.error('[Persistence] Retry failed, queuing locally:', err2.message);
-              try {
-                var queue = JSON.parse(localStorage.getItem('alo_unsent_messages') || '[]');
-                queue.push({ role: role, content: content, msgId: msgId, ts: Date.now() });
-                localStorage.setItem('alo_unsent_messages', JSON.stringify(queue.slice(-20)));
-              } catch (e) {}
-              showToast('Message saved locally — will send when reconnected');
+              if (!isPrivateSession) {
+                try {
+                  var queue = JSON.parse(localStorage.getItem('alo_unsent_messages') || '[]');
+                  queue.push({ role: role, content: content, msgId: msgId, ts: Date.now() });
+                  localStorage.setItem('alo_unsent_messages', JSON.stringify(queue.slice(-20)));
+                } catch (e) {}
+                showToast('Message saved locally — will send when reconnected');
+              }
             }
           }
         })();
-
-        // Check for new Alo-generated journal entries after each assistant message
-        if (role === 'assistant' && activeTab === 'chat') {
-          checkJournalBadge();
-        }
       });
-         
+
       loadTimeout = setTimeout(function() {
         loadingOverlay.innerHTML = `
           <div class="error-message">
@@ -3974,6 +4173,27 @@ window.botpress.on('webchat:closed', function() {
           </div>
         `;
       }, 15000);
+    }
+
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', async function() {
+      // D29-03: must run before ANY other async work in this handler,
+      // including _aloHandleInviteParam() -- see the comment on the
+      // function itself. `let`, not `const`: cleared right after the
+      // exchange attempt below (security review finding -- token lifetime
+      // in memory) rather than staying reachable in this closure for the
+      // rest of the page's life, which the exchange attempt itself does not
+      // need past that one call.
+      let _aloClientToken = _aloHandleTokenParam();
+
+      _aloHandleInviteParam();
+
+      // Init theme label for more menu (was inside the webchat init handler;
+      // the menu exists in waiting-room states too, where no webchat is created)
+      var menuLabel = document.getElementById('moreMenuThemeLabel');
+      if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
 
       // Privacy bar
       initPrivacyBar();
@@ -4091,9 +4311,11 @@ window.botpress.on('webchat:closed', function() {
       // the session_metadata write, homework/memory loads). On failure
       // there is no session to find either way.
       if (_aloClientToken) {
-        await _aloExchangeClientToken(_aloClientToken);
+        const exchanged = await _aloExchangeClientToken(_aloClientToken);
         _aloClientToken = null;
-        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        // Failure: the signed-out waiting room, with the normal sign-in
+        // path, under the one constant message the exchange already showed.
+        if (!exchanged) resetToGuestUI();
         return;
       }
 
@@ -4103,8 +4325,8 @@ window.botpress.on('webchat:closed', function() {
       if (session) {
         await loadConnectedState();
       } else {
-        // Guest: show benefits card after brief delay
-        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        // S4A 4.A.4: no guest chat -- signed out is the waiting room.
+        resetToGuestUI();
       }
     });
 
