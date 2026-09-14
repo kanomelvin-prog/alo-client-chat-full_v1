@@ -92,7 +92,7 @@
       <button id="threadsBtn" class="threads-btn hidden" onclick="toggleThreadSidebar()" aria-label="Conversation history" title="Conversations">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       </button>
-      <button id="memoryIconBtn" class="memory-icon-btn hidden" onclick="toggleMemoryPopover()" aria-label="Memory settings" aria-haspopup="true" aria-expanded="false" title="Memory settings">
+      <button id="memoryIconBtn" class="memory-icon-btn hidden" onclick="toggleMemoryPopover()" aria-label="Memory and history settings" aria-haspopup="true" aria-expanded="false" title="Memory and history settings">
         <svg class="mem-icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         <svg class="mem-icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         <span class="mem-status-dot"></span>
@@ -159,19 +159,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Start new private conversation
       </button>
-      <div class="more-menu-settings" id="moreMenuMemory">
-        <div class="more-menu-settings-header">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          Memory
-          <label class="toggle-switch">
-            <input type="checkbox" id="memoryToggle" onchange="handleMemoryToggle(this.checked)">
-            <span class="toggle-track"></span>
-          </label>
-        </div>
-        <div class="more-menu-settings-detail">
-          Alo keeps short summaries of recent conversations (not full transcripts) for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
-        </div>
-      </div>
+      <button class="more-menu-item" role="menuitem" id="moreMenuMemory" onclick="toggleMoreMenu(); toggleMemoryPopover()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Memory and history
+      </button>
       <div class="more-menu-divider" role="separator"></div>
       <button class="more-menu-item more-menu-logout" role="menuitem" onclick="toggleMoreMenu(); handleLogout()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -239,22 +230,42 @@
     </div>
   </div>
   <!-- Thread sidebar (slide-in panel) -->
-  <div id="memoryPopover" class="memory-popover hidden" role="dialog" aria-label="Memory settings">
+  <!-- S4A (Brief 1a, 4.C.2): conversation history is the client's switch,
+       OFF by default. Memory needs history on (R-1): the memory switch is
+       disabled while history is off; history off also turns memory off.
+       The therapist's allow_history is shown as a sentence, never a control. -->
+  <div id="memoryPopover" class="memory-popover hidden" role="dialog" aria-label="Memory and history settings">
     <div class="memory-popover-backdrop" onclick="toggleMemoryPopover()"></div>
     <div class="memory-popover-panel">
       <div class="memory-popover-status" id="memPopoverStatus">
         <span class="mem-pop-dot mem-pop-dot-on"></span>
         <span class="mem-pop-label">Memory is on</span>
       </div>
-      <p class="memory-popover-desc">Alo uses short summaries from recent conversations for continuity. Your therapist cannot see this.</p>
+
+      <label class="alo-setting-row">
+        <span class="alo-setting-label">Conversation history</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="historyToggle" onchange="handleHistoryToggle(this.checked)">
+          <span class="toggle-track"></span>
+        </span>
+      </label>
+      <p class="memory-popover-desc">Keep my conversations so I can review them later. Off keeps nothing after the session ends.</p>
+      <p class="memory-popover-desc alo-setting-hint" id="aloHistorySuggestion" style="display:none;"></p>
+
+      <label class="alo-setting-row">
+        <span class="alo-setting-label">Memory</span>
+        <span class="toggle-switch">
+          <input type="checkbox" id="memoryToggle" onchange="handleMemoryToggle(this.checked)">
+          <span class="toggle-track"></span>
+        </span>
+      </label>
+      <p class="memory-popover-desc">Alo keeps brief notes between sessions so it can pick up where you left off. Your therapist cannot see this.</p>
+      <p class="memory-popover-desc alo-setting-hint" id="aloMemoryNeedsHistory">Memory needs conversation history on.</p>
+
       <div class="memory-popover-actions">
         <button class="mem-pop-action" id="memPopPrivateBtn" onclick="startPrivateSession()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           Start private session
-        </button>
-        <button class="mem-pop-action" id="memPopToggleBtn" onclick="toggleMemoryGlobal()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-          <span id="memPopToggleLabel">Turn off memory</span>
         </button>
         <div class="mem-pop-divider"></div>
         <button class="mem-pop-action mem-pop-action-danger" id="memPopClearBtn" onclick="clearAllMemories()">
@@ -307,7 +318,7 @@
       </button>
       <button class="thread-sidebar-settings-link" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        Memory settings
+        Memory and history
       </button>
     </div>
   </div>
@@ -3073,59 +3084,76 @@ async function togglePin(conversationId) {
         showToast('Could not clear history. Try again.');
       }
     }
+    // S4A 4.C (R-1): memory summaries are built from stored transcripts, so
+    // memory cannot work while history is OFF. Memory ON is only possible
+    // while history is ON (the switch is disabled otherwise).
     async function handleMemoryToggle(enabled) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      try {
-        const existing = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=client_id`);
-
-        if (existing && existing.length > 0) {
-          await api(`/rest/v1/client_settings?client_id=eq.${user.id}`, 'PATCH', {
-            memory_enabled: enabled,
-            updated_at: new Date().toISOString()
-          });
-        } else {
-          await api('/rest/v1/client_settings', 'POST', {
-            client_id: user.id,
-            memory_enabled: enabled
-          });
-        }
-
-        memoryGlobalEnabled = enabled;
-        if (enabled) {
-          localStorage.setItem('alo_memory_onboard_done', 'true');
-        }
+      if (enabled && !historyEnabled) {
+        showToast('Memory needs conversation history on.');
         updateMemoryUI();
-        showToast(enabled ? 'Memory enabled' : 'Memory turned off');
+        return;
+      }
+      var prev = memoryGlobalEnabled;
+      try {
+        await aloSaveSettings({ memory_enabled: enabled });
+        memoryGlobalEnabled = enabled;
+        updateMemoryUI();
+        aloSendBotpressUserData();
+        showToast(enabled ? 'Memory on' : 'Memory off');
       } catch (err) {
         console.error('Error updating memory setting:', err);
         showToast('Could not update setting');
-        document.getElementById('memoryToggle').checked = !enabled;
-        memoryGlobalEnabled = !enabled;
+        memoryGlobalEnabled = prev;
         updateMemoryUI();
       }
     }
 
+    // 4.C.2: the client owns history. OFF writes both flags off (memory has
+    // nothing to work from). ON re-asserts the current memory value so the
+    // row never says "memory on" while the switch shows it off.
+    async function handleHistoryToggle(enabled) {
+      var prevH = historyEnabled;
+      var prevM = memoryGlobalEnabled;
+      var write = enabled
+        ? { history_enabled: true, memory_enabled: memoryGlobalEnabled }
+        : { history_enabled: false, memory_enabled: false };
+      try {
+        await aloSaveSettings(write);
+        historyEnabled = enabled;
+        if (!enabled) memoryGlobalEnabled = false;
+        updateMemoryUI();
+        aloSendBotpressUserData();
+        showToast(enabled ? 'History on' : 'History off');
+      } catch (err) {
+        console.error('Error updating history setting:', err);
+        showToast('Could not update setting');
+        historyEnabled = prevH;
+        memoryGlobalEnabled = prevM;
+        updateMemoryUI();
+      }
+    }
+
+    // 4.C.1: reads both switches. A missing row, a missing column or a
+    // failed read all mean OFF -- nothing is kept unless the row says so.
     async function loadMemorySettings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       try {
-        const settings = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=memory_enabled`);
+        const settings = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=memory_enabled,history_enabled`);
         if (settings && settings.length > 0) {
-          memoryGlobalEnabled = settings[0].memory_enabled !== false;
+          historyEnabled = settings[0].history_enabled === true;
+          memoryGlobalEnabled = historyEnabled && settings[0].memory_enabled === true;
         } else {
-          // No settings row = new user, default OFF (opt-in model)
+          historyEnabled = false;
           memoryGlobalEnabled = false;
         }
       } catch (err) {
+        historyEnabled = false;
         memoryGlobalEnabled = false;
       }
 
-      document.getElementById('memoryToggle').checked = memoryGlobalEnabled;
       updateMemoryUI();
-      checkMemoryOnboarding();
     }
 
     function updateMemoryUI() {
@@ -3175,14 +3203,31 @@ async function togglePin(conversationId) {
         privateBtn.style.display = memoryGlobalEnabled ? '' : 'none';
       }
 
-      var toggleLabel = document.getElementById('memPopToggleLabel');
-      if (toggleLabel) {
-        toggleLabel.textContent = memoryGlobalEnabled ? 'Turn off memory' : 'Turn on memory';
-      }
-
-      // Sync the settings toggle in more-menu
+      // S4A 4.C: the two switches, the dependency sentence, the therapist's
+      // recommendation (a sentence, not a control), and everything that
+      // only exists when history is on (threads button, Conversations item).
+      var historyToggle = document.getElementById('historyToggle');
+      if (historyToggle) historyToggle.checked = historyEnabled;
       var toggle = document.getElementById('memoryToggle');
-      if (toggle) toggle.checked = memoryGlobalEnabled;
+      if (toggle) {
+        toggle.checked = memoryGlobalEnabled;
+        toggle.disabled = !historyEnabled;
+      }
+      var needsHistory = document.getElementById('aloMemoryNeedsHistory');
+      if (needsHistory) needsHistory.style.display = historyEnabled ? 'none' : '';
+      var suggestion = document.getElementById('aloHistorySuggestion');
+      if (suggestion) {
+        var allowHistory = chatSettings ? chatSettings.allow_history : undefined;
+        suggestion.textContent = allowHistory === true
+          ? 'Your therapist suggests keeping this on.'
+          : (allowHistory === false ? 'Your therapist suggests keeping this off.' : '');
+        suggestion.style.display = suggestion.textContent ? '' : 'none';
+      }
+      var historyLive = historyEnabled && aloAccessState === 'chat';
+      var threadsBtn = document.getElementById('threadsBtn');
+      if (threadsBtn) threadsBtn.classList.toggle('hidden', !historyLive);
+      var convItem = document.getElementById('moreConversationsBtn');
+      if (convItem) convItem.style.display = historyLive ? '' : 'none';
 
       // Private session banner
       var banner = document.getElementById('privateSessionBanner');
@@ -3211,16 +3256,11 @@ async function togglePin(conversationId) {
       if (isHidden) {
         pop.classList.remove('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'true');
-        _aloShowTip('memory', 'Alo remembers a little between conversations so you don\'t have to start over. You can clear it anytime.');
+        _aloShowTip('memory', 'History and memory are off unless you turn them on here.');
       } else {
         pop.classList.add('hidden');
         if (btn) btn.setAttribute('aria-expanded', 'false');
       }
-    }
-
-    function toggleMemoryGlobal() {
-      handleMemoryToggle(!memoryGlobalEnabled);
-      toggleMemoryPopover();
     }
 
     async function clearAllMemories() {

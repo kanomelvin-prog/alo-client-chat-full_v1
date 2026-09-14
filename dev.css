@@ -2311,35 +2311,29 @@ footer a {
   font-size: 13px;
 }
 
-/* === MORE MENU — MEMORY SETTINGS SECTION === */
-.more-menu-settings {
-  padding: 10px 14px;
-}
-
-.more-menu-settings-header {
+/* === S4A (BRIEF 1a, 4.C): HISTORY + MEMORY SWITCH ROWS === */
+.alo-setting-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.alo-setting-label {
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 6px;
 }
 
-.more-menu-settings-header svg {
-  flex-shrink: 0;
-  color: var(--text-muted);
+.alo-setting-row input:disabled + .toggle-track {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-.more-menu-settings-header .toggle-switch {
-  margin-left: auto;
-}
-
-.more-menu-settings-detail {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.5;
-  padding-left: 24px;
+.alo-setting-hint {
+  color: var(--text-secondary);
 }
 
 /* === SIDEBAR SETTINGS LINK (replaces old toggle) === */
