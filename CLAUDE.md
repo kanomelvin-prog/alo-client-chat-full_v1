@@ -9,11 +9,18 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - User agency: users control timing, depth, and direction at all times.
 - Zero-Knowledge: clinical signals go to therapist dashboard, never transcripts.
 - Craft integrity: nothing ships until it's done right. No shortcuts.
+- Data posture (Brief 1a, 2026-09-14) — every screen builds to this and must not contradict it:
+  "Alo keeps only what you can see, only for you, deletable in one tap. Nothing is sold.
+  Nothing shared without your separate consent. Your therapist never sees a conversation."
 ## File Structure
-- `chat_index.html` — client chat interface
-- `chat_styles.css` — chat stylesheet
-- `dashboard_index.html` — dashboard HTML reference copy
-- `dashboard_styles.css` — dashboard CSS reference copy
+- `dev.html` + `dev.css` — development copy, tested at alowen.ai/dev.html. **Edit these.**
+- `index.html` + `styles.css` — production, live on push to `main`. **Never touch unless explicitly told to.**
+- `scripts/scan-invisible.py` — zero-width / smart-quote scan (ruling D3, D20)
+- `docs/contracts/consent-gate-contract-v1_0.md` — server contract the client is coded against
+  (columns, `peek_invite_code`, `redeem_invite_code`, `renew_consent`, `delete-client-data`);
+  implemented in alo-supabase, run by Kano
+- `docs/reports/` — verification artifacts (screenshots)
+- `manifest.json`, `icons/` — installable-app assets (dev.html only)
 - `CLAUDE.md` — this file
 ## Stack
 - Frontend: Vanilla HTML/CSS/JS
@@ -23,11 +30,17 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Database: Supabase (auth, memory, homework, crisis logging)
 - Supabase URL: https://lelsdezstbnzyxvsvbyx.supabase.co
 - Botpress Bot ID: fc0fad71-daea-4d22-adf5-3a659042d46a
+- Auth/session goes through the Supabase JS SDK (`supabase.auth.*`, `supabase.rpc`); data reads and
+  writes go through raw `fetch` via the `api()` helper.
 ## Account Types
-- Guest: no auth, conversation only, no memory
-- Individual: email/password, memory + conversation history
-- Client (invite): invite code → Supabase, memory + homework + therapist connection
-- Therapist: email/password, dashboard access only
+Invite-only. There is no guest chat. The chat opens only when the access gate returns `chat`.
+- Signed out: the waiting room (sign in / create account, invite-code field).
+- Account (email/password), no active therapist link: the waiting room. Journal read-only
+  (view, export, delete), Export my data, Delete my data. An invite code from a therapist connects.
+- Client: account + ACTIVE therapist link + CURRENT consent (`consent_version` = `ALO_CONSENT_VERSION`)
+  + adult attestation + not paused → chat, memory + history switches, homework, therapist connection.
+  Paused / ended / consent-outdated links show the waiting room (`aloComputeAccess` in dev.html).
+- Therapist: email/password, dashboard access only.
 ## Code Standards — Non-Negotiable
 - Mobile-first: primary users are on iPhone Safari and Chrome mobile
 - WCAG AA minimum: 4.5:1 contrast ratio for text, 3:1 for large text
@@ -46,14 +59,23 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Botpress webchat SDK loaded via CDN — do not version-pin without testing
 - Auth flow is sensitive — sign-in/sign-up changes require full end-to-end test
 - **`?t=` on load is a one-time test-client session token** (D29-03, 2026-09-09, spec section 6/7/10 in alo-supabase's `Alo_Therapist_Signup_Edge_Function_Spec_v1_0.md`). Stripped from the URL synchronously, before any other async work, then exchanged server-side for a session. Every failure mode shows one constant, cause-neutral message (ruling D31) — do not add a per-cause error message here, ever, even one that feels harmless. Full writeup: alo-dashboard's `OPEN_AS_CLIENT_REPORT.md`.
+- **Consent fails closed** (Brief 1a, 2026-09-14). The link becomes active only when `redeem_invite_code`
+  writes the consent record in the same transaction as the claim. The client app makes zero direct
+  writes to `therapist_clients`; there is no localStorage consent fallback. Do not add either back.
+- **The Botpress webchat is initialised only in `aloOpenChat()`, only after the gate returns `chat`.**
+  Never call `window.botpress.init` anywhere else.
+- **History is the client's switch.** `client_settings.history_enabled` is OFF by default; OFF means
+  no `conversations` row and no stored message. Memory needs history on (R-1). The therapist's
+  `allow_history` is a recommendation sentence, never a control.
+- **Deletion is server-owned.** "Delete my data" / "Delete my account" call `delete-client-data` and
+  render the receipt from the response only. Never claim a deletion the server did not report.
 - Never send conversation content anywhere except through Botpress
 ## Working Rules
 
 ### Git workflow
-- Work directly on `main`. No feature branches at this stage.
-- Solo developer, single-environment project. Branches add overhead without benefit.
-- Verify every push actually landed: after `git push`, run `git status` and `git log --oneline -3` to confirm the commit is on `origin/main`, not just locally.
-- Push to main triggers GitHub Pages deploy (allow 1-2 min). Verify alowen.ai on actual iPhone after every deploy if possible.
+- Sessions work on `auto/*` branches; Kano merges. **Never push to `main`.**
+- Verify every push actually landed: after `git push`, run `git status` and `git log --oneline -3` to confirm the commit is on the remote branch, not just locally.
+- Merging to `main` (Kano) triggers GitHub Pages deploy (allow 1-2 min). Verify alowen.ai on actual iPhone after every deploy if possible.
 
 ### File discipline
 - This repo has a dev/production file split:
@@ -81,6 +103,8 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 ### Schema changes
 - Supabase schema changes (ALTER TABLE, CREATE POLICY, etc.) run in Supabase SQL Editor by the developer, not by Claude Code.
 - If a change file includes schema changes, flag them as a prerequisite step and do not attempt to run them.
+- The consent-gate migration and RPCs live in alo-supabase; the client only consumes them
+  (`docs/contracts/consent-gate-contract-v1_0.md`).
 
 ### Security reminders
 - API keys and secrets never go in commits. The Supabase anon key in `dev.html`/`index.html` is the only exception — it's the public anon key and is designed to be exposed client-side.
@@ -93,3 +117,5 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Do not add engagement hooks, notifications, or streak mechanics
 - Do not add third-party analytics or tracking scripts without approval
 - Do not add any feature that sends conversation content outside Botpress
+- Do not add a guest chat, a countdown, a "we'll be here", a "come back", or any urgency device to the waiting room
+- Do not write `therapist_clients` from the client app, and do not add a consent fallback that lets the chat open without a server-side consent record
