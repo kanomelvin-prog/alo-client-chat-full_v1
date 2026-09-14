@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=15">
+  <link rel="stylesheet" href="dev.css?v=16">
 </head>
 
 <body>
@@ -3519,8 +3519,8 @@ async function togglePin(conversationId) {
           privateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Start private session';
           privateBtn.onclick = startPrivateSession;
         }
-        // Only show private session option when memory is globally on
-        privateBtn.style.display = memoryGlobalEnabled ? '' : 'none';
+        // Only show the private session option when something is being kept
+        privateBtn.style.display = (memoryGlobalEnabled || historyEnabled) ? '' : 'none';
       }
 
       // S4A 4.C: the two switches, the dependency sentence, the therapist's
@@ -3649,12 +3649,14 @@ async function togglePin(conversationId) {
 
         // Menu item: one-tap privacy toggle for the current conversation.
     // If memory is off globally, treat private mode as redundant and just toast a hint.
+    // S4A 4.C follow-up: a private session matters whenever anything is being
+    // kept -- history alone stores the transcript, so gate on either switch.
     function togglePrivateChatFromHeader() {
       if (isPrivateSession) {
         endPrivateSession();
       } else {
-        if (!memoryGlobalEnabled) {
-          showToast('Memory is already off — nothing is being remembered');
+        if (!memoryGlobalEnabled && !historyEnabled) {
+          showToast('History and memory are off — nothing is being kept');
           return;
         }
         startPrivateSession();
@@ -3673,8 +3675,8 @@ async function togglePin(conversationId) {
     // Menu action: fresh thread first (explicit intent, so skip the confirm),
     // then begin the private session on it.
     async function startNewPrivateConversation() {
-      if (!memoryGlobalEnabled) {
-        showToast('Memory is already off — nothing is being remembered');
+      if (!memoryGlobalEnabled && !historyEnabled) {
+        showToast('History and memory are off — nothing is being kept');
         return;
       }
       await startNewConversation(true);
