@@ -333,6 +333,10 @@
     <button class="privacy-bar-dismiss" id="privacyBarDismiss" aria-label="Dismiss">&times;</button>
   </div>
 
+  <!-- S4A (Brief 1a, 4.D): AI disclosure line. One fact, quietly. Filled and
+       shown by aloDisclosure; empty and hidden otherwise. -->
+  <div id="aloDisclosureLine" class="alo-disclosure-line" role="status" aria-live="polite"></div>
+
   <main id="chatMain">
     <!-- Homework cards (hidden unless client has active homework) -->
     <div id="homeworkContainer" class="homework-container"></div>
@@ -1174,7 +1178,7 @@ function showAboutModal() {
       room.classList.remove('hidden');
       aloSyncWebchatVisibility();
       aloSetJournalReadOnly(true);
-      if (typeof aloDisclosure !== 'undefined') aloDisclosure.hide();
+      aloDisclosure.hide();
     }
 
     // One status line in the waiting room (invalid code, "Not now", etc.).
@@ -4130,6 +4134,101 @@ async function togglePin(conversationId) {
     }
 
     // =====================================================
+    // S4A (BRIEF 1a, 4.D) -- AI DISCLOSURE CADENCE
+    // One line, one fact: "Alo is an AI, not a person." Shown at session
+    // start (until the first user message), on return after >= 7 idle days
+    // (the "Welcome back." variant, same rule), and again for 60 seconds at
+    // every 3 hours of continuous chat (no gap >= 30 minutes). It never
+    // suggests a break, a limit, or a wellness judgement.
+    // =====================================================
+    var aloDisclosure = (function() {
+      var LINE = 'Alo is an AI, not a person.';
+      var RETURN_LINE = 'Welcome back. Alo is an AI, not a person.';
+      var STORAGE_KEY = 'alo_last_active_at';
+      var hideTimer = null;
+      var pendingUntilFirstMessage = false;
+      var spanStartedAt = null;   // first user message of the current continuous span
+      var lastMessageAt = null;
+      var nextIntervalIndex = 1;
+      var openedThisLoad = false;
+
+      function el() { return document.getElementById('aloDisclosureLine'); }
+
+      function show(text, autoHideMs) {
+        var line = el();
+        if (!line) return;
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        line.textContent = text;
+        line.classList.add('show');
+        if (autoHideMs) hideTimer = setTimeout(hide, autoHideMs);
+      }
+
+      function hide() {
+        if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        pendingUntilFirstMessage = false;
+        var line = el();
+        if (!line) return;
+        line.classList.remove('show');
+        line.textContent = '';
+      }
+
+      function touch() {
+        try { localStorage.setItem(STORAGE_KEY, String(Date.now())); } catch (e) {}
+      }
+
+      function readLastActive() {
+        try {
+          var v = parseInt(localStorage.getItem(STORAGE_KEY) || '', 10);
+          return isNaN(v) ? null : v;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // Session start. Once per page load: a second aloOpenChat() call (a
+      // SIGNED_IN re-fire, a settings reload) must not re-show the line
+      // mid-conversation.
+      function onChatOpen() {
+        if (openedThisLoad) return;
+        openedThisLoad = true;
+        var now = Date.now();
+        var last = readLastActive();
+        var returnMs = ALO_DISCLOSURE_RETURN_DAYS * 24 * 60 * 60 * 1000;
+        var returning;
+        if (last !== null) {
+          returning = (now - last) >= returnMs;
+        } else {
+          // No record in this browser. A returning account (created >= 7
+          // days ago) gets the return variant; a brand-new one does not.
+          var created = aloAccountCreatedAt ? Date.parse(aloAccountCreatedAt) : NaN;
+          returning = !isNaN(created) && (now - created) >= returnMs;
+        }
+        show(returning ? RETURN_LINE : LINE);
+        pendingUntilFirstMessage = true;
+        touch();
+      }
+
+      // Every user message: clears the session-start line, tracks the
+      // continuous span, and re-shows the line for 60 seconds each time
+      // the span crosses another 3-hour mark.
+      function onUserMessage() {
+        var now = Date.now();
+        if (pendingUntilFirstMessage) hide();
+        if (spanStartedAt === null || lastMessageAt === null || (now - lastMessageAt) >= ALO_DISCLOSURE_GAP_MS) {
+          spanStartedAt = now;
+          nextIntervalIndex = 1;
+        } else if ((now - spanStartedAt) >= nextIntervalIndex * ALO_DISCLOSURE_INTERVAL_MS) {
+          show(LINE, 60 * 1000);
+          nextIntervalIndex = Math.floor((now - spanStartedAt) / ALO_DISCLOSURE_INTERVAL_MS) + 1;
+        }
+        lastMessageAt = now;
+        touch();
+      }
+
+      return { onChatOpen: onChatOpen, onUserMessage: onUserMessage, hide: hide };
+    })();
+
+    // =====================================================
     // S4A (BRIEF 1a, 4.A.2) -- CHAT OPEN
     // The Botpress webchat is initialised here and nowhere else, and only
     // after the gate has returned 'chat'. Until then there is no iframe,
@@ -4161,7 +4260,7 @@ async function togglePin(conversationId) {
       var frame = document.getElementById('aloFrame');
       if (frame) frame.classList.remove('hidden');
       aloSetJournalReadOnly(false);
-      if (typeof aloDisclosure !== 'undefined') aloDisclosure.onChatOpen();
+      aloDisclosure.onChatOpen();
 
       const loadingOverlay = document.getElementById('loadingOverlay');
 
@@ -4337,6 +4436,9 @@ async function togglePin(conversationId) {
         var isUser = false;
         try { isUser = !!(msg.metadata && msg.metadata.clientMessageId); } catch(e) {}
         var role = isUser ? 'user' : 'assistant';
+
+        // S4A 4.D: every user message feeds the AI-disclosure cadence.
+        if (role === 'user') aloDisclosure.onUserMessage();
 
         // Check for new Alo-generated journal entries after each assistant message
         if (role === 'assistant' && activeTab === 'chat') {

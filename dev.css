@@ -3431,6 +3431,25 @@ body.journal-focus-mode .tab-bar {
 }
 
 /* === PHASE 2, ITEM 13a: INSTALLABLE APP (functional placeholder) === */
+/* === S4A (BRIEF 1a, 4.D): AI DISCLOSURE LINE === */
+/* Quiet by design: muted text, no icon, no animation. Sits between the
+   header area and the chat container and takes space only while shown. */
+.alo-disclosure-line {
+  display: none;
+  flex-shrink: 0;
+  padding: 6px 20px;
+  padding-left: max(20px, env(safe-area-inset-left));
+  padding-right: max(20px, env(safe-area-inset-right));
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--warm-bg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.alo-disclosure-line.show { display: block; }
+
 /* === S4A (BRIEF 1a, 4.A): WAITING ROOM === */
 /* Lives inside .chat-container (position: relative) and fills it.
    Shown for every access state except 'chat'. No countdown, no urgency. */
