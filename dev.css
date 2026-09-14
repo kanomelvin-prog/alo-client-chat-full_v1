@@ -1661,7 +1661,6 @@ footer a {
   body.keyboard-open .privacy-bar,
   body.keyboard-open #homeworkContainer,
   body.keyboard-open #privateSessionBanner,
-  body.keyboard-open #memoryOnboardCard,
   body.keyboard-open footer {
     display: none !important;
   }
@@ -2250,67 +2249,6 @@ footer a {
   margin-left: 4px;
 }
 
-/* === MEMORY ONBOARDING CARD === */
-.memory-onboard-card {
-  display: none;
-  flex-shrink: 0;
-  margin: 12px 16px 0;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border-visible);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.memory-onboard-content {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.memory-onboard-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--primary-light);
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.memory-onboard-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.memory-onboard-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.memory-onboard-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.memory-onboard-enable {
-  flex: 1;
-  min-height: 38px;
-  font-size: 13px;
-}
-
-.memory-onboard-dismiss {
-  flex: 1;
-  min-height: 38px;
-  font-size: 13px;
-}
-
 /* === S4A (BRIEF 1a, 4.C): HISTORY + MEMORY SWITCH ROWS === */
 .alo-setting-row {
   display: flex;
@@ -2379,9 +2317,6 @@ footer a {
   }
   .memory-popover-backdrop {
     background: rgba(0, 0, 0, 0.35);
-  }
-  .memory-onboard-card {
-    margin: 8px 12px 0;
   }
 }
 /* ============================================================

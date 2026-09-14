@@ -199,7 +199,7 @@
           <h3>Your privacy</h3>
           <p>Your conversations are private — always. Your therapist never sees what you say to Alo.</p>
           <p>If you're connected to a therapist through Alowen, they can see general patterns across your sessions and whether you've completed any reflections they've assigned. That's it. They aren't notified in real time — they review at their own pace, usually to prepare for your next session.</p>
-          <p>Guest conversations aren't saved after the session ends. If you're signed in, you stay in control: turn memory off, start a private session (nothing gets saved), or ask Alo to forget a specific topic.</p>
+          <p>You stay in control: turn history or memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
 
@@ -211,9 +211,9 @@
 
         <section class="about-section">
           <h3>How memory works</h3>
-          <p>Alo doesn't store your conversations word for word. When memory is on, it keeps brief notes — just enough to pick up where you left off next time.</p>
-          <p>You're always in control: turn memory off, go private for a session, or ask Alo to forget something.</p>
-          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory is available when you're signed in. Guests start fresh every visit.</p>
+          <p>When conversation history is on, Alo keeps your conversations so you can review them, and you can delete them any time. When it's off, nothing is kept after the session ends.</p>
+          <p>When memory is on, Alo also keeps brief notes between sessions — just enough to pick up where you left off. Memory needs history on.</p>
+          <p>You're always in control: turn history or memory off, go private for a session, or ask Alo to forget something.</p>
         </section>
 
         <section class="about-section">
@@ -282,23 +282,6 @@
     <span>Private session — Alo won't remember this conversation</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
-  <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
-  <div id="memoryOnboardCard" class="memory-onboard-card">
-    <div class="memory-onboard-content">
-      <div class="memory-onboard-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      </div>
-      <div>
-        <div class="memory-onboard-title">Want Alo to remember context?</div>
-        <div class="memory-onboard-desc">Alo can use short summaries from past conversations so you don't have to re-explain. Your therapist can't see any of this.</div>
-      </div>
-    </div>
-    <div class="memory-onboard-actions">
-      <button class="btn-primary memory-onboard-enable" onclick="enableMemoryFromOnboard()">Enable</button>
-      <button class="btn-secondary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Not now</button>
-    </div>
-  </div>
-
   <div id="threadSidebar" class="thread-sidebar" aria-label="Conversation history">
     <div class="thread-sidebar-header">
       <h2>Conversations</h2>
@@ -3638,7 +3621,7 @@ async function togglePin(conversationId) {
         toggleMemoryPopover();
       }
       showToast('Private session — this conversation won\'t be remembered');
-      _aloShowTip('privateSession', 'This conversation won\'t be saved. Alo won\'t remember it next time.');
+      _aloShowTip('privateSession', 'Nothing from this conversation goes into your history or memory.');
 
             // Tell Botpress to skip memory for this conversation
       // A7-bonus — privateSession must be a string, not boolean.
@@ -3709,49 +3692,20 @@ async function togglePin(conversationId) {
       startNewConversation();
     }
 
-    // --- Memory onboarding (opt-in on 2nd visit) ---
-    function checkMemoryOnboarding() {
-      if (!clientId) return;
-      if (memoryGlobalEnabled) return;  // already opted in
-      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already dismissed
-      if (localStorage.getItem('alo_memory_onboard_ask') === 'ready') {
-        // 2nd+ visit: show the card
-        var card = document.getElementById('memoryOnboardCard');
-        if (card) card.style.display = 'block';
-      } else {
-        // 1st visit: mark for next time
-        localStorage.setItem('alo_memory_onboard_ask', 'ready');
-      }
-    }
-
-    function enableMemoryFromOnboard() {
-      handleMemoryToggle(true);
-      var card = document.getElementById('memoryOnboardCard');
-      if (card) card.style.display = 'none';
-      localStorage.setItem('alo_memory_onboard_done', 'true');
-    }
-
-    function dismissMemoryOnboard() {
-      var card = document.getElementById('memoryOnboardCard');
-      if (card) card.style.display = 'none';
-      // Will ask one more time on 3rd visit
-      var dismissCount = parseInt(localStorage.getItem('alo_memory_onboard_dismiss_count') || '0');
-      dismissCount++;
-      localStorage.setItem('alo_memory_onboard_dismiss_count', String(dismissCount));
-      if (dismissCount >= 2) {
-        localStorage.setItem('alo_memory_onboard_done', 'true');
-      }
-    }
-
    async function startNewConversation(skipConfirm) {
       if (aloAccessState !== 'chat' || !botpressReady) {
         console.warn('[Alo] startNewConversation called without an open chat');
         return;
       }
       if (!skipConfirm) {
+        var currentKept = isPrivateSession
+          ? 'This private conversation is not kept in your history.'
+          : (historyEnabled
+            ? 'Your current conversation is saved in your history.'
+            : 'History is off, so the current conversation is not in your history.');
         const confirmed = await showConfirm(
           'Start new conversation?',
-          'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
+          'This will start a fresh conversation with Alo. ' + currentKept,
           { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
         );
         if (!confirmed) return;
