@@ -640,11 +640,344 @@
       setTimeout(dismiss, 8000);
     }
 
-    // Phase 2B item 11: client menu "Your privacy" -- reuses the wired
-    // #privacyLink modal (D27) instead of duplicating its copy.
+    // Phase 2B item 11 + S4A 4.E: "Your privacy" -- one modal for the footer
+    // link (D27) and the client menu. The data actions (export, delete my
+    // data, delete my account) render only when signed in: they need the
+    // session token, and a signed-out reader has nothing here to act on.
     function _aloShowPrivacyModal() {
-      var link = document.getElementById('privacyLink');
-      if (link) link.click();
+      var dataSections = '';
+      if (aloSignedIn) {
+        dataSections =
+          '<h3 class="modal-section-title">Your data</h3>' +
+          '<div class="alo-privacy-actions">' +
+            '<button type="button" class="btn-secondary" id="aloPrivacyExportBtn">Export my data</button>' +
+            '<button type="button" class="btn-secondary" id="aloPrivacyDeleteDataBtn">Delete my data</button>' +
+          '</div>' +
+          '<h3 class="modal-section-title">Your account</h3>' +
+          '<div class="alo-privacy-actions">' +
+            '<button type="button" class="btn-danger-outline" id="aloPrivacyDeleteAccountBtn">Delete my account</button>' +
+          '</div>';
+      }
+
+      var modal = createModal('Your Privacy', `
+          <h3 class="modal-section-title">What we store</h3>
+          <ul class="modal-list">
+            <li>Account information (email, password hash)</li>
+            <li>Connection to your therapist, and the consent you gave when you connected</li>
+            <li>Homework completion status</li>
+            <li>Messages you send to your therapist</li>
+            <li>Journal entries you write or Alo saves (private by default)</li>
+            <li>Conversations, only while conversation history is on</li>
+            <li>Brief memory notes, only while memory is on</li>
+          </ul>
+
+          <h3 class="modal-section-title">Your Alo conversations</h3>
+          <ul class="modal-list">
+            <li>When conversation history is on, your conversations are saved so you can review them later. When it's off, nothing is kept after the session ends</li>
+            <li>You can delete any conversation at any time, or everything at once from this screen</li>
+            <li>Memory keeps brief notes between sessions. It needs history on, and you can turn either off in settings</li>
+            <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
+            <li>Conversations are not used for training, analytics, or advertising</li>
+          </ul>
+
+          <h3 class="modal-section-title">Your journal</h3>
+          <ul class="modal-list">
+            <li>Journal entries are private by default — your therapist cannot see them</li>
+            <li>You choose which individual entries to share with your therapist</li>
+            <li>You can revoke sharing anytime from inside the entry</li>
+          </ul>
+
+          <h3 class="modal-section-title">Who sees your data</h3>
+          <ul class="modal-list">
+            <li>Your therapist sees homework status, messages you send them, and any journal entries you explicitly share</li>
+            <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
+            <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
+            <li>We don't sell or share your data with third parties</li>
+          </ul>
+
+          <h3 class="modal-section-title">Security</h3>
+          <ul class="modal-list">
+            <li>All stored data is encrypted at rest (AES-256) and in transit (TLS)</li>
+            <li>Chat data is encrypted at rest and in transit by our chat provider</li>
+            <li>Database access is controlled by row-level security — your therapist can only see their own clients</li>
+          </ul>
+
+          ${dataSections}
+
+          <p class="modal-divider">
+            Alo is your space. Your therapist trusts you to share what matters when you're ready.
+          </p>
+        `, {
+        confirmLabel: 'Got it',
+        showCancel: false
+      });
+
+      function closeThisModal() {
+        var closeBtn = modal.querySelector('.modal-close');
+        if (closeBtn) closeBtn.click();
+      }
+      var exportBtn = modal.querySelector('#aloPrivacyExportBtn');
+      if (exportBtn) exportBtn.addEventListener('click', function() { aloExportMyData(); });
+      var deleteDataBtn = modal.querySelector('#aloPrivacyDeleteDataBtn');
+      if (deleteDataBtn) deleteDataBtn.addEventListener('click', function() { closeThisModal(); aloConfirmDelete('data'); });
+      var deleteAccountBtn = modal.querySelector('#aloPrivacyDeleteAccountBtn');
+      if (deleteAccountBtn) deleteAccountBtn.addEventListener('click', function() { closeThisModal(); aloConfirmDelete('account'); });
+    }
+
+    // =====================================================
+    // S4A (BRIEF 1a, 4.E) -- EXPORT + DELETION
+    // Export is client-side and all-or-nothing. Deletion is server-owned:
+    // one edge function deletes Supabase rows and Botpress conversations
+    // and returns a receipt; the app renders that receipt and claims
+    // nothing the server did not report.
+    // =====================================================
+    const ALO_DELETE_FAILED_COPY = 'Deletion didn\'t go through. Nothing was deleted. You can try again, or email kano@alowen.ai.';
+
+    let _aloExportBusy = false;
+    async function aloExportMyData() {
+      if (_aloExportBusy) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showToast('Not signed in');
+        return;
+      }
+      _aloExportBusy = true;
+      showToast('Preparing your export...');
+
+      var out = {
+        exported_at: new Date().toISOString(),
+        app: 'Alo',
+        account: { id: user.id, email: user.email || null },
+        journal_entries: [],
+        conversations: [],
+        conversation_messages: [],
+        conversation_summaries: [],
+        client_settings: []
+      };
+      var parts = [
+        { key: 'journal_entries', label: 'journal entries', path: '/rest/v1/journal_entries?client_id=eq.' + user.id + '&order=created_at.asc' },
+        { key: 'conversations', label: 'conversations', path: '/rest/v1/conversations?client_id=eq.' + user.id + '&order=created_at.asc' },
+        { key: 'conversation_summaries', label: 'memory notes', path: '/rest/v1/conversation_summaries?client_id=eq.' + user.id },
+        { key: 'client_settings', label: 'settings', path: '/rest/v1/client_settings?client_id=eq.' + user.id }
+      ];
+
+      try {
+        for (var i = 0; i < parts.length; i++) {
+          var part = parts[i];
+          try {
+            out[part.key] = (await api(part.path)) || [];
+          } catch (err) {
+            console.error('[Export] ' + part.key + ' failed:', err);
+            showToast('Couldn\'t export your ' + part.label + '. Nothing was downloaded.', 6000);
+            return;
+          }
+        }
+        // Messages for those conversations, in batches of ids.
+        var ids = out.conversations.map(function(c) { return c.id; }).filter(Boolean);
+        for (var j = 0; j < ids.length; j += 40) {
+          var chunk = ids.slice(j, j + 40);
+          try {
+            var rows = await api('/rest/v1/conversation_messages?conversation_id=in.(' + chunk.join(',') + ')&order=conversation_id.asc,turn_number.asc,created_at.asc');
+            out.conversation_messages = out.conversation_messages.concat(rows || []);
+          } catch (err) {
+            console.error('[Export] conversation_messages failed:', err);
+            showToast('Couldn\'t export your messages. Nothing was downloaded.', 6000);
+            return;
+          }
+        }
+
+        var d = new Date();
+        var stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        aloDownloadJSON('alo-export-' + stamp + '.json', out);
+        showToast('Export ready');
+      } finally {
+        _aloExportBusy = false;
+      }
+    }
+
+    function aloDownloadJSON(filename, obj) {
+      var blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
+
+    // 4.E.3 / 5.8: confirm with a typed DELETE, then the edge function.
+    function aloConfirmDelete(scope) {
+      var isAccount = scope === 'account';
+      var body = 'This deletes your journal, conversations, memory notes, and settings from Alo, and asks our chat provider to delete its copies. It can\'t be undone.' +
+        (isAccount ? ' Your account will be closed too.' : '') +
+        ' Type DELETE to continue.';
+
+      var modal = createModal(isAccount ? 'Delete my account' : 'Delete my data',
+        '<p>' + esc(body) + '</p>' +
+        '<label for="aloDeleteConfirmInput" class="sr-only">Type DELETE to confirm</label>' +
+        '<input type="text" id="aloDeleteConfirmInput" class="modal-input" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="DELETE">' +
+        '<p class="alo-consent-error" id="aloDeleteError" role="alert"></p>',
+        {
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+          dangerous: true,
+          onConfirm: async function() {
+            var input = document.getElementById('aloDeleteConfirmInput');
+            if (!input || input.value.trim() !== 'DELETE') return false;
+
+            var confirmBtn = modal.querySelector('.modal-confirm');
+            var cancelBtn = modal.querySelector('.modal-cancel');
+            var errEl = document.getElementById('aloDeleteError');
+            if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Deleting...'; }
+            if (cancelBtn) cancelBtn.disabled = true;
+            if (errEl) errEl.textContent = '';
+
+            var receipt = await aloCallDeleteFunction(scope);
+            if (!receipt) {
+              if (errEl) errEl.textContent = ALO_DELETE_FAILED_COPY;
+              if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Delete'; }
+              if (cancelBtn) cancelBtn.disabled = false;
+              return false;
+            }
+            await aloAfterDeletion(scope, receipt);
+            return true;
+          }
+        });
+
+      var confirmBtn = modal.querySelector('.modal-confirm');
+      var input = modal.querySelector('#aloDeleteConfirmInput');
+      if (confirmBtn) confirmBtn.disabled = true;
+      if (input && confirmBtn) {
+        input.addEventListener('input', function() {
+          confirmBtn.disabled = input.value.trim() !== 'DELETE';
+        });
+      }
+    }
+
+    // Contract 3.3. Any non-200, any ok:false, any network failure -> null.
+    async function aloCallDeleteFunction(scope) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return null;
+        const res = await fetch(SUPABASE_URL + '/functions/v1/delete-client-data', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + session.access_token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ scope: scope, confirm: 'DELETE' })
+        });
+        if (!res.ok) return null;
+        const body = await res.json();
+        if (!body || body.ok !== true) return null;
+        return body;
+      } catch (err) {
+        console.error('[Delete] Request failed:', err);
+        return null;
+      }
+    }
+
+    async function aloAfterDeletion(scope, receipt) {
+      // Local copies of what the server just removed.
+      resetPersistenceState();
+      try {
+        localStorage.removeItem('alo_unsent_messages');
+        localStorage.removeItem('alo_dropped_messages');
+        var stale = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('alo_conv_') === 0) stale.push(k);
+        }
+        stale.forEach(function(k) { localStorage.removeItem(k); });
+      } catch (e) {}
+
+      if (scope === 'account') {
+        // Sign out, then show the receipt on the signed-out waiting room.
+        _aloPendingReceipt = receipt;
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {
+          console.warn('[Delete] signOut after account deletion:', e);
+        }
+        try {
+          // The account is gone server-side; make sure no local session
+          // outlives it even if the sign-out call itself was refused.
+          localStorage.removeItem('alo_client_session');
+        } catch (e) {}
+        resetToGuestUI();
+        return;
+      }
+
+      createModal('Deleted', aloReceiptHTML(receipt, { withTitle: false }), {
+        confirmLabel: 'Done',
+        showCancel: false,
+        onConfirm: function() { loadConnectedState(); },
+        onCancel: function() { loadConnectedState(); }
+      });
+    }
+
+    const ALO_RECEIPT_TABLE_NAMES = {
+      journal_entries: 'Journal entries',
+      conversations: 'Conversations',
+      conversation_messages: 'Messages',
+      conversation_summaries: 'Memory notes',
+      client_settings: 'Settings'
+    };
+
+    // 5.9: the receipt, from the response only.
+    function aloReceiptHTML(receipt, opts) {
+      opts = opts || {};
+      var withTitle = opts.withTitle !== false;
+      var lines = [];
+      var deleted = Array.isArray(receipt.deleted) ? receipt.deleted : [];
+      var byTable = {};
+      var otherRows = 0;
+      var sawOther = false;
+      deleted.forEach(function(d) {
+        if (!d || typeof d.table !== 'string') return;
+        var n = Number(d.rows) || 0;
+        if (ALO_RECEIPT_TABLE_NAMES[d.table]) {
+          byTable[d.table] = (byTable[d.table] || 0) + n;
+        } else {
+          otherRows += n;
+          sawOther = true;
+        }
+      });
+      Object.keys(ALO_RECEIPT_TABLE_NAMES).forEach(function(t) {
+        if (t in byTable) lines.push(ALO_RECEIPT_TABLE_NAMES[t] + ' — ' + byTable[t] + ' removed');
+      });
+      if (sawOther) lines.push('Other — ' + otherRows + ' removed');
+
+      var bp = receipt.botpress || {};
+      var found = Number(bp.conversations_found) || 0;
+      var done = Number(bp.conversations_deleted) || 0;
+      var bpLine = 'Chat provider copies — ' + done + ' of ' + found + ' removed';
+      if (bp.status === 'partial') {
+        bpLine += ' — the rest will be completed within 30 days';
+      } else if (bp.status === 'failed') {
+        bpLine += ' — this part did not complete. You can try again, or email kano@alowen.ai.';
+      }
+      lines.push(bpLine);
+
+      var completed = receipt.completed_at ? new Date(receipt.completed_at) : null;
+      var completedText = (completed && !isNaN(completed.getTime()))
+        ? completed.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+        : '';
+
+      return '<div class="alo-receipt" role="status">' +
+        (withTitle ? '<h3 class="alo-receipt-title">Deleted</h3>' : '') +
+        '<ul class="alo-receipt-lines">' +
+          lines.map(function(l) { return '<li>' + esc(l) + '</li>'; }).join('') +
+        '</ul>' +
+        (receipt.vendor_note ? '<p class="alo-receipt-note">' + esc(String(receipt.vendor_note)) + '</p>' : '') +
+        (completedText ? '<p class="alo-receipt-completed">Completed ' + esc(completedText) + '</p>' : '') +
+      '</div>';
     }
 
     // =====================================================
@@ -1113,7 +1446,7 @@ function showAboutModal() {
       var showData = signedIn && showCode;
 
       var html = '<div class="alo-wr-inner">';
-      if (opts.receipt && typeof aloReceiptHTML === 'function') html += aloReceiptHTML(opts.receipt);
+      if (opts.receipt) html += aloReceiptHTML(opts.receipt, { withTitle: true });
       html += '<h2 class="alo-wr-heading">' + esc(copy.h) + '</h2>';
       html += '<p class="alo-wr-text">' + esc(copy.p) + '</p>';
       html += '<p class="alo-wr-note" id="aloWaitingNote" role="status"></p>';
@@ -4596,55 +4929,7 @@ async function togglePin(conversationId) {
 
       document.getElementById('privacyLink').addEventListener('click', function(e) {
         e.preventDefault();
-        createModal('Your Privacy', `
-          <h3 class="modal-section-title">What we store</h3>
-          <ul class="modal-list">
-            <li>Account information (email, password hash)</li>
-            <li>Connection to your therapist</li>
-            <li>Homework completion status</li>
-            <li>Messages you send to your therapist</li>
-            <li>Journal entries you write or Alo saves (private by default)</li>
-          </ul>
-
-          <h3 class="modal-section-title">Your Alo conversations</h3>
-          <ul class="modal-list">
-            <li>If you have an account, conversations are saved so Alo can provide continuity</li>
-            <li>You can delete any conversation at any time from the sidebar</li>
-            <li>You can turn off memory in settings — Alo will treat each chat as new</li>
-            <li>Guest conversations (no account) are not stored permanently</li>
-            <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
-            <li>Conversations are not used for training, analytics, or advertising</li>
-          </ul>
-
-          <h3 class="modal-section-title">Your journal</h3>
-          <ul class="modal-list">
-            <li>Journal entries are private by default — your therapist cannot see them</li>
-            <li>You choose which individual entries to share with your therapist</li>
-            <li>You can revoke sharing anytime from inside the entry</li>
-          </ul>
-
-          <h3 class="modal-section-title">Who sees your data</h3>
-          <ul class="modal-list">
-            <li>Your therapist sees homework status, messages you send them, and any journal entries you explicitly share</li>
-            <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
-            <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
-            <li>We don't sell or share your data with third parties</li>
-          </ul>
-
-          <h3 class="modal-section-title">Security</h3>
-          <ul class="modal-list">
-            <li>All stored data is encrypted at rest (AES-256) and in transit (TLS)</li>
-            <li>Chat data is encrypted at rest and in transit by our chat provider</li>
-            <li>Database access is controlled by row-level security — your therapist can only see their own clients</li>
-          </ul>
-
-          <p class="modal-divider">
-            Alo is your space. Your therapist trusts you to share what matters when you're ready.
-          </p>
-        `, {
-          confirmLabel: 'Got it',
-          showCancel: false
-        });
+        _aloShowPrivacyModal();
       });
 
       // Listen for auth state changes
