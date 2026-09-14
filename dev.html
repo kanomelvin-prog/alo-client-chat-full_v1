@@ -411,10 +411,12 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Phase 2B, item 8: four-screen onboarding + consent (spec §3.2).
-       Reused read-only (no consent gate) for the client menu's
-       "How Alo works" item -- see _aloOpenOnboardingScreens(mode). -->
+       S4A (Brief 1a, 4.B): screen 4 is the unbundled consent screen.
+       Modes: gate (from a valid invite code), renew (consent outdated),
+       readonly (menu "How Alo works") -- see _aloOpenOnboardingScreens(mode, ctx).
+       Closing in gate/renew mode is the same as "Not now": nothing is written. -->
   <div class="alo-onboarding-overlay" id="aloOnboardingOverlay" role="dialog" aria-modal="true" aria-label="How Alo works">
-    <button class="alo-onboarding-close" id="aloOnboardingCloseBtn" onclick="_aloCloseOnboardingScreens()" aria-label="Close" style="display:none;">&times;</button>
+    <button class="alo-onboarding-close" id="aloOnboardingCloseBtn" onclick="_aloCloseOnboardingScreens()" aria-label="Close">&times;</button>
     <div class="alo-onboarding-card" id="aloOnboardingBody"></div>
   </div>
 
@@ -478,6 +480,7 @@
     // OFF by default, and OFF means no transcript is stored anywhere.
     let historyEnabled = false;
     let aloAccessState = null;          // last result of aloComputeAccess(), or 'error'
+    let aloLatestLink = null;           // latest therapist_clients row for this account, any status
     let aloSignedIn = false;
     let aloAccountCreatedAt = null;     // auth user.created_at, for the return-disclosure heuristic (4.D)
     let aloJournalReadOnly = false;
@@ -977,6 +980,7 @@ function showAboutModal() {
       aloSignedIn = false;
       clientId = null;
       therapistLink = null;
+      aloLatestLink = null;
       chatSettings = {};
       connectedTherapistName = '';
 
@@ -1360,14 +1364,21 @@ function showAboutModal() {
 
     // =====================================================
     // PHASE 2B, ITEM 8 -- FOUR-SCREEN ONBOARDING + CONSENT (spec §3.2)
-    // Fires once, after a successful invite-code signup only (never a
-    // returning sign-in). Reused read-only (mode 'readonly', no consent
-    // gate, no PATCH) for the client menu's "How Alo works" item (P2B-11).
+    // S4A (BRIEF 1a, 4.B): screen 4 rebuilt as the unbundled consent screen.
+    //   'gate'     reached ONLY from a valid invite code (peek_invite_code).
+    //              Connect -> redeem_invite_code: claim + consent record +
+    //              client_settings in ONE server transaction. No consent,
+    //              no link. A failed write leaves the link untouched and the
+    //              user on this screen to try again.
+    //   'renew'    consent version outdated. Continue -> renew_consent.
+    //   'readonly' menu "How Alo works": screens 1-3 plus a non-interactive
+    //              screen 4 reflecting the link row. Nothing is written.
+    // The client app makes no direct write to therapist_clients, ever.
     // =====================================================
     const ALO_ONBOARDING_SCREENS = [
       {
         title: 'What this is',
-        body: 'Alo is here for the time between sessions. When something comes up on a Tuesday night, you can talk it through instead of sitting on it until your next appointment.\n\nAlo asks more than it tells. It isn\'t a therapist, and it isn\'t trying to be one.'
+        body: 'Alo is an AI, not a person.\n\nAlo is here for the time between sessions. When something comes up on a Tuesday night, you can talk it through instead of sitting on it until your next appointment.\n\nAlo asks more than it tells. It isn\'t a therapist, and it isn\'t trying to be one.'
       },
       {
         title: 'What\'s yours',
@@ -1376,12 +1387,29 @@ function showAboutModal() {
       },
       {
         title: 'If things get hard',
-        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will let your therapist know something happened. Not what you said. Just that you might need them.'
+        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nTelling Alo is not telling your therapist. Your therapist may not see an alert for days. If you need your therapist, contact them directly.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will let your therapist know something happened. Not what you said. Just that you might need them.'
       }
     ];
 
+    // Data-posture sentence (Brief 1a section 1). Every screen builds to it.
+    const ALO_DATA_POSTURE = 'Alo keeps only what you can see, only for you, deletable in one tap. Nothing is sold. Nothing shared without your separate consent. Your therapist never sees a conversation.';
+
+    // Unbundled consent (section 5.6). Every box starts unchecked.
+    const ALO_CONSENT_ROWS = [
+      { key: 'collect', required: true, label: 'Alo may keep the conversation data it needs while I\'m using it. (required)' },
+      { key: 'share_safety', required: true, label: 'Alo may tell my therapist that a safety event occurred — the category only, never what I said. (required)' },
+      { key: 'memory', required: false, label: 'Alo may keep brief notes between sessions so it can pick up where I left off. This also keeps my conversation history so I can review it. I can turn either off any time. (optional)' },
+      { key: 'attest_adult', required: true, label: 'I am 18 or older. (required)' },
+      { key: 'attest_location', required: true, label: 'I am located in Washington. (required)' }
+    ];
+
+    const ALO_NOT_NOW_COPY = 'That\'s fine. Without those, Alo can\'t connect you to your therapist. Your code still works whenever you decide.';
+
     let _aloOnboardingStep = 0;
-    let _aloOnboardingMode = 'gate'; // 'gate' | 'readonly'
+    let _aloOnboardingMode = 'gate'; // 'gate' | 'renew' | 'readonly'
+    let _aloOnboardingCtx = null;    // gate: { code, therapistName, clientDisplayName }
+    let _aloConsentChecks = {};
+    let _aloConsentBusy = false;
 
     function _aloOnboardingMockJournal() {
       // Non-interactive -- injected via innerHTML with no listeners attached,
@@ -1403,20 +1431,41 @@ function showAboutModal() {
       `;
     }
 
-    function _aloOpenOnboardingScreens(mode) {
-      _aloOnboardingMode = mode === 'readonly' ? 'readonly' : 'gate';
-      _aloOnboardingStep = 0;
-      var closeBtn = document.getElementById('aloOnboardingCloseBtn');
-      if (closeBtn) closeBtn.style.display = _aloOnboardingMode === 'readonly' ? 'block' : 'none';
+    function _aloOpenOnboardingScreens(mode, ctx) {
+      _aloOnboardingMode = (mode === 'readonly' || mode === 'renew') ? mode : 'gate';
+      _aloOnboardingCtx = ctx || null;
+      _aloOnboardingStep = _aloOnboardingMode === 'renew' ? 3 : 0;
+      _aloConsentBusy = false;
+      _aloConsentChecks = {};
+      // Renewal: the optional memory box starts from the account's current
+      // setting so re-confirming never silently changes it either way.
+      if (_aloOnboardingMode === 'renew') _aloConsentChecks.memory = !!memoryGlobalEnabled;
+
+      var overlay = document.getElementById('aloOnboardingOverlay');
+      overlay.setAttribute('aria-label',
+        _aloOnboardingMode === 'readonly' ? 'How Alo works'
+          : (_aloOnboardingMode === 'renew' ? 'A quick review' : 'Before you connect'));
       _aloRenderOnboardingScreen();
-      document.getElementById('aloOnboardingOverlay').classList.add('show');
+      overlay.classList.add('show');
     }
 
+    // Close button, Escape and "Not now" all land here. In gate mode this
+    // is a decline: nothing is written, the waiting room says so calmly,
+    // and nothing ever prompts again (the code is left in the field).
     function _aloCloseOnboardingScreens() {
-      // Only reachable in readonly mode -- the close button is hidden in
-      // gate mode, and gate mode has no backdrop/Escape dismiss.
+      if (_aloConsentBusy) return;
+      var wasGate = _aloOnboardingMode === 'gate';
       document.getElementById('aloOnboardingOverlay').classList.remove('show');
+      _aloOnboardingCtx = null;
+      _aloConsentChecks = {};
+      if (wasGate) aloWaitingRoomNote(ALO_NOT_NOW_COPY);
     }
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      var overlay = document.getElementById('aloOnboardingOverlay');
+      if (overlay && overlay.classList.contains('show')) _aloCloseOnboardingScreens();
+    });
 
     function _aloOnboardingNext() {
       if (_aloOnboardingStep < 3) {
@@ -1437,9 +1486,44 @@ function showAboutModal() {
       _aloRenderOnboardingScreen();
     }
 
-    function _aloOnboardingConsentToggled(checked) {
-      var btn = document.getElementById('aloOnboardingStartBtn');
-      if (btn) btn.disabled = !checked;
+    function _aloRequiredConsentComplete() {
+      return ALO_CONSENT_ROWS.every(function(r) {
+        return !r.required || _aloConsentChecks[r.key] === true;
+      });
+    }
+
+    function _aloSyncConsentButton() {
+      var btn = document.getElementById('aloConsentSubmitBtn');
+      if (btn) btn.disabled = _aloConsentBusy || !_aloRequiredConsentComplete();
+    }
+
+    function _aloConsentError(text) {
+      var el = document.getElementById('aloConsentError');
+      if (el) el.textContent = text || '';
+    }
+
+    // What the link row says this client agreed to (readonly mode). Memory
+    // has no column on the link; it is the account's current setting.
+    function _aloConsentChecksFromLink(link) {
+      if (!link) return {};
+      return {
+        collect: !!link.consent_collect_at,
+        share_safety: !!link.consent_share_safety_at,
+        memory: !!memoryGlobalEnabled,
+        attest_adult: !!link.attest_adult_at,
+        attest_location: !!link.attest_location
+      };
+    }
+
+    function _aloConsentRowsHTML(checks, disabled) {
+      return ALO_CONSENT_ROWS.map(function(r) {
+        var id = 'aloConsent_' + r.key;
+        return '<label class="alo-onboarding-checkbox-row alo-consent-row">' +
+          '<input type="checkbox" id="' + id + '" data-consent-key="' + r.key + '"' +
+            (checks[r.key] ? ' checked' : '') + (disabled ? ' disabled' : '') + '>' +
+          '<span>' + esc(r.label) + '</span>' +
+        '</label>';
+      }).join('');
     }
 
     function _aloRenderOnboardingScreen() {
@@ -1464,104 +1548,241 @@ function showAboutModal() {
         return;
       }
 
-      // Screen 4
-      if (_aloOnboardingMode === 'gate') {
+      // Screen 4 -- consent
+      if (_aloOnboardingMode === 'readonly') {
+        var link = aloLatestLink || therapistLink;
         body.innerHTML =
           '<div class="alo-onboarding-progress">4 of 4</div>' +
-          '<h2 class="alo-onboarding-title">Before you start</h2>' +
-          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours — nothing is shared unless you choose to. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
-          '<label class="alo-onboarding-checkbox-row">' +
-            '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
-            '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
-          '</label>' +
-          '<div class="alo-onboarding-actions">' +
-            '<button class="btn-primary alo-onboarding-next" id="aloOnboardingStartBtn" disabled onclick="_aloOnboardingComplete()">Start talking to Alo</button>' +
-          '</div>';
-      } else {
-        body.innerHTML =
-          '<div class="alo-onboarding-progress">4 of 4</div>' +
-          '<h2 class="alo-onboarding-title">Getting started</h2>' +
-          '<p class="alo-onboarding-text">Before your first conversation, you confirmed: "I understand what Alo is and isn\'t, and how sharing works." Then you tapped "Start talking to Alo."</p>' +
+          '<h2 class="alo-onboarding-title">' + (link ? 'What you agreed to' : 'Before you connect') + '</h2>' +
+          '<p class="alo-onboarding-text">' + esc(ALO_DATA_POSTURE) + '</p>' +
+          (link ? '' : '<p class="alo-onboarding-text">These are the choices Alo asks for when you connect.</p>') +
+          '<div class="alo-consent-rows">' + _aloConsentRowsHTML(_aloConsentChecksFromLink(link), true) + '</div>' +
+          '<p class="alo-consent-version">Consent version ' + esc((link && link.consent_version) || ALO_CONSENT_VERSION) + '</p>' +
           '<div class="alo-onboarding-actions">' +
             '<button class="btn-primary alo-onboarding-next" onclick="_aloCloseOnboardingScreens()">Done</button>' +
             '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' +
           '</div>';
-      }
-    }
-
-    // Fire-and-forget: the overlay closes immediately so a slow or failed
-    // write never strands the client mid-consent. consent_acknowledged_at
-    // may not exist on therapist_clients yet (schema change is Kano's) --
-    // on failure this falls back to a localStorage flag and only logs.
-    async function _aloOnboardingComplete() {
-      _aloCloseOnboardingScreens();
-      try {
-        var uid = clientId;
-        if (!uid) {
-          var authRes = await supabase.auth.getUser();
-          uid = authRes.data?.user?.id || null;
-        }
-        if (!uid) return;
-        await api('/rest/v1/therapist_clients?client_id=eq.' + uid, 'PATCH', {
-          consent_acknowledged_at: new Date().toISOString()
-        });
-      } catch (err) {
-        console.warn('consent_acknowledged_at write failed (column may not exist yet):', err);
-        try {
-          localStorage.setItem('alo_consent_acknowledged_fallback', new Date().toISOString());
-        } catch (storageErr) {
-          // Nothing more we can do -- never block the client on this.
-        }
-      }
-    }
-
-    // S4A 4.A (interim, replaced in 4.B): waiting room -> old claim path.
-    async function aloStartConnectFlow(code) {
-      code = (code || '').trim();
-      if (!code) { aloWaitingRoomNote('Enter the invite code from your therapist.'); return; }
-      await handleConnectSubmit(code);
-    }
-
-    async function handleConnectSubmit(inviteCode) {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        showLoginModal(inviteCode);
         return;
       }
 
-      try {
-        const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
-        
-        if (!link || link.length === 0) {
-          showToast('Invalid invite code. Check the code your therapist sent you.');
-          return;
-        }
+      var isRenew = _aloOnboardingMode === 'renew';
+      var intro = '';
+      if (isRenew) {
+        intro = '<p class="alo-onboarding-text">A few things changed in how Alo handles your information. Please read and confirm before continuing.</p>';
+      } else if (_aloOnboardingCtx && _aloOnboardingCtx.therapistName) {
+        intro = '<p class="alo-onboarding-text">Connecting you with ' + esc(_aloOnboardingCtx.therapistName) + '.</p>';
+      }
 
-        const linkId = link[0].id;
-        const therapistDisplayName = link[0].display_name || null;
+      body.innerHTML =
+        (isRenew ? '' : '<div class="alo-onboarding-progress">4 of 4</div>') +
+        '<h2 class="alo-onboarding-title">' + (isRenew ? 'A quick review' : 'Before you connect') + '</h2>' +
+        '<p class="alo-onboarding-text">' + esc(ALO_DATA_POSTURE) + '</p>' +
+        intro +
+        '<div class="alo-consent-rows">' + _aloConsentRowsHTML(_aloConsentChecks, false) + '</div>' +
+        '<p class="alo-consent-version">Consent version ' + esc(ALO_CONSENT_VERSION) + '</p>' +
+        '<p class="alo-consent-error" id="aloConsentError" role="alert"></p>' +
+        '<div class="alo-onboarding-actions">' +
+          '<button type="button" class="btn-primary alo-onboarding-next" id="aloConsentSubmitBtn" disabled>' + (isRenew ? 'Continue' : 'Connect') + '</button>' +
+          '<button type="button" class="btn-link alo-onboarding-skip" id="aloConsentNotNowBtn">Not now</button>' +
+        '</div>';
 
-        await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
-          client_id: user.id,
-          status: 'active'
+      body.querySelectorAll('[data-consent-key]').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+          _aloConsentChecks[cb.dataset.consentKey] = !!cb.checked;
+          _aloSyncConsentButton();
         });
+      });
+      document.getElementById('aloConsentSubmitBtn').addEventListener('click', _aloConsentSubmit);
+      document.getElementById('aloConsentNotNowBtn').addEventListener('click', _aloCloseOnboardingScreens);
+      _aloSyncConsentButton();
+    }
 
-        // Seed client profile with therapist's chosen name (client can change later)
-        if (therapistDisplayName) {
-          const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
-          const currentName = existingProfile?.[0]?.display_name;
-          if (!currentName || currentName === user.email?.split('@')[0]) {
-            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
-              display_name: therapistDisplayName
-            });
-          }
+    // p_consent (contract 3.2). Null until every required box is checked.
+    function _aloBuildConsentPayload() {
+      if (!_aloRequiredConsentComplete()) return null;
+      return {
+        version: ALO_CONSENT_VERSION,
+        collect: _aloConsentChecks.collect === true,
+        share_safety: _aloConsentChecks.share_safety === true,
+        memory: _aloConsentChecks.memory === true,
+        attest_adult: _aloConsentChecks.attest_adult === true,
+        attest_location: ALO_PILOT_LOCATION,
+        acknowledged_at: new Date().toISOString()
+      };
+    }
+
+    async function _aloConsentSubmit() {
+      if (_aloConsentBusy) return;
+      var consent = _aloBuildConsentPayload();
+      if (!consent) {
+        _aloConsentError('Each required box needs a check before Alo can connect you.');
+        return;
+      }
+      var isRenew = _aloOnboardingMode === 'renew';
+      var code = _aloOnboardingCtx ? _aloOnboardingCtx.code : null;
+      if (!isRenew && !code) {
+        _aloConsentError(ALO_GENERIC_RPC_ERROR);
+        return;
+      }
+
+      _aloConsentBusy = true;
+      _aloConsentError('');
+      var btn = document.getElementById('aloConsentSubmitBtn');
+      var label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = isRenew ? 'Saving...' : 'Connecting...'; }
+
+      try {
+        var res = isRenew
+          ? await supabase.rpc('renew_consent', { p_consent: consent })
+          : await supabase.rpc('redeem_invite_code', { p_code: code, p_consent: consent });
+        if (res.error) throw res.error;
+        var data = res.data;
+        if (!data || data.status !== 'active') throw new Error('unexpected_response');
+
+        _aloConsentBusy = false;
+        var ctxName = _aloOnboardingCtx ? _aloOnboardingCtx.therapistName : '';
+        document.getElementById('aloOnboardingOverlay').classList.remove('show');
+        _aloOnboardingCtx = null;
+        _aloConsentChecks = {};
+
+        if (isRenew) {
+          await _aloApplyRenewedMemoryChoice(consent.memory);
+          showToast('Saved');
+        } else {
+          aloPrefillCode = null;
+          await _aloSeedClientDisplayName(data.client_display_name);
+          showToast('Connected to ' + (data.therapist_name || ctxName || 'your therapist'));
         }
-
-        showToast('Connected successfully!');
         await loadConnectedState();
       } catch (err) {
-        console.error('Connection error:', err);
-        showToast('Connection failed. Please try again.');
+        // Nothing was changed server-side (the RPC is atomic). Stay on the
+        // screen with the mapped message so the user can try again.
+        _aloConsentBusy = false;
+        if (btn) btn.textContent = label;
+        _aloSyncConsentButton();
+        _aloConsentError(aloRpcErrorCopy(err));
+      }
+    }
+
+    // renew_consent updates the consent columns only (contract v1.0). The
+    // memory box on the renewal screen is applied here so the account's
+    // settings and its consent record agree: on -> history + memory on
+    // (R-1: memory needs history); off -> memory off, history untouched.
+    async function _aloApplyRenewedMemoryChoice(memoryChecked) {
+      try {
+        if (memoryChecked && !memoryGlobalEnabled) {
+          await aloSaveSettings({ history_enabled: true, memory_enabled: true });
+        } else if (!memoryChecked && memoryGlobalEnabled) {
+          await aloSaveSettings({ memory_enabled: false });
+        }
+      } catch (err) {
+        console.error('[Consent] Could not apply memory choice after renewal:', err);
+        showToast('Consent saved. The memory setting could not be updated — you can change it in settings.');
+      }
+    }
+
+    // Seed the client's profile name with the therapist's label for them
+    // (client can change it later) -- only when the profile still has the
+    // signup default. profiles is the client's own row; not therapist_clients.
+    async function _aloSeedClientDisplayName(label) {
+      if (!label) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
+        const currentName = existingProfile?.[0]?.display_name;
+        if (!currentName || currentName === user.email?.split('@')[0]) {
+          await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', { display_name: label });
+        }
+      } catch (err) {
+        // Deliberately console-only: cosmetic seeding; the badge falls back
+        // to the link's display_name either way.
+        console.warn('[Consent] Display name seeding skipped:', err);
+      }
+    }
+
+    // =====================================================
+    // S4A (BRIEF 1a, 4.B.3) -- CONNECT FLOW
+    // waiting room code field -> peek_invite_code -> screens 1-4 (gate) ->
+    // redeem_invite_code (atomic claim + consent) -> loadConnectedState.
+    // =====================================================
+    const ALO_GENERIC_RPC_ERROR = 'Something didn\'t go through. Nothing was changed. Try again in a moment.';
+    const ALO_INVALID_CODE_COPY = 'That code isn\'t active. Check it against what your therapist sent you.';
+
+    // Contract 3.2 error rule: the error message IS the code. A known code
+    // maps to its copy; anything else is the generic line. Raw error text
+    // never reaches the screen.
+    function aloRpcErrorCopy(err) {
+      var code = err && typeof err.message === 'string' ? err.message.trim() : '';
+      switch (code) {
+        case 'invalid_code': return ALO_INVALID_CODE_COPY;
+        case 'already_linked': return 'This account is already connected to a therapist.';
+        case 'not_authenticated': return 'You\'re signed out. Sign in and try again.';
+        case 'consent_incomplete': return 'Each required box needs a check before Alo can connect you.';
+        case 'no_active_link': return 'There\'s no active connection to review. A new code from your therapist reconnects you.';
+        default: return ALO_GENERIC_RPC_ERROR;
+      }
+    }
+
+    let _aloConnectBusy = false;
+    async function aloStartConnectFlow(code) {
+      code = (code || '').trim();
+      if (!code) {
+        aloWaitingRoomNote('Enter the invite code from your therapist.');
+        return;
+      }
+      if (_aloConnectBusy) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showLoginModal(code);
+        return;
+      }
+
+      _aloConnectBusy = true;
+      var btn = document.getElementById('aloInviteCodeBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Checking...'; }
+      aloWaitingRoomNote('');
+      try {
+        var res = await supabase.rpc('peek_invite_code', { p_code: code });
+        if (res.error) throw res.error;
+        var peek = res.data;
+        if (!peek || peek.valid !== true) {
+          aloWaitingRoomNote(ALO_INVALID_CODE_COPY);
+          return;
+        }
+        aloPrefillCode = code;
+        _aloOpenOnboardingScreens('gate', {
+          code: code,
+          therapistName: peek.therapist_name || '',
+          clientDisplayName: peek.client_display_name || ''
+        });
+      } catch (err) {
+        aloWaitingRoomNote(aloRpcErrorCopy(err));
+      } finally {
+        _aloConnectBusy = false;
+        if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
+      }
+    }
+
+    // 4.B.6: consent outdated -> the same screen 4 in renewal mode.
+    function aloStartRenewal() {
+      if (!aloSignedIn) return;
+      _aloOpenOnboardingScreens('renew');
+    }
+
+    // One write path for client_settings (4.C.2): PATCH the row if it
+    // exists, POST it otherwise. Used by the settings toggles and by the
+    // renewal screen's memory choice.
+    async function aloSaveSettings(partial) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('not_authenticated');
+      const existing = await api(`/rest/v1/client_settings?client_id=eq.${user.id}&select=client_id`);
+      if (existing && existing.length > 0) {
+        await api(`/rest/v1/client_settings?client_id=eq.${user.id}`, 'PATCH',
+          Object.assign({}, partial, { updated_at: new Date().toISOString() }));
+      } else {
+        await api('/rest/v1/client_settings', 'POST', Object.assign({ client_id: user.id }, partial));
       }
     }
 
@@ -2075,6 +2296,7 @@ function showAboutModal() {
         }
 
         const access = aloComputeAccess(link, null);
+        aloLatestLink = link;
         chatSettings = link ? {
           allow_homework: link.allow_homework,
           allow_messages: link.allow_messages,

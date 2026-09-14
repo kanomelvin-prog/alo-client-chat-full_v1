@@ -3526,8 +3526,10 @@ body.alo-journal-readonly .journal-composer {
   top: 0; left: 0; right: 0; bottom: 0;
   background: var(--warm-bg);
   display: none;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   z-index: 15000;
   padding: 20px;
   padding-top: max(20px, env(safe-area-inset-top));
@@ -3539,6 +3541,7 @@ body.alo-journal-readonly .journal-composer {
 .alo-onboarding-card {
   width: 100%;
   max-width: 420px;
+  margin: auto 0; /* safe centering: scrolls instead of clipping when taller than the viewport */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -3636,6 +3639,38 @@ body.alo-journal-readonly .journal-composer {
   cursor: pointer;
   min-height: 44px;
 }
+
+/* === S4A (BRIEF 1a, 4.B): CONSENT SCREEN === */
+.alo-consent-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.alo-consent-row {
+  min-height: 44px;
+  padding: 6px 0;
+  line-height: 1.45;
+}
+
+.alo-consent-row input[type="checkbox"]:disabled + span {
+  color: var(--text-secondary);
+}
+
+.alo-consent-version {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.alo-consent-error {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--danger);
+  margin: 0;
+}
+
+.alo-consent-error:empty { display: none; }
 
 /* === CONTEXTUAL TIPS (Phase 2B item 10) === */
 .alo-contextual-tip {
