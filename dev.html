@@ -293,20 +293,19 @@
       <button class="guest-benefits-later" onclick="dismissGuestBenefits()">Maybe later</button>
     </div>
   </div>
-  <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
+  <!-- Memory disclosure card (A-10, Brief 1a-min B1): shown on the 2nd visit while memory is on. Says what memory is; asks nothing. -->
   <div id="memoryOnboardCard" class="memory-onboard-card">
     <div class="memory-onboard-content">
       <div class="memory-onboard-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </div>
       <div>
-        <div class="memory-onboard-title">Want Alo to remember context?</div>
-        <div class="memory-onboard-desc">Alo can use short summaries from past conversations so you don't have to re-explain. Your therapist can't see any of this.</div>
+        <div class="memory-onboard-title">Alo remembers context</div>
+        <div class="memory-onboard-desc">Alo keeps brief summaries of past conversations so you don't have to re-explain. Your therapist can't see any of this. You can turn this off any time in Settings.</div>
       </div>
     </div>
     <div class="memory-onboard-actions">
-      <button class="btn-primary memory-onboard-enable" onclick="enableMemoryFromOnboard()">Enable</button>
-      <button class="btn-secondary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Not now</button>
+      <button class="btn-primary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Got it</button>
     </div>
   </div>
 
@@ -477,7 +476,7 @@
     let persistenceWriteQueue = Promise.resolve();
 
     // Memory & private session state
-    let memoryGlobalEnabled = false;  // opt-in: default OFF
+    let memoryGlobalEnabled = true;   // A-10 (Brief 1a-min B1): display default ON; loadMemorySettings() reads the row
     let isPrivateSession = false;
     let authBridgeSent = false;
 
@@ -2821,11 +2820,13 @@ async function togglePin(conversationId) {
         if (settings && settings.length > 0) {
           memoryGlobalEnabled = settings[0].memory_enabled !== false;
         } else {
-          // No settings row = new user, default OFF (opt-in model)
-          memoryGlobalEnabled = false;
+          // A-10 (Brief 1a-min B1): no settings row = memory on. This is a
+          // disclosure, not an opt-in ask -- the memory card says so.
+          memoryGlobalEnabled = true;
         }
       } catch (err) {
-        memoryGlobalEnabled = false;
+        // Unreadable row: show the default rather than under-disclose.
+        memoryGlobalEnabled = true;
       }
 
       document.getElementById('memoryToggle').checked = memoryGlobalEnabled;
@@ -3036,11 +3037,13 @@ async function togglePin(conversationId) {
       startNewConversation();
     }
 
-    // --- Memory onboarding (opt-in on 2nd visit) ---
+    // --- Memory disclosure card (A-10, Brief 1a-min B1): shown on the 2nd
+    // visit while memory is on, dismissed with the existing 2-dismiss
+    // pattern. It asks nothing; memory is on by default and this says so. ---
     function checkMemoryOnboarding() {
       if (!clientId) return;
-      if (memoryGlobalEnabled) return;  // already opted in
-      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already dismissed
+      if (!memoryGlobalEnabled) return;  // memory is off: nothing to disclose
+      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already acknowledged
       if (localStorage.getItem('alo_memory_onboard_ask') === 'ready') {
         // 2nd+ visit: show the card
         var card = document.getElementById('memoryOnboardCard');
@@ -3051,17 +3054,10 @@ async function togglePin(conversationId) {
       }
     }
 
-    function enableMemoryFromOnboard() {
-      handleMemoryToggle(true);
-      var card = document.getElementById('memoryOnboardCard');
-      if (card) card.style.display = 'none';
-      localStorage.setItem('alo_memory_onboard_done', 'true');
-    }
-
     function dismissMemoryOnboard() {
       var card = document.getElementById('memoryOnboardCard');
       if (card) card.style.display = 'none';
-      // Will ask one more time on 3rd visit
+      // Shown once more on the next visit, then marked done (2-dismiss pattern)
       var dismissCount = parseInt(localStorage.getItem('alo_memory_onboard_dismiss_count') || '0');
       dismissCount++;
       localStorage.setItem('alo_memory_onboard_dismiss_count', String(dismissCount));
