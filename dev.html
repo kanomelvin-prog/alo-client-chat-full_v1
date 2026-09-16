@@ -174,7 +174,7 @@
           </label>
         </div>
         <div class="more-menu-settings-detail">
-          Alo keeps short summaries of recent conversations (not full transcripts) for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
+          Alo keeps short summaries of recent conversations for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
         </div>
       </div>
       <div class="more-menu-divider" role="separator"></div>
@@ -213,7 +213,7 @@
           <h3>Your privacy</h3>
           <p>Your conversations are private — always. Your therapist never sees what you say to Alo.</p>
           <p>If you're connected to a therapist through Alowen, they can see general patterns across your sessions and whether you've completed any reflections they've assigned. That's it. They aren't notified in real time — they review at their own pace, usually to prepare for your next session.</p>
-          <p>Guest conversations aren't saved after the session ends. If you're signed in, you stay in control: turn memory off, start a private session (nothing gets saved), or ask Alo to forget a specific topic.</p>
+          <p>Guest conversations aren't saved to an account. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
 
@@ -225,9 +225,10 @@
 
         <section class="about-section">
           <h3>How memory works</h3>
-          <p>Alo doesn't store your conversations word for word. When memory is on, it keeps brief notes — just enough to pick up where you left off next time.</p>
+          <p>When you're signed in, Alo keeps your conversation history so you can review it, and you can delete any conversation from your Alo account at any time. Deletion from the chat platform Alo runs on is coming and isn't in place yet.</p>
+          <p>When memory is on, Alo also keeps brief summaries of past conversations — just enough to pick up where you left off next time. Memory is on by default and you can turn it off any time.</p>
           <p>You're always in control: turn memory off, go private for a session, or ask Alo to forget something.</p>
-          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory is available when you're signed in. Guests start fresh every visit.</p>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory and history are for signed-in accounts. Guests start fresh every visit.</p>
         </section>
 
         <section class="about-section">
@@ -276,7 +277,7 @@
     <span>Private session — Alo won't remember this conversation</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
-<!-- Guest benefits card (shown for unauthenticated users after a brief delay) -->
+<!-- Guest benefits card. NEVER shown on this build (Brief 1a-min D1): self-serve signups are off, so "Create a free account" is not true, and it was reaching signed-in users (reproduced 2026-09-15). Markup kept; showGuestBenefitsCard() is a no-op; the Create Account action is gone. -->
   <div id="guestBenefitsCard" class="guest-benefits-card hidden">
     <div class="guest-benefits-content">
       <div class="guest-benefits-icon">
@@ -289,24 +290,22 @@
       <button class="guest-benefits-dismiss" onclick="dismissGuestBenefits()" aria-label="Dismiss">&times;</button>
     </div>
     <div class="guest-benefits-actions">
-      <button class="guest-benefits-btn" onclick="dismissGuestBenefits(); showLoginModal();">Create Account</button>
       <button class="guest-benefits-later" onclick="dismissGuestBenefits()">Maybe later</button>
     </div>
   </div>
-  <!-- Memory onboarding card (shown on 2nd visit if memory not yet opted in) -->
+  <!-- Memory disclosure card (A-10, Brief 1a-min B1): shown on the 2nd visit while memory is on. Says what memory is; asks nothing. -->
   <div id="memoryOnboardCard" class="memory-onboard-card">
     <div class="memory-onboard-content">
       <div class="memory-onboard-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </div>
       <div>
-        <div class="memory-onboard-title">Want Alo to remember context?</div>
-        <div class="memory-onboard-desc">Alo can use short summaries from past conversations so you don't have to re-explain. Your therapist can't see any of this.</div>
+        <div class="memory-onboard-title">Alo remembers context</div>
+        <div class="memory-onboard-desc">Alo keeps brief summaries of past conversations so you don't have to re-explain. Your therapist can't see any of this. You can turn this off any time in Settings.</div>
       </div>
     </div>
     <div class="memory-onboard-actions">
-      <button class="btn-primary memory-onboard-enable" onclick="enableMemoryFromOnboard()">Enable</button>
-      <button class="btn-secondary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Not now</button>
+      <button class="btn-primary memory-onboard-dismiss" onclick="dismissMemoryOnboard()">Got it</button>
     </div>
   </div>
 
@@ -335,10 +334,9 @@
   </div>
   <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
 
-  <!-- Memory save prompt bar (shown to guests after conversation depth) -->
+  <!-- Memory save prompt bar. NEVER shown on this build (Brief 1a-min D1, same reason as the guest benefits card): its only action was a no-invite "Create Account". Markup kept; checkGuestMemoryPrompt() no longer reveals it. -->
   <div id="memoryPromptBar" class="memory-prompt-bar">
     <span class="memory-prompt-text">Want Alo to remember your conversations?</span>
-    <button class="memory-prompt-btn" onclick="showLoginModal(); hideMemoryPrompt();">Create Account</button>
     <button class="memory-prompt-dismiss" onclick="hideMemoryPrompt()" aria-label="Dismiss">&times;</button>
   </div>
 
@@ -477,7 +475,7 @@
     let persistenceWriteQueue = Promise.resolve();
 
     // Memory & private session state
-    let memoryGlobalEnabled = false;  // opt-in: default OFF
+    let memoryGlobalEnabled = true;   // A-10 (Brief 1a-min B1): display default ON; loadMemorySettings() reads the row
     let isPrivateSession = false;
     let authBridgeSent = false;
 
@@ -485,6 +483,16 @@
     let activeTab = 'chat';
     var positionWebchatFn = null;
     var botpressReady = false;
+
+    // Brief 1a-min A2 (ruling D37): window.botpress.init() runs from
+    // _aloInitBotpress() and nowhere else, and only once the caller knows
+    // the consent gate's outcome. The real function is assigned inside
+    // DOMContentLoaded (it closes over the loading overlay and its timeout);
+    // this placeholder can only ever fail closed -- no chat -- never open.
+    var _aloBotpressInitStarted = false;
+    var _aloInitBotpress = function() {
+      console.error('[Alo] _aloInitBotpress called before page setup');
+    };
 
     // Journal prompt bank (14 general + 2 therapy-conditional)
     var journalPrompts = [
@@ -804,6 +812,10 @@
     // UI STATE MANAGEMENT
     // =====================================================
     async function showLoggedInNoConnection() {
+      // A2: a signed-in account with no active therapist link has nothing to
+      // consent to, so the chat opens here (deferred Botpress init).
+      _aloInitBotpress();
+
       const badge = document.getElementById('trustBadge');
 
       badge.className = 'trust-badge';
@@ -992,11 +1004,12 @@ function showAboutModal() {
         }
       });
     }
-function showGuestBenefitsCard() {
-      if (clientId) return;
-      if (sessionStorage.getItem('alo_guest_benefits_dismissed')) return;
-      var card = document.getElementById('guestBenefitsCard');
-      if (card) card.classList.remove('hidden');
+    // Brief 1a-min D1: deliberately a no-op. Self-serve signups are off on
+    // this build, so the card's "Create a free account" is not true -- and it
+    // was reaching signed-in users too (reproduced 2026-09-15). Every path
+    // that used to reveal it now ends here. Do not redesign; do not re-wire.
+    function showGuestBenefitsCard() {
+      return;
     }
 
     function dismissGuestBenefits() {
@@ -1032,7 +1045,8 @@ function showGuestBenefitsCard() {
       document.getElementById('tabBar').classList.add('hidden');
       if (activeTab !== 'chat') switchTab('chat');
 
-      setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+      // A2: guest chat is still on this build, so a signed-out page opens it.
+      _aloInitBotpress();
     }
 
     // =====================================================
@@ -1329,6 +1343,7 @@ function showGuestBenefitsCard() {
             '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
             '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
           '</label>' +
+          '<p id="aloOnboardingError" role="alert" style="display: none; color: var(--danger); font-size: 13px; margin: 0;"></p>' +
           '<div class="alo-onboarding-actions">' +
             '<button class="btn-primary alo-onboarding-next" id="aloOnboardingStartBtn" disabled onclick="_aloOnboardingComplete()">Start talking to Alo</button>' +
           '</div>';
@@ -1344,30 +1359,56 @@ function showGuestBenefitsCard() {
       }
     }
 
-    // Fire-and-forget: the overlay closes immediately so a slow or failed
-    // write never strands the client mid-consent. consent_acknowledged_at
-    // may not exist on therapist_clients yet (schema change is Kano's) --
-    // on failure this falls back to a localStorage flag and only logs.
+    // Brief 1a-min A3 (ruling D37): the consent write fails closed. The
+    // overlay stays on screen 4 until the server has consent_acknowledged_at
+    // on this client's row; nothing is unlocked on the way. There is no
+    // local fallback of any kind. One constant message for every failure
+    // mode (ruling D31 pattern) -- never the raw error, never a per-cause
+    // message, even one that feels harmless.
+    const ALO_CONSENT_WRITE_FAILURE_MESSAGE =
+      "Something didn't go through. Nothing was changed. Try again in a moment.";
+
     async function _aloOnboardingComplete() {
-      _aloCloseOnboardingScreens();
+      var btn = document.getElementById('aloOnboardingStartBtn');
+      var errEl = document.getElementById('aloOnboardingError');
+      if (btn) btn.disabled = true;
+      if (errEl) errEl.style.display = 'none';
+
+      var recorded = false;
       try {
         var uid = clientId;
         if (!uid) {
           var authRes = await supabase.auth.getUser();
           uid = authRes.data?.user?.id || null;
         }
-        if (!uid) return;
-        await api('/rest/v1/therapist_clients?client_id=eq.' + uid, 'PATCH', {
-          consent_acknowledged_at: new Date().toISOString()
-        });
-      } catch (err) {
-        console.warn('consent_acknowledged_at write failed (column may not exist yet):', err);
-        try {
-          localStorage.setItem('alo_consent_acknowledged_fallback', new Date().toISOString());
-        } catch (storageErr) {
-          // Nothing more we can do -- never block the client on this.
+        if (uid) {
+          await api('/rest/v1/therapist_clients?client_id=eq.' + uid, 'PATCH', {
+            consent_acknowledged_at: new Date().toISOString()
+          });
+          // "Succeeded" means the server has it, not that the PATCH returned
+          // 2xx: a PATCH that RLS filters down to zero rows is still a 204.
+          // Re-read exactly what the gate in loadConnectedState() will read.
+          var rows = await api('/rest/v1/therapist_clients?client_id=eq.' + uid +
+            '&status=eq.active&select=consent_acknowledged_at');
+          recorded = Array.isArray(rows) && rows.length > 0 &&
+            rows.every(function(r) { return !!r.consent_acknowledged_at; });
         }
+      } catch (err) {
+        console.error('[Consent] write failed:', err);
+        recorded = false;
       }
+
+      if (!recorded) {
+        if (errEl) {
+          errEl.textContent = ALO_CONSENT_WRITE_FAILURE_MESSAGE;
+          errEl.style.display = '';
+        }
+        if (btn) btn.disabled = false;
+        return;
+      }
+
+      _aloCloseOnboardingScreens();
+      await loadConnectedState();
     }
 
     // =====================================================
@@ -1403,7 +1444,7 @@ function showGuestBenefitsCard() {
       
       if (!user) {
         showLoginModal(inviteCode);
-        return;
+        return false;
       }
 
       try {
@@ -1411,7 +1452,7 @@ function showGuestBenefitsCard() {
         
         if (!link || link.length === 0) {
           showToast('Invalid invite code. Check the code your therapist sent you.');
-          return;
+          return false;
         }
 
         const linkId = link[0].id;
@@ -1434,10 +1475,17 @@ function showGuestBenefitsCard() {
         }
 
         showToast('Connected successfully!');
+        // A4 (Path P, ruling D37): the claim above is unchanged. Entry into
+        // the connected state is only ever through loadConnectedState(),
+        // which re-reads the row and holds an unconsented one at the
+        // onboarding screens before anything unlocks. Returns true when the
+        // row was claimed (whatever the gate then decides), false otherwise.
         await loadConnectedState();
+        return true;
       } catch (err) {
         console.error('Connection error:', err);
         showToast('Connection failed. Please try again.');
+        return false;
       }
     }
 
@@ -1479,10 +1527,10 @@ function showGuestBenefitsCard() {
             localStorage.setItem('alo_pending_invite', inviteCode);
           }
 
-          // Phase 2B item 8: the four-screen onboarding + consent flow
-          // fires only for a brand-new invite-code signup, never for a
-          // returning sign-in. Set only in the signUp() branch below.
-          let isNewInviteSignup = false;
+          // Brief 1a-min A5: the four-screen onboarding + consent no longer
+          // fires from here. loadConnectedState() opens it, in gate mode, for
+          // any active link whose consent_acknowledged_at is null -- signup,
+          // sign-in, reload, deep link and re-link all take that one path.
 
           // Try sign in first
           let { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -1532,7 +1580,6 @@ function showGuestBenefitsCard() {
             
             data = signUpResult.data;
             error = null;
-            isNewInviteSignup = !!inviteCode;
 
             // Profile creation handled by Supabase auth trigger (handle_new_user)
             // Trigger fires on INSERT to auth.users, creates profile with role='individual'
@@ -1550,10 +1597,6 @@ function showGuestBenefitsCard() {
             await handleConnectSubmit(inviteCode);
           } else {
             await loadConnectedState();
-          }
-
-          if (isNewInviteSignup) {
-            _aloOpenOnboardingScreens('gate');
           }
         }
       });
@@ -1902,6 +1945,20 @@ function showGuestBenefitsCard() {
     // Crisis events written directly from Botpress via axios
     // =====================================================
 
+    // Brief 1a-min A1 (ruling D37): the one consent predicate. A row that
+    // has been claimed (client_id set) but has no consent_acknowledged_at is
+    // unusable until the client consents -- the DB status is not touched.
+    function aloConsentRequired(link) {
+      return !!(link && link.client_id && !link.consent_acknowledged_at);
+    }
+
+    // A2/A5: every entry into the connected state -- page-load session,
+    // SIGNED_IN (password, email confirmation, ?t= exchange), invite claim,
+    // password reset, consent completion -- is a call to this function, and
+    // this function checks the gate before it unlocks anything. There is no
+    // ungated variant to call.
+    let _aloPendingInviteHandled = false;
+
     async function loadConnectedState() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -1911,7 +1968,9 @@ function showGuestBenefitsCard() {
           return;
         }
 
-        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active`);
+        // A2: consent_acknowledged_at is selected explicitly, so the gate
+        // below never runs against a row that silently lacks the column.
+        const links = await api(`/rest/v1/therapist_clients?client_id=eq.${user.id}&status=eq.active&select=id,therapist_id,client_id,display_name,status,consent_acknowledged_at`);
 
         if (!links || links.length === 0) {
           clientId = user.id;
@@ -1939,13 +1998,23 @@ function showGuestBenefitsCard() {
 
           // Check for pending invite code — first from user_metadata, then localStorage
           var pendingInvite = user.user_metadata?.invite_code || localStorage.getItem('alo_pending_invite');
-          if (pendingInvite) {
+          if (pendingInvite && !_aloPendingInviteHandled) {
+            _aloPendingInviteHandled = true;
             localStorage.removeItem('alo_pending_invite');
             console.log('[Auth] Found pending invite code, attempting to claim');
             try {
-              await handleConnectSubmit(pendingInvite);
-              // Clear invite_code from user_metadata after successful claim
+              var claimed = await handleConnectSubmit(pendingInvite);
+              // Clear invite_code from user_metadata after the claim attempt
               await supabase.auth.updateUser({ data: { invite_code: null } });
+              if (!claimed) {
+                // The stored code did not connect here (invalid, spent, or
+                // claimed a moment ago by a parallel sign-in path). Re-read
+                // the link from the server instead of guessing which: an
+                // active row goes through the gate below, none means the
+                // signed-in, unconnected UI. The guard above makes this
+                // re-entry skip the invite branch, so it cannot loop.
+                await loadConnectedState();
+              }
             } catch (inviteErr) {
               console.log('[Auth] Invite claim failed:', inviteErr.message);
               showToast('Could not connect using your invite code. You can try again from the menu.');
@@ -1958,8 +2027,24 @@ function showGuestBenefitsCard() {
           return;
         }
 
-        therapistLink = links[0];
+        // ---- The consent gate (A1/A2). Nothing below this line runs for an
+        // unconsented row: no Botpress init, no composer, no memory, no
+        // homework, no journal, no session identity. ----
+        const link = links[0];
+        if (aloConsentRequired(link)) {
+          var gateOverlay = document.getElementById('aloOnboardingOverlay');
+          var alreadyHolding = !!(gateOverlay && gateOverlay.classList.contains('show') && _aloOnboardingMode === 'gate');
+          // Two near-simultaneous entries (SIGNED_IN listener + the explicit
+          // call after sign-in) must not reset a client who is mid-screens.
+          if (!alreadyHolding) _aloOpenOnboardingScreens('gate');
+          return;
+        }
+
+        therapistLink = link;
         clientId = user.id;
+
+        // A2: only past the gate does the chat start loading.
+        _aloInitBotpress();
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
@@ -2027,7 +2112,20 @@ function showGuestBenefitsCard() {
       } catch (err) {
         console.error('Error loading connected state:', err);
         showToast('Some things may not have loaded correctly. Try refreshing the page.');
+        // A2: Botpress is deferred until the gate is known, so a failed read
+        // here must not leave a silent spinner. Fail closed, and visibly.
+        if (!_aloBotpressInitStarted) _aloShowLoadError();
       }
+    }
+
+    // Shared failure state for the chat area (same markup the Botpress init
+    // failure path uses): a reload is the recovery action.
+    function _aloShowLoadError() {
+      var overlay = document.getElementById('loadingOverlay');
+      if (!overlay) return;
+      overlay.style.display = '';
+      overlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
+        '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
     }
 
     // =====================================================
@@ -2578,7 +2676,7 @@ function showGuestBenefitsCard() {
       var thread = allThreads.find(function(t) { return t.id === conversationId; });
       var isPinned = thread && thread.pinned;
 
-      var message = 'This permanently removes the conversation and Alo\'s memory of it. This can\'t be undone.';
+      var message = 'This removes the conversation and Alo\'s memory of it from your Alo account. This can\'t be undone.';
       if (!isPinned) {
         message += ' If you want to keep it, you can save it instead.';
       }
@@ -2639,7 +2737,7 @@ async function togglePin(conversationId) {
       }
 
       var message = 'This will delete ' + unpinned.length + ' unpinned conversation' +
-        (unpinned.length > 1 ? 's' : '') + '.';
+        (unpinned.length > 1 ? 's' : '') + ' from your Alo account.';
       if (pinnedCount > 0) {
         message += ' Your ' + pinnedCount + ' saved conversation' +
           (pinnedCount > 1 ? 's' : '') + ' won\'t be affected.';
@@ -2720,11 +2818,13 @@ async function togglePin(conversationId) {
         if (settings && settings.length > 0) {
           memoryGlobalEnabled = settings[0].memory_enabled !== false;
         } else {
-          // No settings row = new user, default OFF (opt-in model)
-          memoryGlobalEnabled = false;
+          // A-10 (Brief 1a-min B1): no settings row = memory on. This is a
+          // disclosure, not an opt-in ask -- the memory card says so.
+          memoryGlobalEnabled = true;
         }
       } catch (err) {
-        memoryGlobalEnabled = false;
+        // Unreadable row: show the default rather than under-disclose.
+        memoryGlobalEnabled = true;
       }
 
       document.getElementById('memoryToggle').checked = memoryGlobalEnabled;
@@ -2865,7 +2965,7 @@ async function togglePin(conversationId) {
         toggleMemoryPopover();
       }
       showToast('Private session — this conversation won\'t be remembered');
-      _aloShowTip('privateSession', 'This conversation won\'t be saved. Alo won\'t remember it next time.');
+      _aloShowTip('privateSession', 'Nothing from this conversation goes into your history or memory.');
 
             // Tell Botpress to skip memory for this conversation
       // A7-bonus — privateSession must be a string, not boolean.
@@ -2935,11 +3035,13 @@ async function togglePin(conversationId) {
       startNewConversation();
     }
 
-    // --- Memory onboarding (opt-in on 2nd visit) ---
+    // --- Memory disclosure card (A-10, Brief 1a-min B1): shown on the 2nd
+    // visit while memory is on, dismissed with the existing 2-dismiss
+    // pattern. It asks nothing; memory is on by default and this says so. ---
     function checkMemoryOnboarding() {
       if (!clientId) return;
-      if (memoryGlobalEnabled) return;  // already opted in
-      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already dismissed
+      if (!memoryGlobalEnabled) return;  // memory is off: nothing to disclose
+      if (localStorage.getItem('alo_memory_onboard_done')) return;  // already acknowledged
       if (localStorage.getItem('alo_memory_onboard_ask') === 'ready') {
         // 2nd+ visit: show the card
         var card = document.getElementById('memoryOnboardCard');
@@ -2950,17 +3052,10 @@ async function togglePin(conversationId) {
       }
     }
 
-    function enableMemoryFromOnboard() {
-      handleMemoryToggle(true);
-      var card = document.getElementById('memoryOnboardCard');
-      if (card) card.style.display = 'none';
-      localStorage.setItem('alo_memory_onboard_done', 'true');
-    }
-
     function dismissMemoryOnboard() {
       var card = document.getElementById('memoryOnboardCard');
       if (card) card.style.display = 'none';
-      // Will ask one more time on 3rd visit
+      // Shown once more on the next visit, then marked done (2-dismiss pattern)
       var dismissCount = parseInt(localStorage.getItem('alo_memory_onboard_dismiss_count') || '0');
       dismissCount++;
       localStorage.setItem('alo_memory_onboard_dismiss_count', String(dismissCount));
@@ -2971,9 +3066,12 @@ async function togglePin(conversationId) {
 
    async function startNewConversation(skipConfirm) {
       if (!skipConfirm) {
+        var currentKept = isPrivateSession
+          ? 'This private conversation is not kept in your history.'
+          : 'Your current conversation is saved in your history.';
         const confirmed = await showConfirm(
           'Start new conversation?',
-          'This will start a fresh conversation with Alo. Your current conversation is saved in your history.',
+          'This will start a fresh conversation with Alo. ' + currentKept,
           { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
         );
         if (!confirmed) return;
@@ -3009,10 +3107,8 @@ async function togglePin(conversationId) {
 
     function checkGuestMemoryPrompt() {
       guestTurnCount++;
-      if (guestTurnCount >= 5 && !clientId && !localStorage.getItem('alo_memory_prompt_dismissed')) {
-        const bar = document.getElementById('memoryPromptBar');
-        if (bar) bar.classList.add('show');
-      }
+      // Brief 1a-min D1: the bar's only action was a no-invite "Create
+      // Account", which is not available on this build. Never shown.
     }
 
     function hideMemoryPrompt() {
@@ -3718,7 +3814,23 @@ async function togglePin(conversationId) {
 
       _aloHandleInviteParam();
 
-      // Initialize Botpress JS SDK immediately (guest mode)
+      // =====================================================
+      // Brief 1a-min A2 (ruling D37): DEFERRED BOTPRESS INIT
+      // =====================================================
+      // window.botpress.init() used to run right here, for everyone, before
+      // the session was even checked. It now runs only when the caller knows
+      // the consent gate's outcome: guest page (no session), signed-in with
+      // no active link, a failed ?t= exchange, or an active link whose
+      // consent_acknowledged_at is set (loadConnectedState, past the gate).
+      // An unconsented row never reaches this function. The body below is
+      // the original block, unchanged, so listener registration keeps its
+      // original order relative to init(). The 15 s "Still loading" timeout
+      // is armed here too, so a client reading the onboarding screens is
+      // never told the chat is slow.
+      _aloInitBotpress = function() {
+        if (_aloBotpressInitStarted) return;
+        _aloBotpressInitStarted = true;
+
       // userData will be sent later via updateUser() once auth resolves
             // A7/C5 — wrap init in try/catch; if the SDK fails to load,
       // stop the infinite spinner and show a real failure state.
@@ -3951,7 +4063,7 @@ window.botpress.on('webchat:closed', function() {
                 queue.push({ role: role, content: content, msgId: msgId, ts: Date.now() });
                 localStorage.setItem('alo_unsent_messages', JSON.stringify(queue.slice(-20)));
               } catch (e) {}
-              showToast('Message saved locally — will send when reconnected');
+              showToast('This message couldn\'t be saved to your history.');
             }
           }
         })();
@@ -3974,6 +4086,8 @@ window.botpress.on('webchat:closed', function() {
           </div>
         `;
       }, 15000);
+      };
+      // ===== end of _aloInitBotpress =====
 
       // Privacy bar
       initPrivacyBar();
@@ -4025,9 +4139,9 @@ window.botpress.on('webchat:closed', function() {
           <h3 class="modal-section-title">Your Alo conversations</h3>
           <ul class="modal-list">
             <li>If you have an account, conversations are saved so Alo can provide continuity</li>
-            <li>You can delete any conversation at any time from the sidebar</li>
+            <li>You can delete any conversation from your Alo account at any time from the sidebar. Deletion from the chat platform Alo runs on is coming and is not yet in place</li>
             <li>You can turn off memory in settings — Alo will treat each chat as new</li>
-            <li>Guest conversations (no account) are not stored permanently</li>
+            <li>Guest conversations (no account) are not saved to an account</li>
             <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
             <li>Conversations are not used for training, analytics, or advertising</li>
           </ul>
@@ -4093,7 +4207,11 @@ window.botpress.on('webchat:closed', function() {
       if (_aloClientToken) {
         await _aloExchangeClientToken(_aloClientToken);
         _aloClientToken = null;
-        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        // A2: a failed exchange leaves no session, so this is a guest page
+        // and the chat opens now. A successful one already handed off to the
+        // SIGNED_IN listener's loadConnectedState(), which owns the gate.
+        const { data: { session: tokenSession } } = await supabase.auth.getSession();
+        if (!tokenSession) _aloInitBotpress();
         return;
       }
 
@@ -4103,8 +4221,8 @@ window.botpress.on('webchat:closed', function() {
       if (session) {
         await loadConnectedState();
       } else {
-        // Guest: show benefits card after brief delay
-        setTimeout(function() { showGuestBenefitsCard(); }, 2000);
+        // A2: guest page -- the chat opens without an account on this build.
+        _aloInitBotpress();
       }
     });
 
