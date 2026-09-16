@@ -10,10 +10,9 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 - Zero-Knowledge: clinical signals go to therapist dashboard, never transcripts.
 - Craft integrity: nothing ships until it's done right. No shortcuts.
 ## File Structure
-- `chat_index.html` — client chat interface
-- `chat_styles.css` — chat stylesheet
-- `dashboard_index.html` — dashboard HTML reference copy
-- `dashboard_styles.css` — dashboard CSS reference copy
+- `dev.html` + `dev.css` — development copy, tested at alowen.ai/dev.html. **Edit these.**
+- `index.html` + `styles.css` — production, live on push to `main`. **Never touch unless explicitly told to.**
+- `scripts/scan-invisible.py` — zero-width / smart-quote scan (ruling D3, D20)
 - `CLAUDE.md` — this file
 ## Stack
 - Frontend: Vanilla HTML/CSS/JS
@@ -50,10 +49,9 @@ Vanilla HTML + CSS + JS. No build step. No framework. No bundler.
 ## Working Rules
 
 ### Git workflow
-- Work directly on `main`. No feature branches at this stage.
-- Solo developer, single-environment project. Branches add overhead without benefit.
-- Verify every push actually landed: after `git push`, run `git status` and `git log --oneline -3` to confirm the commit is on `origin/main`, not just locally.
-- Push to main triggers GitHub Pages deploy (allow 1-2 min). Verify alowen.ai on actual iPhone after every deploy if possible.
+- Sessions work on `auto/*` branches; Kano merges. **Never push to `main`.**
+- Verify every push actually landed: after `git push`, run `git status` and `git log --oneline -3` to confirm the commit is on the remote branch, not just locally.
+- Merging to `main` (Kano) triggers GitHub Pages deploy (allow 1-2 min). Verify alowen.ai on actual iPhone after every deploy if possible.
 
 ### File discipline
 - This repo has a dev/production file split:
