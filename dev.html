@@ -158,7 +158,7 @@
             <div class="more-menu-divider" role="separator"></div>
       <button class="more-menu-item" role="menuitem" id="morePrivateToggleBtn" onclick="toggleMoreMenu(); togglePrivateChatFromHeader()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        <span id="morePrivateToggleLabel">Make this conversation private</span>
+        <span id="morePrivateToggleLabel">Go private from this point on</span>
       </button>
       <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -274,7 +274,7 @@
   <!-- Private session banner (shown when memory paused for this conversation) -->
   <div id="privateSessionBanner" class="private-session-banner">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-    <span>Private session — Alo won't remember this conversation</span>
+    <span id="privateSessionBannerText">Private session — Alo won't remember this conversation</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
 <!-- Guest benefits card. NEVER shown on this build (Brief 1a-min D1): self-serve signups are off, so "Create a free account" is not true, and it was reaching signed-in users (reproduced 2026-09-15). Markup kept; showGuestBenefitsCard() is a no-op; the Create Account action is gone. -->
@@ -486,6 +486,10 @@
     let memoryGlobalEnabled = true;   // A-10 (Brief 1a-min B1): display default ON; loadMemorySettings() reads the row
     let isPrivateSession = false;
     let authBridgeSent = false;
+    // Brief 3 fixes A, I, J -- see startPrivateSession().
+    let _aloPrivateStarting = false;  // a start is waiting on Botpress
+    let _aloPrivateScope = null;      // while private: 'conversation' (all of it) or 'fromHere'
+    let _aloConvFresh = false;        // true only when nothing of the current Botpress conversation is saved
 
     // Tab bar & journal state
     let activeTab = 'chat';
@@ -1313,7 +1317,7 @@ function showAboutModal() {
       try {
         // R-C-22 ride-along (message content in local queues), the legacy
         // pending invite (fix H), and the Botpress-to-history mappings.
-        var doomed = ['alo_unsent_messages', 'alo_dropped_messages', 'alo_pending_invite'];
+        var doomed = ['alo_unsent_messages', 'alo_dropped_messages', 'alo_pending_invite', ALO_PRIVATE_ACTIVE_KEY];
         for (var i = 0; i < localStorage.length; i++) {
           var k = localStorage.key(i);
           if (k && k.indexOf('alo_conv_') === 0) doomed.push(k);
@@ -1338,6 +1342,10 @@ function showAboutModal() {
     // The SDK has no call that clears them (the store's clearAll() is not
     // wired to anything), so they are removed by name.
     var ALO_BP_OWNER_KEY = 'alo_bp_owner';
+    // Set while a private session is on (fix A). A page that loads with it
+    // set was reloaded mid-private: it starts a fresh Botpress user and a
+    // normal conversation, and never resumes the private one into history.
+    var ALO_PRIVATE_ACTIVE_KEY = 'alo_private_active';
 
     function _aloIsBotpressStorageKey(k) {
       return k.indexOf('bp-webchat') === 0 || k === 'botpress-message-history' ||
@@ -1382,9 +1390,12 @@ function showAboutModal() {
     function _aloPrepareBotpressStorage() {
       try {
         var owner = clientId ? 'u:' + clientId : 'g:' + _aloGuestVisitId();
-        if (localStorage.getItem(ALO_BP_OWNER_KEY) !== owner) {
+        var privateReload = localStorage.getItem(ALO_PRIVATE_ACTIVE_KEY) === '1';
+        if (privateReload || localStorage.getItem(ALO_BP_OWNER_KEY) !== owner) {
           _aloClearBotpressStorage();
+          _aloConvFresh = true;   // a fresh user starts a new, unsaved conversation
         }
+        localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY);
         localStorage.setItem(ALO_BP_OWNER_KEY, owner);
       } catch (e) {
         console.error('[Alo] Botpress storage check failed:', e);
@@ -1906,6 +1917,12 @@ function showAboutModal() {
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
+      // Brief 3 fix A: a private session writes nothing, client_messages
+      // included (checked again at send, below).
+      if (isPrivateSession) {
+        showToast(ALO_PRIVATE_NO_THERAPIST_MESSAGE);
+        return;
+      }
       // Brief 3 fix E (R-C-09): the therapist's display name goes into the
       // modal's title and body as HTML, so it is escaped first.
       const therapistName = esc(connectedTherapistName || 'your therapist');
@@ -1922,6 +1939,10 @@ function showAboutModal() {
           const messageText = document.getElementById('messageTextarea').value.trim();
           if (!messageText) {
             showToast('Please enter a message');
+            return false;
+          }
+          if (isPrivateSession) {
+            showToast(ALO_PRIVATE_NO_THERAPIST_MESSAGE);
             return false;
           }
 
@@ -2337,6 +2358,9 @@ function showAboutModal() {
     // CONVERSATION PERSISTENCE
     // =====================================================
     async function ensureConversation(botpressConvId) {
+      // Brief 3 fix A (R-C-04): a private session creates no conversations
+      // row and resumes none. The message handler checks this too.
+      if (isPrivateSession) return null;
       if (!clientId || !botpressConvId) return null;
 
       var storageKey = 'alo_conv_' + botpressConvId;
@@ -2344,6 +2368,7 @@ function showAboutModal() {
 
       if (existingId) {
         currentSupabaseConvId = existingId;
+        _aloConvFresh = false;
         try {
           var { data } = await supabase
             .from('conversations')
@@ -2389,6 +2414,7 @@ function showAboutModal() {
       }
 
       currentSupabaseConvId = data.id;
+      _aloConvFresh = false;
       localStorage.setItem(storageKey, data.id);
       persistenceTurnCounter = 0;
       console.log('[Persistence] Created conversation:', data.id);
@@ -3093,10 +3119,17 @@ async function togglePin(conversationId) {
       var toggle = document.getElementById('memoryToggle');
       if (toggle) toggle.checked = memoryGlobalEnabled;
 
-      // Private session banner
+      // Private session banner (Brief 3 fix J: whole conversation only when
+      // none of it was saved before private mode began)
       var banner = document.getElementById('privateSessionBanner');
       if (banner) {
         banner.style.display = isPrivateSession ? 'flex' : 'none';
+        var bannerText = document.getElementById('privateSessionBannerText');
+        if (bannerText && isPrivateSession) {
+          bannerText.textContent = _aloPrivateScope === 'conversation'
+            ? 'Private session — Alo won\'t remember this conversation'
+            : 'Private from this point on — Alo won\'t remember what you say next';
+        }
       }
 
       // Chat container tint — peripheral-vision reminder of private state
@@ -3160,53 +3193,123 @@ async function togglePin(conversationId) {
     }
 
     // --- Private session ---
-    function startPrivateSession() {
+    // Brief 3 fix A (R-C-04): while isPrivateSession is true nothing is
+    // written -- no conversations row, no conversation_messages, no
+    // client_messages, no local copy -- and a reload ends the session (see
+    // ALO_PRIVATE_ACTIVE_KEY) instead of resuming it into history.
+    // Brief 3 fix I (R-C-07): private mode is on only once Botpress holds
+    // the flag. updateUser() is awaited (after init it resolves only when
+    // the Chat API has answered, and window.botpress.user is then the user
+    // it returned), retried once, and checked. Until then nothing changes:
+    // no banner, no toast, no flag. On failure, one constant message.
+    // Brief 3 fix J (R-C-15): the copy says "this conversation" only when
+    // none of it is saved yet; otherwise it says "from this point on".
+    const ALO_PRIVATE_START_FAILURE_MESSAGE =
+      "Couldn't start a private session — nothing was changed. Try again.";
+    const ALO_MEMORY_OFF_PRIVATE_MESSAGE =
+      'Memory is off, but your conversations are still saved to your history.';
+    const ALO_PRIVATE_NO_THERAPIST_MESSAGE =
+      "Messages to your therapist can't be sent during a private session.";
+
+    // A7-bonus -- privateSession must be a string, not boolean. Botpress's
+    // webchat:getUserData schema rejects boolean values here, which
+    // silently broke every subsequent turn once this was set.
+    async function _aloSetBotPrivateFlag(value) {
+      var bp = window.botpress;
+      if (!bp || !botpressReady || bp.initialized !== true) return false;
+      for (var attempt = 1; attempt <= 2; attempt++) {
+        try {
+          await _aloWithTimeout(bp.updateUser({ data: { privateSession: value } }), 8000);
+          // Where the returned user carries its data, it must carry the flag.
+          var data = bp.user && bp.user.data;
+          if (!data || typeof data !== 'object' || data.privateSession === value) return true;
+        } catch (err) {
+          console.error('[Alo] privateSession update failed (attempt ' + attempt + '):', err);
+        }
+      }
+      return false;
+    }
+
+    // After a failed start: a timed-out attempt may still land, so set the
+    // flag back ("nothing was changed"). Best effort.
+    function _aloUndoBotPrivateFlag() {
+      var bp = window.botpress;
+      if (!bp || bp.initialized !== true) return;
+      Promise.resolve().then(function() {
+        return bp.updateUser({ data: { privateSession: 'false' } });
+      }).catch(function(err) {
+        console.error('[Alo] privateSession reset failed:', err);
+      });
+    }
+
+    // Botpress has confirmed: private mode is on from here.
+    function _aloEnterPrivate() {
       isPrivateSession = true;
+      _aloPrivateScope = _aloConvFresh ? 'conversation' : 'fromHere';
+      try { localStorage.setItem(ALO_PRIVATE_ACTIVE_KEY, '1'); } catch (e) {}
       updateMemoryUI();
       updatePrivateChatBtn();
-      // Only close popover if it's open (this function is called from header button too)
+      if (_aloPrivateScope === 'conversation') {
+        showToast('Private session — this conversation won\'t be remembered');
+        _aloShowTip('privateSession', 'Nothing from this conversation goes into your history or memory.');
+      } else {
+        showToast('Private from this point on — what you say next won\'t be remembered');
+        _aloShowTip('privateSession', 'From this point on, nothing goes into your history or memory.');
+      }
+    }
+
+    async function startPrivateSession() {
+      if (isPrivateSession || _aloPrivateStarting) return isPrivateSession;
+      _aloPrivateStarting = true;
+      // Only close popover if it's open (this function is called from the menu too)
       var pop = document.getElementById('memoryPopover');
       if (pop && !pop.classList.contains('hidden')) {
         toggleMemoryPopover();
       }
-      showToast('Private session — this conversation won\'t be remembered');
-      _aloShowTip('privateSession', 'Nothing from this conversation goes into your history or memory.');
-
-            // Tell Botpress to skip memory for this conversation
-      // A7-bonus — privateSession must be a string, not boolean.
-      // Botpress's webchat:getUserData schema rejects boolean values here,
-      // which silently broke every subsequent turn once this was set.
-      if (window.botpress) {
-        window.botpress.updateUser({
-          data: { privateSession: 'true' }
-        });
+      var confirmed = false;
+      try {
+        confirmed = await _aloSetBotPrivateFlag('true');
+      } finally {
+        _aloPrivateStarting = false;
       }
+      if (!confirmed) {
+        _aloUndoBotPrivateFlag();
+        showToast(ALO_PRIVATE_START_FAILURE_MESSAGE, 5000);
+        return false;
+      }
+      _aloEnterPrivate();
+      return true;
     }
 
         function endPrivateSession() {
       isPrivateSession = false;
+      _aloPrivateScope = null;
+      try { localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY); } catch (e) {}
       updateMemoryUI();
       updatePrivateChatBtn();
       showToast('Private session ended');
 
       if (window.botpress) {
-        window.botpress.updateUser({
-          data: { privateSession: 'false' }
+        Promise.resolve().then(function() {
+          return window.botpress.updateUser({ data: { privateSession: 'false' } });
+        }).catch(function(err) {
+          console.error('[Alo] privateSession end failed:', err);
         });
       }
     }
 
         // Menu item: one-tap privacy toggle for the current conversation.
-    // If memory is off globally, treat private mode as redundant and just toast a hint.
+    // Private sessions are offered only while memory is on (unchanged); the
+    // hint when memory is off now says what is true (fix J, R-C-14).
     function togglePrivateChatFromHeader() {
       if (isPrivateSession) {
         endPrivateSession();
       } else {
         if (!memoryGlobalEnabled) {
-          showToast('Memory is already off — nothing is being remembered');
+          showToast(ALO_MEMORY_OFF_PRIVATE_MESSAGE);
           return;
         }
-        startPrivateSession();
+        return startPrivateSession();
       }
     }
 
@@ -3215,19 +3318,36 @@ async function togglePin(conversationId) {
     function updatePrivateChatBtn() {
       var label = document.getElementById('morePrivateToggleLabel');
       if (label) {
-        label.textContent = isPrivateSession ? 'End private session' : 'Make this conversation private';
+        label.textContent = isPrivateSession ? 'End private session' : 'Go private from this point on';
       }
     }
 
-    // Menu action: fresh thread first (explicit intent, so skip the confirm),
-    // then begin the private session on it.
+    // Menu action: a new conversation that is private from its first turn.
+    // Botpress is told first (fix I); if that fails, nothing has changed and
+    // the current conversation stays as it is. The private flag is set
+    // before the restart, so nothing of the new conversation is ever written.
     async function startNewPrivateConversation() {
       if (!memoryGlobalEnabled) {
-        showToast('Memory is already off — nothing is being remembered');
+        showToast(ALO_MEMORY_OFF_PRIVATE_MESSAGE);
         return;
       }
-      await startNewConversation(true);
-      startPrivateSession();
+      if (_aloPrivateStarting) return;
+      _aloPrivateStarting = true;
+      var confirmed = false;
+      try {
+        confirmed = await _aloSetBotPrivateFlag('true');
+      } finally {
+        _aloPrivateStarting = false;
+      }
+      if (!confirmed) {
+        if (!isPrivateSession) _aloUndoBotPrivateFlag();
+        showToast(ALO_PRIVATE_START_FAILURE_MESSAGE, 5000);
+        return;
+      }
+      isPrivateSession = true;
+      try { localStorage.setItem(ALO_PRIVATE_ACTIVE_KEY, '1'); } catch (e) {}
+      var restarted = await startNewConversation(true, { keepPrivate: true });
+      if (restarted) _aloEnterPrivate();
     }
 
     // Logo click: from Journal, return to Chat. From Chat, offer a fresh start.
@@ -3269,24 +3389,36 @@ async function togglePin(conversationId) {
       }
     }
 
-   async function startNewConversation(skipConfirm) {
+   // Returns true once the new conversation is live, false if the user
+   // kept chatting or the restart failed (the page then reloads).
+   // opts.keepPrivate: used by startNewPrivateConversation(), which has
+   // already set the private flag for the conversation about to start.
+   async function startNewConversation(skipConfirm, opts) {
+      var keepPrivate = !!(opts && opts.keepPrivate);
       if (!skipConfirm) {
-        var currentKept = isPrivateSession
-          ? 'This private conversation is not kept in your history.'
-          : 'Your current conversation is saved in your history.';
+        // Brief 3 fix J (R-C-15): "not kept" is claimed only for what was
+        // actually private.
+        var currentKept = !isPrivateSession
+          ? 'Your current conversation is saved in your history.'
+          : (_aloPrivateScope === 'conversation'
+            ? 'This private conversation is not kept in your history.'
+            : 'Anything from before you went private stays in your history; nothing after that is kept.');
         const confirmed = await showConfirm(
           'Start new conversation?',
           'This will start a fresh conversation with Alo. ' + currentKept,
           { confirmLabel: 'Start fresh', cancelLabel: 'Keep chatting' }
         );
-        if (!confirmed) return;
+        if (!confirmed) return false;
       }
 
       // Cleanly exit private mode if active (informs Botpress, updates UI together)
-      if (isPrivateSession) {
+      if (isPrivateSession && !keepPrivate) {
         endPrivateSession();
       }
       resetPersistenceState();
+      // Nothing of the next conversation is saved yet. Set before the
+      // restart: any row created from here on (ensureConversation) clears it.
+      _aloConvFresh = true;
 
       // Only toggle sidebar if it's open
       var sidebar = document.getElementById('threadSidebar');
@@ -3298,16 +3430,19 @@ async function togglePin(conversationId) {
       } catch (e) {
         // Deliberately console-only, no toast: the page reloads immediately
         // below, so a toast would not be visible before navigation replaces
-        // it. The reload itself is the visible recovery action.
+        // it. The reload itself is the visible recovery action. (A reload
+        // with a private session pending starts a normal conversation --
+        // see ALO_PRIVATE_ACTIVE_KEY.)
         console.error('[Alo] restartConversation failed, reloading page:', e);
         window.location.reload();
-        return;
+        return false;
       }
 
       // Identity data persists across restart (confirmed via testing).
       // Re-send auth bridge for the new conversation's server-side flow.
       authBridgeSent = false;
       sendAuthBridge();
+      return true;
     }
 
     function checkGuestMemoryPrompt() {
@@ -4226,12 +4361,14 @@ window.botpress.on('webchat:closed', function() {
         if (!content) {
           // A7/C19 — log dropped formats instead of silently discarding,
           // and keep a raw backup in localStorage so nothing is lost
-          // without a trace.
-          try {
-            var dropped = JSON.parse(localStorage.getItem('alo_dropped_messages') || '[]');
-            dropped.push({ msg: msg, ts: Date.now() });
-            localStorage.setItem('alo_dropped_messages', JSON.stringify(dropped.slice(-20)));
-          } catch (e) {}
+          // without a trace. Never during a private session (Brief 3 fix A).
+          if (!isPrivateSession) {
+            try {
+              var dropped = JSON.parse(localStorage.getItem('alo_dropped_messages') || '[]');
+              dropped.push({ msg: msg, ts: Date.now() });
+              localStorage.setItem('alo_dropped_messages', JSON.stringify(dropped.slice(-20)));
+            } catch (e) {}
+          }
           console.warn('[Persistence] Dropped unrecognized message format:', msg);
           return;
         }
@@ -4250,7 +4387,10 @@ window.botpress.on('webchat:closed', function() {
                 // A7/C2 + A7/C4 — guarded persistence with retry + local queue,
         // and in-flight promise dedup so two rapid messages can't both
         // create a conversation record.
-        (async function() {
+        // Brief 3 fix A (R-C-04): the call-site guard -- a private session
+        // never reaches ensureConversation()/saveMessage() (both also
+        // check isPrivateSession themselves).
+        if (!isPrivateSession) (async function() {
           try {
             if (!currentSupabaseConvId) {
               // Dedup: if a create is already in flight, await that
@@ -4267,7 +4407,7 @@ window.botpress.on('webchat:closed', function() {
             // One retry after a short delay before giving up.
             await new Promise(function(resolve) { setTimeout(resolve, 2000); });
             try {
-              if (!currentSupabaseConvId) {
+              if (!currentSupabaseConvId && !isPrivateSession) {
                 await ensureConversation(bpConvId || 'conv_' + Date.now());
               }
               await saveMessage(role, content, msgId);
