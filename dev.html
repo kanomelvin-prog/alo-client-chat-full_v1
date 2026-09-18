@@ -1537,10 +1537,13 @@ function showAboutModal() {
             showToast('Please enter email and password');
             return false;
           }
-// Store invite code in localStorage as fallback (primary: user_metadata)
-          if (inviteCode) {
-            localStorage.setItem('alo_pending_invite', inviteCode);
-          }
+          // Brief 3 fix H (R-C-11): the invite code is no longer written to
+          // localStorage before the attempt (it outlived wrong passwords and
+          // abandoned modals, and the next account on the browser claimed
+          // it). This attempt uses the code in memory: after a successful
+          // sign-in it goes straight to handleConnectSubmit() below. A signup
+          // that needs email confirmation carries it in user_metadata, which
+          // belongs to that account alone.
 
           // Brief 1a-min A5: the four-screen onboarding + consent no longer
           // fires from here. loadConnectedState() opens it, in gate mode, for
@@ -2013,16 +2016,27 @@ function showAboutModal() {
             console.log('[Auth] Profile ensure failed (may already exist):', profileErr.message);
           }
 
-          // Check for pending invite code — first from user_metadata, then localStorage
-          var pendingInvite = user.user_metadata?.invite_code || localStorage.getItem('alo_pending_invite');
+          // Brief 3 fix H (R-C-11): a pending invite is claimed only from this
+          // account's own user_metadata, which its own signup wrote. Nothing
+          // is read from localStorage (a code an older build left there is
+          // removed unread at page load -- see DOMContentLoaded).
+          var pendingInvite = user.user_metadata?.invite_code || null;
           if (pendingInvite && !_aloPendingInviteHandled) {
             _aloPendingInviteHandled = true;
-            localStorage.removeItem('alo_pending_invite');
             console.log('[Auth] Found pending invite code, attempting to claim');
             try {
-              var claimed = await handleConnectSubmit(pendingInvite);
-              // Clear invite_code from user_metadata after the claim attempt
-              await supabase.auth.updateUser({ data: { invite_code: null } });
+              var claimed;
+              try {
+                claimed = await handleConnectSubmit(pendingInvite);
+              } finally {
+                // Cleared after the attempt, success or failure (fix H).
+                try {
+                  var clearRes = await supabase.auth.updateUser({ data: { invite_code: null } });
+                  if (clearRes && clearRes.error) console.error('[Auth] Could not clear invite_code:', clearRes.error.message);
+                } catch (clearErr) {
+                  console.error('[Auth] Could not clear invite_code:', clearErr);
+                }
+              }
               if (!claimed) {
                 // The stored code did not connect here (invalid, spent, or
                 // claimed a moment ago by a parallel sign-in path). Re-read
@@ -2044,11 +2058,14 @@ function showAboutModal() {
           return;
         }
 
-        // ---- The consent gate (A1/A2). Nothing below this line runs for an
-        // unconsented row: no Botpress init, no composer, no memory, no
-        // homework, no journal, no session identity. ----
-        const link = links[0];
-        if (aloConsentRequired(link)) {
+        // ---- The consent gate (A1/A2). Nothing below this line runs while
+        // any active row is unconsented: no Botpress init, no composer, no
+        // memory, no homework, no journal, no session identity.
+        // Brief 3 fix G (R-C-02): every active link is checked, not links[0]
+        // (the query has no order, and a second link -- including one just
+        // claimed through ?invite= by an already-connected client -- is
+        // exactly the row that needs consent). ----
+        if (links.some(aloConsentRequired)) {
           var gateOverlay = document.getElementById('aloOnboardingOverlay');
           var alreadyHolding = !!(gateOverlay && gateOverlay.classList.contains('show') && _aloOnboardingMode === 'gate');
           // Two near-simultaneous entries (SIGNED_IN listener + the explicit
@@ -2057,6 +2074,7 @@ function showAboutModal() {
           return;
         }
 
+        const link = links[0];
         therapistLink = link;
         clientId = user.id;
 
@@ -3829,6 +3847,11 @@ async function togglePin(conversationId) {
       // rest of the page's life, which the exchange attempt itself does not
       // need past that one call.
       let _aloClientToken = _aloHandleTokenParam();
+
+      // Brief 3 fix H (R-C-11): older builds stored a typed invite code here
+      // before the sign-in attempt, and it outlived that attempt. It belongs
+      // to whoever typed it, so it is removed unread.
+      try { localStorage.removeItem('alo_pending_invite'); } catch (e) {}
 
       _aloHandleInviteParam();
 
