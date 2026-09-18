@@ -212,7 +212,7 @@
         <section class="about-section">
           <h3>Your privacy</h3>
           <p>Your conversations are private — always. Your therapist never sees what you say to Alo.</p>
-          <p>If you're connected to a therapist through Alowen, they can see general patterns across your sessions and whether you've completed any reflections they've assigned. That's it. They aren't notified in real time — they review at their own pace, usually to prepare for your next session.</p>
+          <p>If you're connected to a therapist through Alowen, they can see general patterns across your sessions, when you use Alo, and when you view or complete reflections they've assigned. They also see messages you send them, journal entries you choose to share, and, if Alo notices you might be in trouble, that something happened — never what you said. They aren't notified in real time — they review at their own pace, usually to prepare for your next session.</p>
           <p>Guest conversations aren't saved to an account. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
@@ -1119,7 +1119,8 @@ function showAboutModal() {
 
         container.classList.add('show');
 
-        _aloShowTip('homework', (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see that, not what you wrote.');
+        // Brief 3 fix J (R-C-13): viewed_at is written below as soon as the card shows.
+        _aloShowTip('homework', (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see when you\'ve viewed it and when you mark it done, not what you wrote.');
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -1422,7 +1423,9 @@ function showAboutModal() {
       },
       {
         title: 'What\'s yours',
-        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Nothing is shared unless you share it.',
+        // Brief 3 fix J (R-C-13): a linked account also sends activity
+        // records (session_metadata) and homework viewed/completed times.
+        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Beyond what you share, your therapist can see when you use Alo and when you view or complete homework they assign — never what you say to Alo.',
         mockJournal: true
       },
       {
@@ -1520,7 +1523,7 @@ function showAboutModal() {
         body.innerHTML =
           '<div class="alo-onboarding-progress">4 of 4</div>' +
           '<h2 class="alo-onboarding-title">Before you start</h2>' +
-          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours — nothing is shared unless you choose to. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
+          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours: your therapist sees what you choose to share, when you use Alo, and when you view or complete homework they assign, never what you say. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
           '<label class="alo-onboarding-checkbox-row">' +
             '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
             '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
@@ -1677,7 +1680,7 @@ function showAboutModal() {
     function showLoginModal(inviteCode = null) {
       createModal('Sign In or Create Account', `
         <p>Create an account to save your conversations and let Alo remember what you've discussed.</p>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. Signing in does not share anything.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. If you're connected to a therapist, they can see when you use Alo and when you view or complete homework they assign — never what you say.</p>
         <form id="loginForm" action="#" method="post" onsubmit="return false;" style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="username" style="margin-bottom: 12px;" />
@@ -4510,7 +4513,7 @@ window.botpress.on('webchat:closed', function() {
 
           <h3 class="modal-section-title">Who sees your data</h3>
           <ul class="modal-list">
-            <li>Your therapist sees homework status, messages you send them, and any journal entries you explicitly share</li>
+            <li>Your therapist sees when you use Alo, when you view or complete homework, messages you send them, and any journal entries you explicitly share</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
             <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
             <li>We don't sell or share your data with third parties</li>
