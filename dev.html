@@ -968,10 +968,13 @@ function showAboutModal() {
 
     function showNameEditModal() {
       const currentName = document.getElementById('clientNameEditable')?.textContent || '';
-      
-      createModal('What should we call you?', `
+
+      // Brief 3 fix D (R-C-03): the name can come from the therapist's
+      // invite label, so it is never interpolated into the markup. The
+      // input is rendered empty and its value set as a property below.
+      const modal = createModal('What should we call you?', `
         <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">This is how you'll appear in Alo. Only you see this.</p>
-        <input type="text" id="nameEditInput" value="${currentName}" 
+        <input type="text" id="nameEditInput"
           placeholder="Your preferred name"
           style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 16px;"
           autocomplete="given-name" maxlength="50" />
@@ -1003,6 +1006,8 @@ function showAboutModal() {
           }
         }
       });
+      const nameInput = modal.querySelector('#nameEditInput');
+      if (nameInput) nameInput.value = currentName;
     }
     // Brief 1a-min D1: deliberately a no-op. Self-serve signups are off on
     // this build, so the card's "Create a free account" is not true -- and it
@@ -1070,18 +1075,20 @@ function showAboutModal() {
         const container = document.getElementById('homeworkContainer');
         const therapistName = connectedTherapistName || 'your therapist';
 
+        // Brief 3 fix E (R-C-09): title, type, goal and the therapist's
+        // name are therapist-authored text, so each is escaped here.
         container.innerHTML = homework.map(function(hw) {
           return '<div class="homework-card" id="hwCard-' + hw.id + '" data-hw-id="' + hw.id + '">' +
             '<div class="homework-header">' +
               '<div>' +
-                '<div class="homework-from">From ' + therapistName + '</div>' +
-                '<h3 class="homework-title">' + (hw.title || 'Practice exercise') + '</h3>' +
+                '<div class="homework-from">From ' + esc(therapistName) + '</div>' +
+                '<h3 class="homework-title">' + esc(hw.title || 'Practice exercise') + '</h3>' +
               '</div>' +
               '<button class="homework-collapse" aria-label="Expand homework details" aria-expanded="false" data-hw-id="' + hw.id + '">+</button>' +
             '</div>' +
             '<div class="homework-body collapsed" id="hwBody-' + hw.id + '">' +
-              (hw.homework_type ? '<span class="homework-type-tag">' + hw.homework_type + '</span>' : '') +
-              '<p class="homework-goal">' + (hw.goal || '') + '</p>' +
+              (hw.homework_type ? '<span class="homework-type-tag">' + esc(hw.homework_type) + '</span>' : '') +
+              '<p class="homework-goal">' + esc(hw.goal || '') + '</p>' +
               '<div class="homework-actions">' +
                 '<button class="btn-primary homework-done-btn" data-hw-id="' + hw.id + '">Mark complete</button>' +
                 '<button class="btn-link homework-hide-btn" data-hw-id="' + hw.id + '">Collapse</button>' +
@@ -1732,8 +1739,10 @@ function showAboutModal() {
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
-      const therapistName = connectedTherapistName || 'your therapist';
-      
+      // Brief 3 fix E (R-C-09): the therapist's display name goes into the
+      // modal's title and body as HTML, so it is escaped first.
+      const therapistName = esc(connectedTherapistName || 'your therapist');
+
       createModal(`Message ${therapistName}`, `
         <p class="modal-subtext">
           ${therapistName} will see this message in their dashboard. They'll respond when they can.
@@ -3594,7 +3603,8 @@ async function togglePin(conversationId) {
             }
           } else {
             // Confirm then share
-            var therapistName = connectedTherapistName || 'your therapist';
+            // Brief 3 fix E (R-C-09): showConfirm() renders its message as HTML.
+            var therapistName = esc(connectedTherapistName || 'your therapist');
             var confirmed = await showConfirm('Share this entry?', therapistName + ' will be able to see this entry. You can revoke anytime.', {
               confirmLabel: 'Share',
               cancelLabel: 'Not now'
