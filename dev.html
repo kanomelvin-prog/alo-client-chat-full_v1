@@ -540,6 +540,14 @@
       return esc(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    // Rejects if `promise` has not settled within `ms` (the original promise
+    // is left to settle on its own).
+    function _aloWithTimeout(promise, ms) {
+      return Promise.race([promise, new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error('timeout')); }, ms);
+      })]);
+    }
+
     // =====================================================
     // PASSWORD VISIBILITY TOGGLE
     // =====================================================
@@ -1233,13 +1241,161 @@ function showAboutModal() {
         showToast('Error signing out. Please try again.');
         return;
       }
-      
+
+      // Brief 3 fix B (R-C-01): signOut() has also fired SIGNED_OUT, whose
+      // listener starts the same cleanup; both wait on the one run.
+      await _aloSignOutCleanupAndReload();
+    }
+
+    // =====================================================
+    // SIGN-OUT CLEANUP (Brief 3 fixes B and C: R-C-01, R-C-17, R-C-22)
+    // =====================================================
+    // Every way this page stops being signed in runs this one function and
+    // then reloads: Log Out, a sign-out in another tab (supabase-js
+    // broadcasts SIGNED_OUT), and a session that is gone under a page that
+    // had an identity. The reload is what gives the next person a fresh
+    // Botpress user: webchat v3.3 cannot change users inside a running chat.
+    var _aloSignOutInFlight = null;
+
+    function _aloSignOutCleanupAndReload() {
+      if (!_aloSignOutInFlight) {
+        _aloSignOutInFlight = (async function() {
+          await _aloEndBotpressIdentity();
+          _aloClearAccountState();
+          window.location.reload();
+        })();
+      }
+      return _aloSignOutInFlight;
+    }
+
+    async function _aloEndBotpressIdentity() {
+      var bp = window.botpress;
+      if (bp && _aloBotpressInitStarted) {
+        // 1. Best effort, time-boxed: blank the identity this Botpress user
+        //    carries on the Botpress side, in case its key ever survived.
+        if (bp.initialized === true) {
+          try {
+            await _aloWithTimeout(bp.updateUser({
+              data: { clientId: '', sessionNonce: '', privateSession: 'false', homeworkActive: '[]' }
+            }), 2000);
+          } catch (err) {
+            console.error('[Alo] Could not blank Botpress user data at sign-out:', err);
+          }
+        }
+        // 2. End the webchat, so its in-memory store cannot write the keys
+        //    back after they are removed. botpressReady goes false first or
+        //    the webchat:closed listener would reopen it.
+        botpressReady = false;
+        try { bp.close(); } catch (e) {}
+        try { bp.unmount('webchat'); } catch (e) {}
+      }
+      _aloClearBotpressStorage();
+      // 3. Forget whose user the stored one was, so the next init starts a
+      //    fresh user even if something re-wrote the keys during unload.
+      try { localStorage.removeItem(ALO_BP_OWNER_KEY); } catch (e) {}
+    }
+
+    // Every in-memory identity global, and the per-account keys this page
+    // writes to localStorage.
+    function _aloClearAccountState() {
       clientId = null;
       therapistLink = null;
+      sessionNonce = null;
       chatSettings = {};
+      connectedTherapistName = null;
+      activeHomework = [];
       currentHomeworkId = null;
-      
-      location.reload();
+      memoryGlobalEnabled = null;
+      isPrivateSession = false;
+      authBridgeSent = false;
+      resetPersistenceState();
+      window._aloEnsureConvPromise = null;
+      try {
+        // R-C-22 ride-along (message content in local queues), the legacy
+        // pending invite (fix H), and the Botpress-to-history mappings.
+        var doomed = ['alo_unsent_messages', 'alo_dropped_messages', 'alo_pending_invite'];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('alo_conv_') === 0) doomed.push(k);
+        }
+        doomed.forEach(function(k) { localStorage.removeItem(k); });
+      } catch (e) {
+        console.error('[Alo] Could not clear account storage:', e);
+      }
+    }
+
+    // =====================================================
+    // BOTPRESS STORAGE AND WHOSE USER IT IS (Brief 3 fix B; J for R-C-16)
+    // =====================================================
+    // Botpress webchat v3.3 runs in a same-origin about:blank iframe and
+    // keeps its user credential and the open conversation in this site's
+    // storage. Keys confirmed from the v3.3 inject.js and webchat.js
+    // bundles (2026-09-18), not guessed:
+    //   localStorage   bp-webchat-<webchat clientId>  user {userId, userToken} + conversationId
+    //   localStorage   botpress-message-history       the user's last ~100 sent messages (composer up-arrow recall)
+    //   localStorage   webchat-sound-<id>             sound preference
+    //   sessionStorage bp-unread-message-count, bp-proactive-message-state, bp-composer-file-store
+    // The SDK has no call that clears them (the store's clearAll() is not
+    // wired to anything), so they are removed by name.
+    var ALO_BP_OWNER_KEY = 'alo_bp_owner';
+
+    function _aloIsBotpressStorageKey(k) {
+      return k.indexOf('bp-webchat') === 0 || k === 'botpress-message-history' ||
+        k.indexOf('webchat-sound-') === 0 || k === 'bp-unread-message-count' ||
+        k === 'bp-proactive-message-state' || k === 'bp-composer-file-store';
+    }
+
+    function _aloClearBotpressStorage() {
+      [window.localStorage, window.sessionStorage].forEach(function(store) {
+        try {
+          var doomed = [];
+          for (var i = 0; i < store.length; i++) {
+            var k = store.key(i);
+            if (k && _aloIsBotpressStorageKey(k)) doomed.push(k);
+          }
+          doomed.forEach(function(k) { store.removeItem(k); });
+        } catch (e) {
+          console.error('[Alo] Could not clear Botpress storage:', e);
+        }
+      });
+    }
+
+    // A stored Botpress user is reused only by the owner it was made for:
+    // the same signed-in account, or the same guest visit (one tab
+    // session). A different account (a ?t= switch included), a new guest
+    // visit, or a page after Log Out gets a fresh user and conversation --
+    // which is also what makes "Guests start fresh every visit" true.
+    function _aloGuestVisitId() {
+      try {
+        var id = sessionStorage.getItem('alo_guest_visit');
+        if (!id) {
+          id = Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+          sessionStorage.setItem('alo_guest_visit', id);
+        }
+        return id;
+      } catch (e) {
+        return 'unavailable';
+      }
+    }
+
+    // Runs once, immediately before window.botpress.init().
+    function _aloPrepareBotpressStorage() {
+      try {
+        var owner = clientId ? 'u:' + clientId : 'g:' + _aloGuestVisitId();
+        if (localStorage.getItem(ALO_BP_OWNER_KEY) !== owner) {
+          _aloClearBotpressStorage();
+        }
+        localStorage.setItem(ALO_BP_OWNER_KEY, owner);
+      } catch (e) {
+        console.error('[Alo] Botpress storage check failed:', e);
+      }
+    }
+
+    // A guest page that signs in without a reload keeps its running
+    // Botpress user, which from then on carries this account's identity.
+    function _aloClaimBotpressOwner() {
+      if (!clientId || !_aloBotpressInitStarted) return;
+      try { localStorage.setItem(ALO_BP_OWNER_KEY, 'u:' + clientId); } catch (e) {}
     }
 
     // =====================================================
@@ -1982,8 +2138,20 @@ function showAboutModal() {
     async function loadConnectedState() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (!user) {
+          // Brief 3 fix C: this page had an identity and its session is gone
+          // -- signed out without a SIGNED_OUT event (supabase-js 2.39 drops
+          // a session whose refresh fails without emitting one). Same
+          // cleanup as Log Out. A session that is still stored means getUser
+          // failed for another reason (network), which is not a sign-out.
+          if (clientId) {
+            const { data: { session: stillStored } } = await supabase.auth.getSession();
+            if (!stillStored) {
+              _aloSignOutCleanupAndReload();
+              return;
+            }
+          }
           resetToGuestUI();
           return;
         }
@@ -1994,6 +2162,7 @@ function showAboutModal() {
 
         if (!links || links.length === 0) {
           clientId = user.id;
+          _aloClaimBotpressOwner();
 
           // Ensure profile exists (fallback for pre-trigger users)
           try {
@@ -2077,6 +2246,7 @@ function showAboutModal() {
         const link = links[0];
         therapistLink = link;
         clientId = user.id;
+        _aloClaimBotpressOwner();
 
         // A2: only past the gate does the chat start loading.
         _aloInitBotpress();
@@ -3872,6 +4042,10 @@ async function togglePin(conversationId) {
         if (_aloBotpressInitStarted) return;
         _aloBotpressInitStarted = true;
 
+        // Brief 3 fix B: a stored Botpress user is reused only by its owner
+        // (see _aloPrepareBotpressStorage); otherwise init starts fresh.
+        _aloPrepareBotpressStorage();
+
       // userData will be sent later via updateUser() once auth resolves
             // A7/C5 — wrap init in try/catch; if the SDK fails to load,
       // stop the infinite spinner and show a real failure state.
@@ -4228,9 +4402,10 @@ window.botpress.on('webchat:closed', function() {
         } else if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
-          resetPersistenceState();
-          authBridgeSent = false;
-          resetToGuestUI();
+          // Brief 3 fix C (R-C-17): the same cleanup as Log Out, then a
+          // reload -- whether this tab signed out (handleLogout waits on the
+          // same run) or another tab did (supabase-js broadcast).
+          _aloSignOutCleanupAndReload();
         } else if (event === 'TOKEN_REFRESHED') {
           console.log('[Auth] Token refreshed');
         }
