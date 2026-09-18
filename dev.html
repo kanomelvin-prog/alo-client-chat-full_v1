@@ -447,13 +447,21 @@
     const SUPABASE_URL = 'https://lelsdezstbnzyxvsvbyx.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlbHNkZXpzdGJuenl4dnN2Ynl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM2MDk1NDUsImV4cCI6MjA3OTE4NTU0NX0.mm1POxfEEoRXyTF08NsUZOau6qA_UdZJnoUH_5bkQas';
     
+    // Brief 3 fix F (R-C-06): detectSessionInUrl is off. With it on, the
+    // implicit flow let any link carrying another account's tokens
+    // (#access_token=... or ?access_token=...) silently replace this
+    // client's session. Nothing here needs it: the ?t= exchange
+    // (_aloExchangeClientToken) consumes its magic-link result explicitly
+    // with verifyOtp({ token_hash, type: 'magiclink' }). Email confirmation
+    // and password-reset links therefore no longer sign in by themselves
+    // (see the S7 session report).
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: true,
         storage: window.localStorage,
         storageKey: 'alo_client_session',
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: false
       }
     });
 
@@ -3716,11 +3724,11 @@ async function togglePin(conversationId) {
     // point in DOMContentLoaded the ordinary getSession() check already
     // ran -- see the call site below.
     //
-    // detectSessionInUrl (createClient() options, ~line 458) does not
-    // interact with any of this: it only recognises hash-fragment tokens
-    // (#access_token=...) for the implicit flow and a `?code=` query param
-    // for PKCE. `?t=` matches neither pattern, so Supabase's own client
-    // never looks at it.
+    // detectSessionInUrl (createClient() options near the top of this
+    // script) is false (Brief 3 fix F), so Supabase's own client never
+    // reads a session from the URL at all; `?t=` was never one of its
+    // patterns in any case. The exchange below is the only URL-borne
+    // sign-in, and it hands the result to verifyOtp() explicitly.
     function _aloHandleTokenParam() {
       const params = new URLSearchParams(window.location.search);
       const token = params.get('t');
