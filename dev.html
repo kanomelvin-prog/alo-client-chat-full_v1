@@ -1265,9 +1265,13 @@ function showAboutModal() {
     function _aloSignOutCleanupAndReload() {
       if (!_aloSignOutInFlight) {
         _aloSignOutInFlight = (async function() {
-          await _aloEndBotpressIdentity();
-          _aloClearAccountState();
-          window.location.reload();
+          try {
+            await _aloEndBotpressIdentity();
+            _aloClearAccountState();
+          } finally {
+            // Always reload: the page must not stay up half-cleared.
+            window.location.reload();
+          }
         })();
       }
       return _aloSignOutInFlight;
