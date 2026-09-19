@@ -1317,6 +1317,8 @@ function showAboutModal() {
       memoryGlobalEnabled = null;
       isPrivateSession = false;
       authBridgeSent = false;
+      _aloClaimInFlight = null;   // Brief 3b: both carry the user id and a code
+      _aloClaimedKey = null;
       resetPersistenceState();
       window._aloEnsureConvPromise = null;
       try {
@@ -1603,13 +1605,22 @@ function showAboutModal() {
     // =====================================================
     // CONNECT MODAL
     // =====================================================
+    // Brief 3b C: what the code field does to a code -- trim, and upper-case
+    // for display. Nothing else: codes are ALO- + 8 characters (older ones
+    // ALO- + 6) and the page rejects none by shape or length, because
+    // redeem_invite_code is the validator.
+    function _aloNormalizeInviteCode(raw) {
+      return String(raw == null ? '' : raw).trim().toUpperCase();
+    }
+
     function showConnectModal() {
-      createModal('Link to Your Therapist', `
+      const modal = createModal('Link to Your Therapist', `
         <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
         <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
         <div style="margin-top: 16px;">
           <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
-          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" />
+          <input type="text" id="inviteCodeInput" class="modal-input" placeholder="Enter the code your therapist gave you" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" />
+          <p id="connectError" role="alert" style="display: none; margin: 8px 0 0; padding-left: 10px; border-left: 3px solid var(--danger); font-size: 13px; color: var(--text-primary);"></p>
         </div>
         <p class="modal-sign-in-link">
           Already have an account? <button onclick="const c=document.getElementById('inviteCodeInput')?.value?.trim(); document.querySelector('.modal-overlay').remove(); showLoginModal(c||null);">Sign in</button>
@@ -1618,63 +1629,184 @@ function showAboutModal() {
         confirmLabel: 'Link',
         cancelLabel: 'Maybe later',
         onConfirm: async () => {
-          const code = document.getElementById('inviteCodeInput').value.trim();
+          const input = modal.querySelector('#inviteCodeInput');
+          const errorEl = modal.querySelector('#connectError');
+          const linkBtn = modal.querySelector('.modal-confirm');
+          const code = _aloNormalizeInviteCode(input.value);
           if (!code) {
             showToast('Please enter an invite code');
             return false;
           }
-          await handleConnectSubmit(code);
+          input.value = code;
+          errorEl.textContent = '';
+          errorEl.style.display = 'none';
+          // One attempt per tap: the server counts attempts (10 an hour).
+          linkBtn.disabled = true;
+          let claimed;
+          try {
+            claimed = await handleConnectSubmit(code, function(message) {
+              // Closed while the attempt was in flight: say it where it shows.
+              if (!modal.isConnected || modal.classList.contains('closing')) {
+                showToast(message);
+                return;
+              }
+              // Shown first, then filled, so the alert is announced.
+              errorEl.style.display = '';
+              errorEl.textContent = message;
+            });
+          } finally {
+            linkBtn.disabled = false;
+          }
+          if (claimed === false) {
+            // Not claimed: the modal stays open under its message. (The
+            // disabled button dropped focus; keyboard users get it back.)
+            if (modal.isConnected && !modal.contains(document.activeElement)) linkBtn.focus();
+            return false;
+          }
+          // true (claimed) and null (handed to sign-in) close it, as before.
         }
       });
+
+      const codeInput = modal.querySelector('#inviteCodeInput');
+      if (codeInput) {
+        codeInput.addEventListener('input', function() {
+          const upper = codeInput.value.toUpperCase();
+          if (upper === codeInput.value) return;
+          const start = codeInput.selectionStart;
+          const end = codeInput.selectionEnd;
+          codeInput.value = upper;
+          try { codeInput.setSelectionRange(start, end); } catch (e) {}
+        });
+      }
     }
 
-    async function handleConnectSubmit(inviteCode) {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        showLoginModal(inviteCode);
-        return false;
+    // Brief 3b A, B (Path R): THE claim function. Every path that redeems
+    // an invite code ends here -- the connect modal (menu, connect prompt,
+    // ?invite= deep link), the code carried through the login modal, and
+    // the account's own user_metadata code -- and the one thing that claims
+    // is redeem_invite_code(p_code): SECURITY DEFINER, the claimant is
+    // auth.uid() on the server, attempts are counted there. This page never
+    // reads a pending invite and never writes client_id or status. (api()
+    // cannot make this call: its POST asks for return=minimal, which would
+    // drop the function's answer.)
+    //
+    // Returns true when the row was claimed (whatever the consent gate then
+    // decides), false when it was not, null when nobody is signed in (the
+    // code goes to the login modal instead).
+    //
+    // Failure text is the function's own `error` string, verbatim: it is
+    // constant copy on the server, so nothing here adds a per-cause message
+    // (ruling D31 pattern). Anything that is not a well-formed answer from
+    // the function -- network, HTTP error, unexpected body -- gets the one
+    // transport line; the raw error is never shown. `showError` is where
+    // the text goes: the connect modal passes its error line, every other
+    // path gets a toast.
+    const ALO_CONNECT_TRANSPORT_FAILURE_MESSAGE = 'Connection failed. Please try again.';
+    const ALO_UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    // A signup that carries a code reaches this function twice for the same
+    // code (the login modal's call and the user_metadata path). The second
+    // call joins the first or, if that one already claimed, returns its
+    // result -- it must not spend a second attempt on a code that is now
+    // spent and show that failure over a successful claim.
+    let _aloClaimInFlight = null;   // { key, promise } while a claim runs
+    let _aloClaimedKey = null;      // '<user id>:<code>' this page has claimed
+
+    async function handleConnectSubmit(inviteCode, showError) {
+      const surface = typeof showError === 'function' ? showError : showToast;
+      const code = _aloNormalizeInviteCode(inviteCode);
+
+      let user = null;
+      let userReadFailed = false;
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        user = data && data.user;
+        userReadFailed = !!(error && error.name === 'AuthRetryableFetchError');
+      } catch (err) {
+        userReadFailed = true;
       }
 
-      try {
-        const link = await api(`/rest/v1/therapist_clients?invite_code=eq.${inviteCode}&status=eq.pending`);
-        
-        if (!link || link.length === 0) {
-          showToast('Invalid invite code. Check the code your therapist sent you.');
+      if (!user) {
+        // A user read that failed on the network is a transport failure,
+        // not a signed-out page.
+        if (userReadFailed) {
+          surface(ALO_CONNECT_TRANSPORT_FAILURE_MESSAGE);
+          return false;
+        }
+        showLoginModal(inviteCode);
+        return null;
+      }
+
+      const key = user.id + ':' + code;
+      // Claimed-check first: the claim's own loadConnectedState() can come
+      // back here for the same code (user_metadata path), and must get an
+      // answer rather than wait on the promise that is waiting on it.
+      if (_aloClaimedKey === key) return true;
+      if (_aloClaimInFlight && _aloClaimInFlight.key === key) return _aloClaimInFlight.promise;
+
+      const promise = (async function() {
+        let res;
+        try {
+          res = await supabase.rpc('redeem_invite_code', { p_code: code });
+        } catch (err) {
+          res = { data: null, error: err };
+        }
+        const answer = res && !res.error && res.data && typeof res.data === 'object' ? res.data : null;
+
+        if (!answer || answer.success !== true) {
+          if (answer && answer.success === false && typeof answer.error === 'string' && answer.error) {
+            surface(answer.error);
+          } else {
+            // Never the code, never the raw error on screen.
+            console.error('[Connect] redeem_invite_code gave no usable answer:',
+              res && res.error ? (res.error.code || res.error.message || res.error.name) : 'unexpected body');
+            surface(ALO_CONNECT_TRANSPORT_FAILURE_MESSAGE);
+          }
           return false;
         }
 
-        const linkId = link[0].id;
-        const therapistDisplayName = link[0].display_name || null;
+        // Claimed. From here nothing turns it back into a failure.
+        _aloClaimedKey = key;
 
-        await api(`/rest/v1/therapist_clients?id=eq.${linkId}`, 'PATCH', {
-          client_id: user.id,
-          status: 'active'
-        });
-
-        // Seed client profile with therapist's chosen name (client can change later)
-        if (therapistDisplayName) {
-          const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
-          const currentName = existingProfile?.[0]?.display_name;
-          if (!currentName || currentName === user.email?.split('@')[0]) {
-            await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
-              display_name: therapistDisplayName
-            });
+        // Seed the client's profile with the name the therapist gave this
+        // client on the invite (client can change it later). That label is
+        // display_name on the claimed row -- now this client's own active
+        // row, read by the id the function returned. It is NOT the
+        // function's therapist_name, which is the therapist's own name.
+        try {
+          const linkId = typeof answer.therapist_client_id === 'string' ? answer.therapist_client_id : '';
+          if (ALO_UUID_SHAPE.test(linkId)) {
+            const claimedRow = await api(`/rest/v1/therapist_clients?id=eq.${linkId}&client_id=eq.${user.id}&select=display_name`);
+            const clientLabel = claimedRow?.[0]?.display_name || null;
+            if (clientLabel) {
+              const existingProfile = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
+              const currentName = existingProfile?.[0]?.display_name;
+              if (!currentName || currentName === user.email?.split('@')[0]) {
+                await api(`/rest/v1/profiles?id=eq.${user.id}`, 'PATCH', {
+                  display_name: clientLabel
+                });
+              }
+            }
           }
+        } catch (seedErr) {
+          // Console-only: the claim stands, and the name can be set by hand.
+          console.error('[Connect] Could not seed display name:', seedErr);
         }
 
         showToast('Connected successfully!');
-        // A4 (Path P, ruling D37): the claim above is unchanged. Entry into
-        // the connected state is only ever through loadConnectedState(),
-        // which re-reads the row and holds an unconsented one at the
-        // onboarding screens before anything unlocks. Returns true when the
-        // row was claimed (whatever the gate then decides), false otherwise.
+        // A4 (ruling D37), unchanged by Path R: entry into the connected
+        // state is only ever through loadConnectedState(), which re-reads
+        // the row and holds an unconsented one at the onboarding screens
+        // before anything unlocks.
         await loadConnectedState();
         return true;
-      } catch (err) {
-        console.error('Connection error:', err);
-        showToast('Connection failed. Please try again.');
-        return false;
+      })();
+
+      _aloClaimInFlight = { key: key, promise: promise };
+      try {
+        return await promise;
+      } finally {
+        if (_aloClaimInFlight && _aloClaimInFlight.promise === promise) _aloClaimInFlight = null;
       }
     }
 
@@ -4141,7 +4273,7 @@ async function togglePin(conversationId) {
 
       showConnectModal();
       const input = document.getElementById('inviteCodeInput');
-      if (input) input.value = invite;
+      if (input) input.value = _aloNormalizeInviteCode(invite);
     }
 
     // =====================================================
