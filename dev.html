@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=15">
+  <link rel="stylesheet" href="dev.css?v=16">
 </head>
 
 <body>
@@ -158,7 +158,7 @@
             <div class="more-menu-divider" role="separator"></div>
       <button class="more-menu-item" role="menuitem" id="morePrivateToggleBtn" onclick="toggleMoreMenu(); togglePrivateChatFromHeader()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-        <span id="morePrivateToggleLabel">Go private from this point on</span>
+        <span id="morePrivateToggleLabel">Start private session</span>
       </button>
       <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -231,6 +231,46 @@
           <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory and history are for signed-in accounts. Guests start fresh every visit.</p>
         </section>
 
+        <!-- Brief 3c H (claims-freeze, ruled Sep 20): what each mode saves. -->
+        <section class="about-section">
+          <h3 id="aboutSavedTitle">What gets saved</h3>
+          <table class="about-saved-table" aria-labelledby="aboutSavedTitle">
+            <tbody>
+              <tr>
+                <th scope="row">Normal</th>
+                <td>
+                  <ul>
+                    <li>Conversation history saved to your account (you can delete it)</li>
+                    <li>Brief summaries so Alo remembers context</li>
+                    <li>Journal saves when you ask</li>
+                    <li>Safety alerts to your therapist, never your words</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Memory off</th>
+                <td>
+                  <ul>
+                    <li>History still saved</li>
+                    <li>No summaries carried forward</li>
+                    <li>Journal saves when you ask</li>
+                    <li>Safety alerts still</li>
+                  </ul>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Private session</th>
+                <td>
+                  <ul>
+                    <li>Nothing saved — no history, no memory, no journal</li>
+                    <li>Safety alerts still</li>
+                  </ul>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
         <section class="about-section">
           <h3>Your Journal</h3>
           <p>Journal entries are private by default. You choose what to share. Your therapist can only see entries you explicitly share — and you can revoke sharing at any time.</p>
@@ -274,7 +314,7 @@
   <!-- Private session banner (shown when memory paused for this conversation) -->
   <div id="privateSessionBanner" class="private-session-banner">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-    <span id="privateSessionBannerText">Private session — Alo won't remember this conversation</span>
+    <span id="privateSessionBannerText">Private session — nothing here is saved or remembered. If you're in danger, Alo still sends your therapist a safety alert, never your words.</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
   </div>
 <!-- Guest benefits card. NEVER shown on this build (Brief 1a-min D1): self-serve signups are off, so "Create a free account" is not true, and it was reaching signed-in users (reproduced 2026-09-15). Markup kept; showGuestBenefitsCard() is a no-op; the Create Account action is gone. -->
@@ -484,12 +524,12 @@
 
     // Memory & private session state
     let memoryGlobalEnabled = true;   // A-10 (Brief 1a-min B1): display default ON; loadMemorySettings() reads the row
-    let isPrivateSession = false;
+    let isPrivateSession = false;     // page side: while true nothing is written (history, messages, therapist messages)
     let authBridgeSent = false;
-    // Brief 3 fixes A, I, J -- see startPrivateSession().
-    let _aloPrivateStarting = false;  // a start is waiting on Botpress
-    let _aloPrivateScope = null;      // while private: 'conversation' (all of it) or 'fromHere'
-    let _aloConvFresh = false;        // true only when nothing of the current Botpress conversation is saved
+    // Brief 3c -- see sendIdentityToBot() and startPrivateSession().
+    let _aloBotPrivate = false;          // bot side: the privateSession value the bot last confirmed; every identity send carries it
+    let _aloPrivateTransition = false;   // a private start or end is waiting on Botpress
+    let _aloPrivateReload = false;       // this page load found the private marker set (see ALO_PRIVATE_ACTIVE_KEY)
 
     // Tab bar & journal state
     let activeTab = 'chat';
@@ -501,9 +541,14 @@
     // the consent gate's outcome. The real function is assigned inside
     // DOMContentLoaded (it closes over the loading overlay and its timeout);
     // this placeholder can only ever fail closed -- no chat -- never open.
+    // Brief 3c I: it returns a promise -- true at webchat:initialized, false
+    // if the SDK's init() threw -- so identity and the auth bridge can wait
+    // for the webchat instead of firing into its pre-init stubs.
     var _aloBotpressInitStarted = false;
+    var _aloBotpressInitPromise = null;
     var _aloInitBotpress = function() {
       console.error('[Alo] _aloInitBotpress called before page setup');
+      return Promise.resolve(false);
     };
 
     // Journal prompt bank (14 general + 2 therapy-conditional)
@@ -1316,6 +1361,7 @@ function showAboutModal() {
       currentHomeworkId = null;
       memoryGlobalEnabled = null;
       isPrivateSession = false;
+      _aloBotPrivate = false;
       authBridgeSent = false;
       _aloClaimInFlight = null;   // Brief 3b: both carry the user id and a code
       _aloClaimedKey = null;
@@ -1352,7 +1398,27 @@ function showAboutModal() {
     // Set while a private session is on (fix A). A page that loads with it
     // set was reloaded mid-private: it starts a fresh Botpress user and a
     // normal conversation, and never resumes the private one into history.
+    // Brief 3c C: the key itself is read and removed at page load
+    // (_aloClearPrivateStateOnLoad), whether or not the chat ever starts;
+    // what it said is kept in _aloPrivateReload for the init below.
     var ALO_PRIVATE_ACTIVE_KEY = 'alo_private_active';
+
+    // Brief 3c C (ruling Sep 20: private sessions are conversations, not a
+    // persisted mode): a page load is never inside a private session. The
+    // page-side flag, the bot-side value and the marker all start clear, and
+    // the startup identity send says privateSession: 'false' out loud --
+    // Botpress keeps user data across reloads, so a 'true' that nothing
+    // took back would otherwise stay for good.
+    function _aloClearPrivateStateOnLoad() {
+      isPrivateSession = false;
+      _aloBotPrivate = false;
+      try {
+        _aloPrivateReload = localStorage.getItem(ALO_PRIVATE_ACTIVE_KEY) === '1';
+        localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY);
+      } catch (e) {
+        console.error('[Alo] Could not read the private-session marker:', e);
+      }
+    }
 
     function _aloIsBotpressStorageKey(k) {
       return k.indexOf('bp-webchat') === 0 || k === 'botpress-message-history' ||
@@ -1397,12 +1463,10 @@ function showAboutModal() {
     function _aloPrepareBotpressStorage() {
       try {
         var owner = clientId ? 'u:' + clientId : 'g:' + _aloGuestVisitId();
-        var privateReload = localStorage.getItem(ALO_PRIVATE_ACTIVE_KEY) === '1';
-        if (privateReload || localStorage.getItem(ALO_BP_OWNER_KEY) !== owner) {
+        if (_aloPrivateReload || localStorage.getItem(ALO_BP_OWNER_KEY) !== owner) {
           _aloClearBotpressStorage();
-          _aloConvFresh = true;   // a fresh user starts a new, unsaved conversation
         }
-        localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY);
+        _aloPrivateReload = false;
         localStorage.setItem(ALO_BP_OWNER_KEY, owner);
       } catch (e) {
         console.error('[Alo] Botpress storage check failed:', e);
@@ -2296,6 +2360,9 @@ function showAboutModal() {
     let _aloPendingInviteHandled = false;
 
     async function loadConnectedState() {
+      // Brief 3c B: true once this call is holding the composer for a
+      // handshake it has not started yet (see the catch at the bottom).
+      let composerHeldHere = false;
       try {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -2408,8 +2475,18 @@ function showAboutModal() {
         clientId = user.id;
         _aloClaimBotpressOwner();
 
-        // A2: only past the gate does the chat start loading.
-        _aloInitBotpress();
+        // Brief 3c B: the composer stays disabled ("Connecting…") from its
+        // first paint until this page load's first identity handshake has
+        // settled. Later entries (supabase-js re-emits SIGNED_IN when the tab
+        // comes back) refresh the identity under a composer that stays usable.
+        if (!_aloStartupHandshakeBegun) {
+          _aloHoldComposer();
+          composerHeldHere = true;
+        }
+
+        // A2: only past the gate does the chat start loading. The promise
+        // settles at webchat:initialized (Brief 3c I).
+        const botpressUp = _aloInitBotpress();
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
@@ -2437,49 +2514,298 @@ function showAboutModal() {
         
         await loadHomework();
 
-        // Generate nonce, write session start, and send identity to Botpress
+        // Generate nonce, write session start, then hand the identity to
+        // Botpress. A7/C1 (write-before-confirm) still holds, and more
+        // strictly: the new nonce becomes the page's nonce only once its row
+        // is written, so no send -- this call's or a concurrent one's -- can
+        // carry a nonce the bot cannot find.
         const sessionId = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-        sessionNonce = crypto.randomUUID();
-                // A7/C1 — write-before-confirm fix: await metadata write, then fire
-        // updateUser and the auth bridge in order, only after it succeeds.
+        const newNonce = crypto.randomUUID();
+        let nonceWritten = false;
         try {
           await api('/rest/v1/session_metadata', 'POST', {
             client_id: clientId,
             session_id: sessionId,
-            nonce: sessionNonce
+            nonce: newNonce
           });
-          if (window.botpress) {
-            const hwSummary = activeHomework.length > 0
-              ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
-              : [];
-            window.botpress.updateUser({
-              data: {
-                sessionNonce: sessionNonce,
-                clientId: clientId,
-                homeworkActive: JSON.stringify(hwSummary),
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-              }
-            });
-            console.log('[Alo] Identity + homework sent to Botpress via updateUser');
-          }
-          // Send identity to Botpress via Custom Trigger (auth bridge) —
-          // only after metadata write is confirmed, so Botpress never
-          // validates a clientId whose session row doesn't exist yet.
-          sendAuthBridge();
+          sessionNonce = newNonce;
+          nonceWritten = true;
         } catch (err) {
-          // Deliberately console-only: already resilient by design.
+          // Not a reason to stop the chat: the handshake below still runs
+          // (it states privateSession and carries any nonce this page already
+          // holds) and reports the identity as not verified.
           console.error('Session metadata write failed:', err);
-          // Still attempt the auth bridge — better a degraded session
-          // than no conversation at all.
-          sendAuthBridge();
         }
+
+        // Brief 3c A, B, I: runs behind this function on purpose -- callers
+        // (the sign-in and connect modals among them) are not kept waiting on
+        // Botpress. It never rejects, releases the composer, and sends the
+        // auth bridge once it has settled.
+        composerHeldHere = false;
+        _aloRunIdentityHandshake(botpressUp, nonceWritten);
 
       } catch (err) {
         console.error('Error loading connected state:', err);
         showToast('Some things may not have loaded correctly. Try refreshing the page.');
+        // Brief 3c B: this call will not reach its handshake. Unless another
+        // entry's startup handshake is already under way (it releases the
+        // composer itself), let the user type -- never a composer left held.
+        if (composerHeldHere && !_aloStartupHandshakeBegun) _aloReleaseComposer();
         // A2: Botpress is deferred until the gate is known, so a failed read
         // here must not leave a silent spinner. Fail closed, and visibly.
         if (!_aloBotpressInitStarted) _aloShowLoadError();
+      }
+    }
+
+    // =====================================================
+    // IDENTITY HANDSHAKE WITH THE BOT (Brief 3c A, B, I)
+    // =====================================================
+    // What the bot does with it (since Sep 20): on every turn it reads the
+    // webchat user data. sessionNonce, checked against session_metadata, is
+    // the ONLY thing that authorises identity -- a clientId without a valid
+    // nonce is a guest. privateSession === 'true' means a private session.
+    //
+    // What the SDK does (read from the v3.3 inject.js / webchat.js bundles,
+    // 2026-09-20): before webchat:initialized, updateUser() only merges into
+    // a local copy -- which init may never send, and with a newly created
+    // Botpress user throws away -- and getUser() throws. After it,
+    // updateUser() merges the patch into its copy of the user and PUTs the
+    // whole data object; getUser() reads the user back from the server.
+    // Botpress keeps that data across reloads, so a key that is left out
+    // keeps its last value: that is how privateSession: 'true' outlived the
+    // session that set it. Hence the rules below.
+    //
+    // sendIdentityToBot(reason, opts) is the ONE way identity reaches the
+    // bot. Every send is the complete object -- clientId, sessionNonce,
+    // privateSession ('true' / 'false', never left out), homeworkActive,
+    // timeZone -- awaited (8 s cap), then read back with getUser() and
+    // compared; one retry on a mismatch, an error or a timeout. Resolves
+    // true only once the read-back matches; never rejects.
+    //
+    // privateSession is the value the bot last confirmed (_aloBotPrivate),
+    // which is isPrivateSession except inside a private start or end: those
+    // pass opts.privateSession, and _aloBotPrivate changes only here, on a
+    // verified send. Sends run one at a time, each built from the page's
+    // state when it actually runs, so an identity refresh cannot overtake a
+    // private start or end and put the old value back.
+    const ALO_IDENTITY_NOT_VERIFIED_MESSAGE =
+      "Alo may not recognize you on the first message. If it doesn't, reload the page.";
+
+    let _aloIdentityQueue = Promise.resolve();
+    let _aloLastVerifiedIdentity = null;    // JSON of the last object the bot confirmed
+    let _aloStartupHandshakeBegun = false;  // this page load's first connected-state handshake has started
+
+    function _aloBuildIdentityData(wantPrivate) {
+      const hwSummary = activeHomework.length > 0
+        ? activeHomework.map(h => ({ title: h.title, type: h.homework_type, goal: h.goal }))
+        : [];
+      return {
+        clientId: clientId || '',
+        sessionNonce: sessionNonce || '',
+        // A7-bonus -- a string, never a boolean: Botpress's
+        // webchat:getUserData schema rejects boolean values here, which
+        // silently broke every subsequent turn once one was set.
+        privateSession: wantPrivate ? 'true' : 'false',
+        homeworkActive: JSON.stringify(hwSummary),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+    }
+
+    function sendIdentityToBot(reason, opts) {
+      const run = _aloIdentityQueue.then(function() {
+        return _aloSendIdentityNow(reason, opts || {});
+      });
+      _aloIdentityQueue = run.catch(function() {});
+      return run.catch(function(err) {
+        console.error('[Alo] Identity send error (' + reason + '):', err);
+        return false;
+      });
+    }
+
+    async function _aloSendIdentityNow(reason, opts) {
+      const bp = window.botpress;
+      if (!bp || bp.initialized !== true) {
+        // Nothing sent before init can be verified (see above).
+        console.error('[Alo] Identity NOT verified: the webchat is not initialized (' + reason + ')');
+        return false;
+      }
+      const wantPrivate = typeof opts.privateSession === 'boolean' ? opts.privateSession : _aloBotPrivate;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        // Built from the page's current state on every attempt.
+        const data = _aloBuildIdentityData(wantPrivate);
+        const asSent = JSON.stringify(data);
+        if (asSent === _aloLastVerifiedIdentity) {
+          // The bot already holds exactly this (the bridge after a restart).
+          console.log('[Alo] Identity already verified with Botpress (' + reason + ')');
+          return true;
+        }
+        try {
+          await _aloWithTimeout(bp.updateUser({ data: data }), 8000);
+          const user = await _aloWithTimeout(bp.getUser(), 8000);
+          const held = user && user.data;
+          if (held && typeof held === 'object' &&
+              held.clientId === data.clientId &&
+              held.sessionNonce === data.sessionNonce &&
+              held.privateSession === data.privateSession) {
+            _aloBotPrivate = wantPrivate;
+            _aloLastVerifiedIdentity = asSent;
+            console.log('[Alo] Identity verified with Botpress (' + reason + ')');
+            return true;
+          }
+          // Never the values: the nonce is what authorises this identity.
+          console.error('[Alo] Identity read-back did not match (attempt ' + attempt + ', ' + reason + ')');
+        } catch (err) {
+          console.error('[Alo] Identity send failed (attempt ' + attempt + ', ' + reason + '):', err && err.message);
+        }
+        // What the bot holds is unknown until a read-back matches again.
+        _aloLastVerifiedIdentity = null;
+      }
+      console.error('[Alo] Identity NOT verified after 2 attempts (' + reason + ')');
+      return false;
+    }
+
+    // The connected-state handshake. The first one of a page load is
+    // 'startup': it owns the composer (Brief 3c B) and the one constant
+    // toast. Later ones are 'refresh' and are console-only. The auth bridge
+    // goes after it, never before init (Brief 3c I), whatever the outcome:
+    // better a degraded session than no conversation at all.
+    function _aloRunIdentityHandshake(botpressUp, nonceWritten) {
+      const startup = !_aloStartupHandshakeBegun;
+      _aloStartupHandshakeBegun = true;
+      const reason = startup ? 'startup' : 'refresh';
+      return (async function() {
+        let verified = false;
+        try {
+          const up = await botpressUp;
+          if (up) verified = await sendIdentityToBot(reason);
+          if (verified && !nonceWritten) {
+            // Botpress has the object, but this load's nonce has no row for
+            // the bot to check it against.
+            console.error('[Alo] Identity NOT verified: no session nonce was written (' + reason + ')');
+            verified = false;
+          }
+        } catch (err) {
+          console.error('[Alo] Identity handshake error (' + reason + '):', err);
+        }
+        if (startup) {
+          // Verified or not, the user is never kept from talking.
+          _aloReleaseComposer();
+          if (!verified) showToast(ALO_IDENTITY_NOT_VERIFIED_MESSAGE, 6000);
+        }
+        sendAuthBridge();
+        return verified;
+      })();
+    }
+
+    // ---- Brief 3c B: the composer waits for the handshake ----
+    // The composer belongs to the Botpress webchat, which has no setting for
+    // this: its own disabled state follows its connection, nothing else (read
+    // from the v3.3 bundle). The webchat runs in a same-origin about:blank
+    // iframe, so while the page is holding it, the message box is disabled
+    // there with the placeholder below and the composer ignores taps (its
+    // send and voice buttons included). The webchat re-renders, connects and
+    // can re-mount the box while held, so the hold is re-applied on every
+    // change to that document. Anything unexpected -- no iframe, a changed
+    // DOM, an exception -- leaves the composer as the webchat made it: this
+    // can fail open, never closed, and a timer releases it whatever happens.
+    const ALO_COMPOSER_CONNECTING_PLACEHOLDER = 'Connecting…';
+    const ALO_COMPOSER_INPUT_SELECTOR = 'textarea.bpComposerInput, textarea[aria-label="Message Input"]';
+    let _aloComposerHeld = false;
+    let _aloComposerObserver = null;
+    let _aloComposerSafetyTimer = null;
+
+    function _aloComposerDocument() {
+      try {
+        const frame = document.querySelector('iframe.bpWebchat');
+        return (frame && frame.contentDocument) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function _aloApplyComposerHold() {
+      if (!_aloComposerHeld) return;
+      try {
+        const doc = _aloComposerDocument();
+        if (!doc) return;
+        doc.querySelectorAll(ALO_COMPOSER_INPUT_SELECTOR).forEach(function(box) {
+          if (box.getAttribute('data-alo-held') !== '1') {
+            box.setAttribute('data-alo-held', '1');
+            box.setAttribute('data-alo-placeholder', box.getAttribute('placeholder') || '');
+            box.setAttribute('data-alo-was-disabled', box.disabled ? '1' : '0');
+          } else if (!box.disabled) {
+            // The webchat enabled it meanwhile (its conversation connected):
+            // that is the state to hand back on release.
+            box.setAttribute('data-alo-was-disabled', '0');
+          }
+          // Written only when different, so the observer below settles.
+          if (!box.disabled) box.disabled = true;
+          if (box.getAttribute('placeholder') !== ALO_COMPOSER_CONNECTING_PLACEHOLDER) {
+            box.setAttribute('placeholder', ALO_COMPOSER_CONNECTING_PLACEHOLDER);
+          }
+        });
+        doc.querySelectorAll('.bpComposerContainer').forEach(function(el) {
+          if (el.style.pointerEvents !== 'none') el.style.pointerEvents = 'none';
+        });
+      } catch (e) {
+        console.error('[Alo] Could not hold the composer:', e);
+      }
+    }
+
+    // Safe to call before the webchat exists: the webchat:initialized
+    // handler calls _aloWatchComposer() before it opens the chat.
+    function _aloHoldComposer() {
+      _aloComposerHeld = true;
+      if (!_aloComposerSafetyTimer) {
+        _aloComposerSafetyTimer = setTimeout(function() {
+          console.error('[Alo] Composer released by its safety timer');
+          _aloReleaseComposer();
+        }, 45000);
+      }
+      _aloWatchComposer();
+    }
+
+    // Re-attaches every time: the SDK fills (in Firefox, rewrites) the
+    // iframe's document after creating it, so a watch begun before
+    // webchat:initialized may be on content that is gone. The Document node
+    // itself is what is observed, for the same reason.
+    function _aloWatchComposer() {
+      if (!_aloComposerHeld) return;
+      try {
+        if (_aloComposerObserver) { _aloComposerObserver.disconnect(); _aloComposerObserver = null; }
+        const doc = _aloComposerDocument();
+        if (!doc) return;
+        _aloComposerObserver = new MutationObserver(_aloApplyComposerHold);
+        _aloComposerObserver.observe(doc, {
+          childList: true, subtree: true, attributes: true, attributeFilter: ['disabled', 'placeholder', 'style']
+        });
+        _aloApplyComposerHold();
+      } catch (e) {
+        console.error('[Alo] Could not watch the composer:', e);
+      }
+    }
+
+    function _aloReleaseComposer() {
+      _aloComposerHeld = false;
+      if (_aloComposerSafetyTimer) { clearTimeout(_aloComposerSafetyTimer); _aloComposerSafetyTimer = null; }
+      if (_aloComposerObserver) { _aloComposerObserver.disconnect(); _aloComposerObserver = null; }
+      try {
+        const doc = _aloComposerDocument();
+        if (!doc) return;
+        doc.querySelectorAll('[data-alo-held="1"]').forEach(function(box) {
+          const placeholder = box.getAttribute('data-alo-placeholder');
+          if (placeholder) box.setAttribute('placeholder', placeholder);
+          else box.removeAttribute('placeholder');
+          if (box.getAttribute('data-alo-was-disabled') !== '1') box.disabled = false;
+          box.removeAttribute('data-alo-held');
+          box.removeAttribute('data-alo-placeholder');
+          box.removeAttribute('data-alo-was-disabled');
+        });
+        doc.querySelectorAll('.bpComposerContainer').forEach(function(el) {
+          el.style.pointerEvents = '';
+        });
+      } catch (e) {
+        console.error('[Alo] Could not release the composer:', e);
       }
     }
 
@@ -2507,7 +2833,6 @@ function showAboutModal() {
 
       if (existingId) {
         currentSupabaseConvId = existingId;
-        _aloConvFresh = false;
         try {
           var { data } = await supabase
             .from('conversations')
@@ -2553,7 +2878,6 @@ function showAboutModal() {
       }
 
       currentSupabaseConvId = data.id;
-      _aloConvFresh = false;
       localStorage.setItem(storageKey, data.id);
       persistenceTurnCounter = 0;
       console.log('[Persistence] Created conversation:', data.id);
@@ -2613,36 +2937,55 @@ function showAboutModal() {
       persistenceTurnCounter = 0;
     }
 
-    function sendAuthBridge() {
+    // Brief 3c I: the bridge goes out only once the webchat can take it.
+    // Until init has finished, the SDK's sendEvent() is a stub that throws
+    // "Botpress webchat is not initialized" -- and it stays that stub a
+    // little longer than webchat:initialized, until the conversation client
+    // has connected (webchat:ready; read from the v3.3 bundle). The old
+    // check here (typeof sendEvent !== 'function') could never be true, so
+    // the bridge fired into the stub on every connected load. If
+    // webchat:ready somehow never comes, it is tried anyway after ~10 s and
+    // the retry below takes over.
+    let _aloBotpressConversationReady = false;
+    let _aloAuthBridgeWaits = 0;
+
+    // `again` is set on the function's own re-schedules only.
+    function sendAuthBridge(again) {
       if (authBridgeSent || !clientId) return;
-      if (!window.botpress || typeof window.botpress.sendEvent !== 'function') {
-        setTimeout(sendAuthBridge, 500);
+      const up = !!window.botpress && window.botpress.initialized === true;
+      if (!up || (!_aloBotpressConversationReady && _aloAuthBridgeWaits < 20)) {
+        if (up) _aloAuthBridgeWaits++;
+        setTimeout(function() { sendAuthBridge(again); }, 500);
         return;
       }
       authBridgeSent = true;
+      let sent;
       try {
-        window.botpress.sendEvent({
+        sent = window.botpress.sendEvent({
           bp_event: 'alo_auth_bridge_v1',
           clientId: clientId
         });
-        console.log('[Alo] Auth bridge sent to Botpress');
       } catch (e) {
+        sent = Promise.reject(e);
+      }
+      // After init sendEvent() is async: a rejection is handled here too.
+      Promise.resolve(sent).then(function() {
+        console.log('[Alo] Auth bridge sent to Botpress');
+      }, function(e) {
         // Deliberately console-only: self-retrying (schedules another
         // attempt below) and has no user-facing container of its own.
         console.warn('[Alo] Auth bridge sendEvent failed:', e);
-    authBridgeSent = false;
-    setTimeout(sendAuthBridge, 1000);
-  }
-      try {
-        window.botpress.updateUser({
-          userKey: clientId,
-          data: { clientId: clientId }
-        });
-      } catch (e) {
-        // Deliberately silent: best-effort identity sync: sendEvent above
-        // already carries clientId, so this is redundant when it succeeds.
-      }
-    } 
+        authBridgeSent = false;
+        setTimeout(function() { sendAuthBridge(true); }, 1000);
+      });
+      // Brief 3c A: the old clientId-only updateUser() fallback is now the
+      // one identity function -- complete object, awaited, verified. (The
+      // fallback also passed userKey: clientId, which the SDK reads at init
+      // as the Botpress user's own key; nothing sends that any more.) When
+      // the bot already holds this exact object it costs no request. Once
+      // per bridge, not once per retry of it.
+      if (again !== true) sendIdentityToBot('auth-bridge');
+    }
 
     // =====================================================
     // PRIVACY BAR
@@ -3258,17 +3601,14 @@ async function togglePin(conversationId) {
       var toggle = document.getElementById('memoryToggle');
       if (toggle) toggle.checked = memoryGlobalEnabled;
 
-      // Private session banner (Brief 3 fix J: whole conversation only when
-      // none of it was saved before private mode began)
+      // Private session banner. One text (Brief 3c G): a private session is
+      // always a whole conversation now (Brief 3c D), so there is no
+      // mid-thread variant.
       var banner = document.getElementById('privateSessionBanner');
       if (banner) {
         banner.style.display = isPrivateSession ? 'flex' : 'none';
         var bannerText = document.getElementById('privateSessionBannerText');
-        if (bannerText && isPrivateSession) {
-          bannerText.textContent = _aloPrivateScope === 'conversation'
-            ? 'Private session — Alo won\'t remember this conversation'
-            : 'Private from this point on — Alo won\'t remember what you say next';
-        }
+        if (bannerText) bannerText.textContent = ALO_PRIVATE_BANNER_TEXT;
       }
 
       // Chat container tint — peripheral-vision reminder of private state
@@ -3337,156 +3677,126 @@ async function togglePin(conversationId) {
     // client_messages, no local copy -- and a reload ends the session (see
     // ALO_PRIVATE_ACTIVE_KEY) instead of resuming it into history.
     // Brief 3 fix I (R-C-07): private mode is on only once Botpress holds
-    // the flag. updateUser() is awaited (after init it resolves only when
-    // the Chat API has answered, and window.botpress.user is then the user
-    // it returned), retried once, and checked. Until then nothing changes:
-    // no banner, no toast, no flag. On failure, one constant message.
-    // Brief 3 fix J (R-C-15): the copy says "this conversation" only when
-    // none of it is saved yet; otherwise it says "from this point on".
+    // the flag. Until then nothing changes: no banner, no toast, no flag.
+    // On failure, one constant message.
+    // Brief 3c D, E (ruling Sep 20): a private session is a conversation.
+    // Turning it on and turning it off each start a new conversation, so
+    // nothing said before is inside it and nothing said in it carries on.
+    // There is no mid-conversation variant any more. Both directions tell the
+    // bot first, through sendIdentityToBot() (awaited, read back, retried
+    // once), and the page follows only once the bot has confirmed.
     const ALO_PRIVATE_START_FAILURE_MESSAGE =
       "Couldn't start a private session — nothing was changed. Try again.";
+    const ALO_PRIVATE_END_FAILURE_MESSAGE =
+      "Couldn't end the private session — nothing was changed. Try again.";
     const ALO_MEMORY_OFF_PRIVATE_MESSAGE =
       'Memory is off, but your conversations are still saved to your history.';
     const ALO_PRIVATE_NO_THERAPIST_MESSAGE =
       "Messages to your therapist can't be sent during a private session.";
+    // Brief 3c G (claims-freeze, ruled Sep 20).
+    const ALO_PRIVATE_BANNER_TEXT =
+      "Private session — nothing here is saved or remembered. If you're in danger, Alo still sends your therapist a safety alert, never your words.";
 
-    // A7-bonus -- privateSession must be a string, not boolean. Botpress's
-    // webchat:getUserData schema rejects boolean values here, which
-    // silently broke every subsequent turn once this was set.
-    async function _aloSetBotPrivateFlag(value) {
-      var bp = window.botpress;
-      if (!bp || !botpressReady || bp.initialized !== true) return false;
-      for (var attempt = 1; attempt <= 2; attempt++) {
-        try {
-          await _aloWithTimeout(bp.updateUser({ data: { privateSession: value } }), 8000);
-          // Where the returned user carries its data, it must carry the flag.
-          var data = bp.user && bp.user.data;
-          if (!data || typeof data !== 'object' || data.privateSession === value) return true;
-        } catch (err) {
-          console.error('[Alo] privateSession update failed (attempt ' + attempt + '):', err);
+    function _aloCloseMemoryPopoverIfOpen() {
+      // These functions are called from the popover and from the menu.
+      var pop = document.getElementById('memoryPopover');
+      if (pop && !pop.classList.contains('hidden')) toggleMemoryPopover();
+    }
+
+    // Private ON. Order: the bot confirms privateSession 'true'; the page
+    // stops writing (flag and reload marker) BEFORE the restart, so nothing
+    // of the new conversation is ever written; the conversation restarts;
+    // then the banner. Also reached while already private ("Start new
+    // private conversation"): the bot already holds 'true', so that is just
+    // the restart. Returns true once the private conversation is live.
+    async function startPrivateSession() {
+      if (_aloPrivateTransition) return isPrivateSession;
+      _aloPrivateTransition = true;
+      try {
+        _aloCloseMemoryPopoverIfOpen();
+        var confirmed = await sendIdentityToBot('private-start', { privateSession: true });
+        if (!confirmed) {
+          // A timed-out attempt may still have landed: say again what is
+          // true ("nothing was changed"). Best effort, not waited for.
+          sendIdentityToBot('private-start-undo');
+          showToast(ALO_PRIVATE_START_FAILURE_MESSAGE, 5000);
+          return false;
         }
-      }
-      return false;
-    }
-
-    // After a failed start: a timed-out attempt may still land, so set the
-    // flag back ("nothing was changed"). Best effort.
-    function _aloUndoBotPrivateFlag() {
-      var bp = window.botpress;
-      if (!bp || bp.initialized !== true) return;
-      Promise.resolve().then(function() {
-        return bp.updateUser({ data: { privateSession: 'false' } });
-      }).catch(function(err) {
-        console.error('[Alo] privateSession reset failed:', err);
-      });
-    }
-
-    // Botpress has confirmed: private mode is on from here.
-    function _aloEnterPrivate() {
-      isPrivateSession = true;
-      _aloPrivateScope = _aloConvFresh ? 'conversation' : 'fromHere';
-      try { localStorage.setItem(ALO_PRIVATE_ACTIVE_KEY, '1'); } catch (e) {}
-      updateMemoryUI();
-      updatePrivateChatBtn();
-      if (_aloPrivateScope === 'conversation') {
+        isPrivateSession = true;
+        try { localStorage.setItem(ALO_PRIVATE_ACTIVE_KEY, '1'); } catch (e) {}
+        var restarted = await startNewConversation(true, { keepPrivate: true });
+        if (!restarted) return false;   // the page is reloading (see _aloRestartConversation)
+        updateMemoryUI();
+        updatePrivateChatBtn();
         showToast('Private session — this conversation won\'t be remembered');
         _aloShowTip('privateSession', 'Nothing from this conversation goes into your history or memory.');
-      } else {
-        showToast('Private from this point on — what you say next won\'t be remembered');
-        _aloShowTip('privateSession', 'From this point on, nothing goes into your history or memory.');
-      }
-    }
-
-    async function startPrivateSession() {
-      if (isPrivateSession || _aloPrivateStarting) return isPrivateSession;
-      _aloPrivateStarting = true;
-      // Only close popover if it's open (this function is called from the menu too)
-      var pop = document.getElementById('memoryPopover');
-      if (pop && !pop.classList.contains('hidden')) {
-        toggleMemoryPopover();
-      }
-      var confirmed = false;
-      try {
-        confirmed = await _aloSetBotPrivateFlag('true');
+        return true;
       } finally {
-        _aloPrivateStarting = false;
-      }
-      if (!confirmed) {
-        _aloUndoBotPrivateFlag();
-        showToast(ALO_PRIVATE_START_FAILURE_MESSAGE, 5000);
-        return false;
-      }
-      _aloEnterPrivate();
-      return true;
-    }
-
-        function endPrivateSession() {
-      isPrivateSession = false;
-      _aloPrivateScope = null;
-      try { localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY); } catch (e) {}
-      updateMemoryUI();
-      updatePrivateChatBtn();
-      showToast('Private session ended');
-
-      if (window.botpress) {
-        Promise.resolve().then(function() {
-          return window.botpress.updateUser({ data: { privateSession: 'false' } });
-        }).catch(function(err) {
-          console.error('[Alo] privateSession end failed:', err);
-        });
+        _aloPrivateTransition = false;
       }
     }
 
-        // Menu item: one-tap privacy toggle for the current conversation.
+    // Private OFF (the banner's X, the menu, the popover, and "New
+    // conversation" during a private session). Order: the bot confirms
+    // privateSession 'false'; the conversation restarts into a normal one;
+    // only then does the page stop treating what arrives as private -- a
+    // late reply from the private conversation must not land in history,
+    // and a reload in between still finds the marker and starts clean. If
+    // the bot does not confirm, nothing changes: still private, banner up.
+    async function endPrivateSession() {
+      if (!isPrivateSession || _aloPrivateTransition) return false;
+      _aloPrivateTransition = true;
+      try {
+        _aloCloseMemoryPopoverIfOpen();
+        var confirmed = await sendIdentityToBot('private-end', { privateSession: false });
+        if (!confirmed) {
+          sendIdentityToBot('private-end-undo');   // as above: re-state 'true'
+          showToast(ALO_PRIVATE_END_FAILURE_MESSAGE, 5000);
+          return false;
+        }
+        var restarted = await _aloRestartConversation();
+        if (!restarted) return false;   // reloading: the load clears the private state (Brief 3c C)
+        isPrivateSession = false;
+        try { localStorage.removeItem(ALO_PRIVATE_ACTIVE_KEY); } catch (e) {}
+        updateMemoryUI();
+        updatePrivateChatBtn();
+        showToast('Private session ended — starting fresh.');
+        return true;
+      } finally {
+        _aloPrivateTransition = false;
+      }
+    }
+
+    // Menu item: one-tap private toggle.
     // Private sessions are offered only while memory is on (unchanged); the
     // hint when memory is off now says what is true (fix J, R-C-14).
     function togglePrivateChatFromHeader() {
-      if (isPrivateSession) {
-        endPrivateSession();
-      } else {
-        if (!memoryGlobalEnabled) {
-          showToast(ALO_MEMORY_OFF_PRIVATE_MESSAGE);
-          return;
-        }
-        return startPrivateSession();
+      if (isPrivateSession) return endPrivateSession();
+      if (!memoryGlobalEnabled) {
+        showToast(ALO_MEMORY_OFF_PRIVATE_MESSAGE);
+        return;
       }
+      return startPrivateSession();
     }
 
-        // Updates the hamburger-menu private-session item label.
+    // Updates the hamburger-menu private-session item label.
     // (Replaces the old floating privateChatBtn, removed in the Item 3 UI batch.)
     function updatePrivateChatBtn() {
       var label = document.getElementById('morePrivateToggleLabel');
       if (label) {
-        label.textContent = isPrivateSession ? 'End private session' : 'Go private from this point on';
+        label.textContent = isPrivateSession ? 'End private session' : 'Start private session';
       }
     }
 
     // Menu action: a new conversation that is private from its first turn.
-    // Botpress is told first (fix I); if that fails, nothing has changed and
-    // the current conversation stays as it is. The private flag is set
-    // before the restart, so nothing of the new conversation is ever written.
+    // Since Brief 3c D that is what starting a private session always does;
+    // while already private it starts the next private conversation.
     async function startNewPrivateConversation() {
       if (!memoryGlobalEnabled) {
         showToast(ALO_MEMORY_OFF_PRIVATE_MESSAGE);
         return;
       }
-      if (_aloPrivateStarting) return;
-      _aloPrivateStarting = true;
-      var confirmed = false;
-      try {
-        confirmed = await _aloSetBotPrivateFlag('true');
-      } finally {
-        _aloPrivateStarting = false;
-      }
-      if (!confirmed) {
-        if (!isPrivateSession) _aloUndoBotPrivateFlag();
-        showToast(ALO_PRIVATE_START_FAILURE_MESSAGE, 5000);
-        return;
-      }
-      isPrivateSession = true;
-      try { localStorage.setItem(ALO_PRIVATE_ACTIVE_KEY, '1'); } catch (e) {}
-      var restarted = await startNewConversation(true, { keepPrivate: true });
-      if (restarted) _aloEnterPrivate();
+      return startPrivateSession();
     }
 
     // Logo click: from Journal, return to Chat. From Chat, offer a fresh start.
@@ -3529,19 +3839,17 @@ async function togglePin(conversationId) {
     }
 
    // Returns true once the new conversation is live, false if the user
-   // kept chatting or the restart failed (the page then reloads).
-   // opts.keepPrivate: used by startNewPrivateConversation(), which has
-   // already set the private flag for the conversation about to start.
+   // kept chatting, a private session could not be ended, or the restart
+   // failed (the page then reloads).
+   // opts.keepPrivate: used by startPrivateSession(), which has already set
+   // the private flag for the conversation about to start.
    async function startNewConversation(skipConfirm, opts) {
       var keepPrivate = !!(opts && opts.keepPrivate);
       if (!skipConfirm) {
-        // Brief 3 fix J (R-C-15): "not kept" is claimed only for what was
-        // actually private.
+        // A private session is always a whole conversation (Brief 3c D).
         var currentKept = !isPrivateSession
           ? 'Your current conversation is saved in your history.'
-          : (_aloPrivateScope === 'conversation'
-            ? 'This private conversation is not kept in your history.'
-            : 'Anything from before you went private stays in your history; nothing after that is kept.');
+          : 'This private conversation is not kept in your history.';
         const confirmed = await showConfirm(
           'Start new conversation?',
           'This will start a fresh conversation with Alo. ' + currentKept,
@@ -3550,14 +3858,15 @@ async function togglePin(conversationId) {
         if (!confirmed) return false;
       }
 
-      // Cleanly exit private mode if active (informs Botpress, updates UI together)
-      if (isPrivateSession && !keepPrivate) {
-        endPrivateSession();
-      }
+      // Brief 3c E: leaving a private session IS starting a new, normal
+      // conversation -- one path, the bot told first.
+      if (isPrivateSession && !keepPrivate) return endPrivateSession();
+      return _aloRestartConversation();
+   }
+
+   // The restart itself. Does not touch the private state.
+   async function _aloRestartConversation() {
       resetPersistenceState();
-      // Nothing of the next conversation is saved yet. Set before the
-      // restart: any row created from here on (ensureConversation) clears it.
-      _aloConvFresh = true;
 
       // Only toggle sidebar if it's open
       var sidebar = document.getElementById('threadSidebar');
@@ -4104,7 +4413,11 @@ async function togglePin(conversationId) {
           document.querySelector('.modal-overlay')?.remove();
           switchTab('chat');
           showToast('Starting a new conversation...');
-                    await startNewConversation(true);
+          // Brief 3c E: during a private session this ends it first. If that
+          // could not be confirmed (its own toast says so), or the page is
+          // reloading, the entry is not sent into the old conversation.
+          var started = await startNewConversation(true);
+          if (!started) return;
 
           // Wait for new conversation to be fully ready before sending
           await new Promise(function(resolve) { setTimeout(resolve, 1500); });
@@ -4292,6 +4605,9 @@ async function togglePin(conversationId) {
       // need past that one call.
       let _aloClientToken = _aloHandleTokenParam();
 
+      // Brief 3c C: a page load is never inside a private session.
+      _aloClearPrivateStateOnLoad();
+
       // Brief 3 fix H (R-C-11): older builds stored a typed invite code here
       // before the sign-in attempt, and it outlived that attempt. It belongs
       // to whoever typed it, so it is removed unread.
@@ -4313,8 +4629,10 @@ async function togglePin(conversationId) {
       // is armed here too, so a client reading the onboarding screens is
       // never told the chat is slow.
       _aloInitBotpress = function() {
-        if (_aloBotpressInitStarted) return;
+        if (_aloBotpressInitStarted) return _aloBotpressInitPromise;
         _aloBotpressInitStarted = true;
+        var resolveBotpressUp;
+        _aloBotpressInitPromise = new Promise(function(resolve) { resolveBotpressUp = resolve; });
 
         // Brief 3 fix B: a stored Botpress user is reused only by its owner
         // (see _aloPrepareBotpressStorage); otherwise init starts fresh.
@@ -4346,6 +4664,7 @@ async function togglePin(conversationId) {
         });
       } catch (err) {
         console.error('[Alo] Botpress SDK init failed:', err);
+        resolveBotpressUp(false);
         if (loadingOverlay) {
           loadingOverlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
             '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
@@ -4359,8 +4678,15 @@ async function togglePin(conversationId) {
 
         loadingOverlay.style.display = 'none';
         clearTimeout(loadTimeout);
+        // Brief 3c B: if the page is holding the composer for the identity
+        // handshake, the hold is in place before the chat opens, so the
+        // message box is never usable ahead of it.
+        _aloWatchComposer();
         window.botpress.open();
         console.log('[Alo] Botpress webchat initialized');
+        // Brief 3c I: the SDK sets window.botpress.initialized right after
+        // this event returns; whoever awaits the promise continues after that.
+        resolveBotpressUp(true);
 
         // Overlay positioning — don't move the iframe (breaks cross-origin),
         // instead position it fixed over .chat-container
@@ -4474,6 +4800,12 @@ window.botpress.on('webchat:closed', function() {
         if (!botpressReady) return;
         window.botpress.open();
       });
+
+      // Brief 3c I: the conversation client is connected, so sendEvent() is
+      // the real one from here (see sendAuthBridge).
+      window.botpress.on('webchat:ready', function() {
+        _aloBotpressConversationReady = true;
+      });
       
 
       // Message capture: persistence for signed-in users + guest turn tracking
@@ -4580,6 +4912,8 @@ window.botpress.on('webchat:closed', function() {
           </div>
         `;
       }, 15000);
+
+        return _aloBotpressInitPromise;
       };
       // ===== end of _aloInitBotpress =====
 

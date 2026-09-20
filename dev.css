@@ -1542,11 +1542,6 @@ footer a {
     color: var(--primary);
   }
 
-  .private-session-end:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-  }
-
   .thread-sidebar-settings-link:hover {
     background: var(--primary-light);
     color: var(--primary);
@@ -2227,39 +2222,67 @@ footer a {
 }
 
 /* === PRIVATE SESSION BANNER === */
+/* Brief 3c F: the banner sits above the webchat overlay (.bpWebchat is
+   position: fixed, z-index 10, laid over .chat-container by JS), the same
+   way the homework bar does. It was the one bar above the chat without
+   this, so wherever the overlay and the banner overlapped, the overlay
+   took the tap. The tint is laid over the page background so nothing
+   underneath can show through it.
+   Brief 3c G: the text is a safety sentence and wraps on a phone, so it
+   is left-aligned and uses --text-primary (--accent on this tint is 2.4:1
+   in the light theme; this is 10:1 in both). */
 .private-session-banner {
   flex-shrink: 0;
   display: none;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 20px;
-  background: var(--accent-light);
+  gap: 8px;
+  padding: 4px 8px 4px 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+  background: linear-gradient(var(--accent-light), var(--accent-light)), var(--warm-bg);
   border-bottom: 1px solid rgba(199, 134, 95, 0.2);
   font-size: 12px;
-  color: var(--accent);
+  line-height: 1.4;
+  color: var(--text-primary);
   font-weight: 500;
+  position: relative;
+  z-index: 20;
 }
 
-[data-theme="dark"] .private-session-banner {
+.private-session-banner svg {
+  flex-shrink: 0;
   color: var(--accent);
 }
 
-.private-session-end {
+#privateSessionBannerText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The id keeps these above the phone-width generic button rule
+   (padding / font-size) without !important. 44x44: touch target. */
+#privateSessionBanner .private-session-end {
   background: transparent;
   border: none;
-  color: var(--accent);
-  font-size: 16px;
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
   cursor: pointer;
-  padding: 2px 6px;
-  min-height: 28px;
-  min-width: 28px;
+  padding: 0;
+  min-height: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 0.8;
   box-shadow: none;
-  margin-left: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #privateSessionBanner .private-session-end:hover {
+    opacity: 1;
+  }
 }
 
 /* === MEMORY ONBOARDING CARD === */
@@ -2940,6 +2963,45 @@ footer a {
 
 .about-section-crisis + .about-section {
   border-top: none;
+}
+
+/* "What gets saved" (Brief 3c H): mode in the first column, what that
+   mode saves in the second. Two columns so it fits a 375px sheet. */
+.about-saved-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.about-saved-table th,
+.about-saved-table td {
+  padding: 10px 0;
+  vertical-align: top;
+  text-align: left;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.about-saved-table tr:first-child th,
+.about-saved-table tr:first-child td {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.about-saved-table th {
+  width: 30%;
+  padding-right: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.about-saved-table ul {
+  padding-left: 16px;
+}
+
+.about-saved-table li + li {
+  margin-top: 2px;
 }
 
 /* Phone: bottom sheet */
