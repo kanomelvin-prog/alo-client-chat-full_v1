@@ -123,7 +123,7 @@
   <div id="moreMenu" class="more-menu hidden">
     <div class="more-menu-backdrop" onclick="toggleMoreMenu()"></div>
     <div class="more-menu-panel" role="menu" aria-label="More options">
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); toggleThreadSidebar()">
+      <button class="more-menu-item" role="menuitem" id="moreConversationsBtn" onclick="toggleMoreMenu(); toggleThreadSidebar()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Conversations
       </button>
@@ -160,7 +160,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         <span id="morePrivateToggleLabel">Start private session</span>
       </button>
-      <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()">
+      <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()" style="display: none;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Start new private conversation
       </button>
@@ -211,8 +211,8 @@
 
         <section class="about-section">
           <h3>Your privacy</h3>
-          <p>Your conversations are private — always. Your therapist never sees what you say to Alo.</p>
-          <p>If you're connected to a therapist through Alowen, they can see general patterns across your sessions, when you use Alo, and when you view or complete reflections they've assigned. They also see messages you send them, journal entries you choose to share, and, if Alo notices you might be in trouble, that something happened — never what you said. They aren't notified in real time — they review at their own pace, usually to prepare for your next session.</p>
+          <p>Your conversations are private from your therapist — they never see what you say to Alo.</p>
+          <p>If you're connected to a therapist through Alowen, they can see when you use Alo and when you view or complete homework they've assigned. They also see messages you send them, journal entries you choose to share, and, if Alo notices you might be in trouble, that something happened — never what you said. They aren't notified in real time — they see it the next time they open their dashboard.</p>
           <p>Guest conversations aren't saved to an account. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
@@ -220,18 +220,21 @@
         <section class="about-section about-section-crisis">
           <h3>If you're in crisis</h3>
           <p>If you're experiencing a mental health emergency, please contact the <strong>988 Suicide &amp; Crisis Lifeline</strong> (call or text <strong>988</strong>) or your local emergency number.</p>
-          <p>If you share something that sounds like a crisis, Alo will pause and share these resources with you directly.</p>
+          <p>If you share something that sounds like a crisis, Alo will share these resources with you directly.</p>
         </section>
 
         <section class="about-section">
           <h3>How memory works</h3>
-          <p>When you're signed in, Alo keeps your conversation history so you can review it, and you can delete any conversation from your Alo account at any time. Deletion from the chat platform Alo runs on is coming and isn't in place yet.</p>
+          <p>When you're signed in, Alo keeps your conversation history so you can review it, and you can delete any conversation from your Alo account at any time. Deletion from the chat platform Alo runs on isn't in place yet.</p>
           <p>When memory is on, Alo also keeps brief summaries of past conversations — just enough to pick up where you left off next time. Memory is on by default and you can turn it off any time.</p>
           <p>You're always in control: turn memory off, go private for a session, or ask Alo to forget something.</p>
           <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory and history are for signed-in accounts. Guests start fresh every visit.</p>
         </section>
 
-        <!-- Brief 3c H (claims-freeze, ruled Sep 20): what each mode saves. -->
+        <!-- Brief 3c H (claims-freeze, ruled Sep 20): what each mode saves.
+             Brief 4 (ruled Sep 21): the safety rows carry data-alo-therapist-copy;
+             showAboutModal() swaps in the no-therapist wording for an account
+             with no link (section 3). The markup holds the linked wording. -->
         <section class="about-section">
           <h3 id="aboutSavedTitle">What gets saved</h3>
           <table class="about-saved-table" aria-labelledby="aboutSavedTitle">
@@ -242,8 +245,8 @@
                   <ul>
                     <li>Conversation history saved to your account (you can delete it)</li>
                     <li>Brief summaries so Alo remembers context</li>
-                    <li>Journal saves when you ask</li>
-                    <li>Safety alerts to your therapist, never your words</li>
+                    <li>Journal saves only with your OK</li>
+                    <li data-alo-therapist-copy="savedNormalSafety">A note for your therapist if you seem to be in danger — never your words</li>
                   </ul>
                 </td>
               </tr>
@@ -253,8 +256,8 @@
                   <ul>
                     <li>History still saved</li>
                     <li>No summaries carried forward</li>
-                    <li>Journal saves when you ask</li>
-                    <li>Safety alerts still</li>
+                    <li>Journal saves only with your OK</li>
+                    <li data-alo-therapist-copy="savedMemoryOffSafety">Safety notes still</li>
                   </ul>
                 </td>
               </tr>
@@ -262,8 +265,9 @@
                 <th scope="row">Private session</th>
                 <td>
                   <ul>
-                    <li>Nothing saved — no history, no memory, no journal</li>
-                    <li>Safety alerts still</li>
+                    <li>Nothing from the conversation goes into your history, memory or journal</li>
+                    <li>Alo still records when you used it</li>
+                    <li data-alo-therapist-copy="savedPrivateSafety">If you seem to be in danger, a note for your therapist that something happened — never your words</li>
                   </ul>
                 </td>
               </tr>
@@ -275,6 +279,7 @@
           <h3>Your Journal</h3>
           <p>Journal entries are private by default. You choose what to share. Your therapist can only see entries you explicitly share — and you can revoke sharing at any time.</p>
           <p>Alo may reference your journal entries naturally in conversation to provide better continuity, but never comments on the act of journaling itself.</p>
+          <p>If you write about being in danger, Alo shows you where to get help. Journal entries don't create a note for your therapist.</p>
         </section>
 
         <section class="about-section" style="border-top: none; padding-top: 0;">
@@ -314,24 +319,8 @@
   <!-- Private session banner (shown when memory paused for this conversation) -->
   <div id="privateSessionBanner" class="private-session-banner">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-    <span id="privateSessionBannerText">Private session — nothing here is saved or remembered. If you're in danger, Alo still sends your therapist a safety alert, never your words.</span>
+    <span id="privateSessionBannerText">Private session — nothing here goes into your history or memory. If you're in danger, Alo still leaves a note for your therapist that something happened — never your words.</span>
     <button class="private-session-end" onclick="endPrivateSession()" aria-label="End private session">&times;</button>
-  </div>
-<!-- Guest benefits card. NEVER shown on this build (Brief 1a-min D1): self-serve signups are off, so "Create a free account" is not true, and it was reaching signed-in users (reproduced 2026-09-15). Markup kept; showGuestBenefitsCard() is a no-op; the Create Account action is gone. -->
-  <div id="guestBenefitsCard" class="guest-benefits-card hidden">
-    <div class="guest-benefits-content">
-      <div class="guest-benefits-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      </div>
-      <div>
-        <div class="guest-benefits-title">Get more from Alo</div>
-        <div class="guest-benefits-desc">Create a free account and Alo can remember your conversations, pick up where you left off, and connect with your therapist if you have one.</div>
-      </div>
-      <button class="guest-benefits-dismiss" onclick="dismissGuestBenefits()" aria-label="Dismiss">&times;</button>
-    </div>
-    <div class="guest-benefits-actions">
-      <button class="guest-benefits-later" onclick="dismissGuestBenefits()">Maybe later</button>
-    </div>
   </div>
   <!-- Memory disclosure card (A-10, Brief 1a-min B1): shown on the 2nd visit while memory is on. Says what memory is; asks nothing. -->
   <div id="memoryOnboardCard" class="memory-onboard-card">
@@ -373,12 +362,6 @@
     </div>
   </div>
   <div id="threadBackdrop" class="thread-sidebar-backdrop" onclick="toggleThreadSidebar()"></div>
-
-  <!-- Memory save prompt bar. NEVER shown on this build (Brief 1a-min D1, same reason as the guest benefits card): its only action was a no-invite "Create Account". Markup kept; checkGuestMemoryPrompt() no longer reveals it. -->
-  <div id="memoryPromptBar" class="memory-prompt-bar">
-    <span class="memory-prompt-text">Want Alo to remember your conversations?</span>
-    <button class="memory-prompt-dismiss" onclick="hideMemoryPrompt()" aria-label="Dismiss">&times;</button>
-  </div>
 
   <!-- Privacy assurance bar — shown on first visit, dismissible -->
   <div id="privacyBar" class="privacy-bar hidden">
@@ -709,7 +692,7 @@
     // COSMETIC-1/-2 (Phase 3, backlog N3): shared focus trap. Every modal in
     // this app is built by createModal() below, so wiring the trap in there
     // covers all of them from one place -- share, connect, login, message,
-    // name edit, privacy, set-new-password and journal-entry modals included.
+    // name edit, privacy and journal-entry modals included.
     // Tabbing off either end of the visible modal wraps back inside it
     // instead of reaching the page behind. Returns a release function that
     // removes the listener; createModal() calls it from closeModal().
@@ -974,6 +957,11 @@
     }
 function showAboutModal() {
       var modal = document.getElementById('aboutModal');
+      // Brief 4 section 3: the "What gets saved" safety rows name a therapist
+      // only to an account that has one (see _aloTherapistCopy()).
+      modal.querySelectorAll('[data-alo-therapist-copy]').forEach(function(el) {
+        el.textContent = _aloTherapistCopy(el.getAttribute('data-alo-therapist-copy'));
+      });
       modal.classList.remove('hidden');
       modal.querySelector('.modal-close').focus();
     }
@@ -1074,19 +1062,6 @@ function showAboutModal() {
       const nameInput = modal.querySelector('#nameEditInput');
       if (nameInput) nameInput.value = currentName;
     }
-    // Brief 1a-min D1: deliberately a no-op. Self-serve signups are off on
-    // this build, so the card's "Create a free account" is not true -- and it
-    // was reaching signed-in users too (reproduced 2026-09-15). Every path
-    // that used to reveal it now ends here. Do not redesign; do not re-wire.
-    function showGuestBenefitsCard() {
-      return;
-    }
-
-    function dismissGuestBenefits() {
-      var card = document.getElementById('guestBenefitsCard');
-      if (card) card.classList.add('hidden');
-      sessionStorage.setItem('alo_guest_benefits_dismissed', '1');
-    }
 
     function resetToGuestUI() {
       const badge = document.getElementById('trustBadge');
@@ -1128,7 +1103,10 @@ function showAboutModal() {
       }
 
       try {
-        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&order=created_at.desc`);
+        // Brief 4 D: an explicit column list -- exactly what this page reads
+        // (the cards below, and homeworkActive for the bot). Add a column
+        // here only when the page starts reading it.
+        const homework = await api(`/rest/v1/homework_cards?client_id=eq.${clientId}&is_active=eq.true&select=id,title,homework_type,goal,viewed_at&order=created_at.desc`);
         
         if (!homework || homework.length === 0) {
           document.getElementById('homeworkContainer').innerHTML = '';
@@ -1495,12 +1473,12 @@ function showAboutModal() {
         title: 'What\'s yours',
         // Brief 3 fix J (R-C-13): a linked account also sends activity
         // records (session_metadata) and homework viewed/completed times.
-        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Beyond what you share, your therapist can see when you use Alo and when you view or complete homework they assign — never what you say to Alo.',
+        body: 'Your conversations with Alo stay between you and Alo. Your therapist can\'t read them.\n\nIf you want to share something — a journal entry, a note, a message — you choose that, one thing at a time. Beyond what you share, your therapist can see when you use Alo, when you view or complete homework they assign, and a safety note if Alo thinks you may be in danger — never what you say to Alo.',
         mockJournal: true
       },
       {
         title: 'If things get hard',
-        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will let your therapist know something happened. Not what you said. Just that you might need them.'
+        body: 'Alo isn\'t built for a crisis. If you\'re in danger or thinking about hurting yourself, call or text 988 or go to your nearest emergency room.\n\nIf Alo notices you might be in trouble, it will tell you where to get help — and it will leave a note for your therapist that something happened, which they see the next time they open their dashboard. Not what you said. Just that you might need them.'
       }
     ];
 
@@ -1593,7 +1571,7 @@ function showAboutModal() {
         body.innerHTML =
           '<div class="alo-onboarding-progress">4 of 4</div>' +
           '<h2 class="alo-onboarding-title">Before you start</h2>' +
-          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours: your therapist sees what you choose to share, when you use Alo, and when you view or complete homework they assign, never what you say. If Alo notices you might be in trouble, it\'ll point you to help and let your therapist know something happened, never what you said.</p>' +
+          '<p class="alo-onboarding-text">Alo is here between sessions, but it isn\'t a therapist. Your conversations are yours: your therapist sees what you choose to share, when you use Alo, and when you view or complete homework they assign, never what you say. If Alo notices you might be in trouble, it\'ll point you to help and leave a note for your therapist that something happened, never what you said.</p>' +
           '<label class="alo-onboarding-checkbox-row">' +
             '<input type="checkbox" id="aloOnboardingConsentCheckbox" onchange="_aloOnboardingConsentToggled(this.checked)">' +
             '<span>I understand what Alo is and isn\'t, and how sharing works.</span>' +
@@ -1606,7 +1584,9 @@ function showAboutModal() {
         body.innerHTML =
           '<div class="alo-onboarding-progress">4 of 4</div>' +
           '<h2 class="alo-onboarding-title">Getting started</h2>' +
-          '<p class="alo-onboarding-text">Before your first conversation, you confirmed: "I understand what Alo is and isn\'t, and how sharing works." Then you tapped "Start talking to Alo."</p>' +
+          // Brief 4 section 3 (C-047): only an account with a link went
+          // through the consent screen this recaps.
+          '<p class="alo-onboarding-text">' + esc(_aloTherapistCopy('howAloWorksRecap')) + '</p>' +
           '<div class="alo-onboarding-actions">' +
             '<button class="btn-primary alo-onboarding-next" onclick="_aloCloseOnboardingScreens()">Done</button>' +
             '<button class="btn-link alo-onboarding-skip" onclick="_aloOnboardingBack()">Back</button>' +
@@ -1679,7 +1659,7 @@ function showAboutModal() {
 
     function showConnectModal() {
       const modal = createModal('Link to Your Therapist', `
-        <p>Stay connected with your therapist between sessions. They can send you exercises, and you can message them anytime.</p>
+        <p>Stay connected with your therapist between sessions. They can send you exercises, and — if they turn messages on — you can message them.</p>
         <p class="modal-hint">Your conversations with Alo are between you and Alo — your therapist never sees them.</p>
         <div style="margin-top: 16px;">
           <label for="inviteCodeInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Invite code</label>
@@ -1878,9 +1858,10 @@ function showAboutModal() {
     // LOGIN MODAL
     // =====================================================
     function showLoginModal(inviteCode = null) {
-      createModal('Sign In or Create Account', `
-        <p>Create an account to save your conversations and let Alo remember what you've discussed.</p>
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. If you're connected to a therapist, they can see when you use Alo and when you view or complete homework they assign — never what you say.</p>
+      // 2026-09-26 (Brief 4 B): no password-reset link here -- client password reset returns with the Auth-side fix (token_hash / verifyOtp), Gate B.
+      createModal('Sign In', `
+        <p>Sign in to save your conversations and let Alo remember what you've discussed. New accounts are set up by invitation.</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. If you're connected to a therapist, they can see when you use Alo, when you view or complete homework they assign, what you choose to share with them, and a safety note if Alo thinks you may be in danger — never what you say.</p>
         <form id="loginForm" action="#" method="post" onsubmit="return false;" style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
           <input type="email" id="emailInput" class="modal-input" placeholder="Email" autocomplete="username" style="margin-bottom: 12px;" />
@@ -1891,9 +1872,6 @@ function showAboutModal() {
               <svg id="eyeShow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <svg id="eyeHide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
             </button>
-          </div>
-          <div style="text-align: right; margin-top: 6px;">
-            <button type="button" onclick="const e=document.getElementById('emailInput')?.value?.trim(); document.querySelector('.modal-overlay')?.remove(); handleForgotPassword(e||'');" style="color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 12px; padding: 0;">Forgot password?</button>
           </div>
         </form>
       `, {
@@ -1911,68 +1889,18 @@ function showAboutModal() {
           // localStorage before the attempt (it outlived wrong passwords and
           // abandoned modals, and the next account on the browser claimed
           // it). This attempt uses the code in memory: after a successful
-          // sign-in it goes straight to handleConnectSubmit() below. A signup
-          // that needs email confirmation carries it in user_metadata, which
-          // belongs to that account alone.
+          // sign-in it goes straight to handleConnectSubmit() below.
 
           // Brief 1a-min A5: the four-screen onboarding + consent no longer
           // fires from here. loadConnectedState() opens it, in gate mode, for
           // any active link whose consent_acknowledged_at is null -- signup,
           // sign-in, reload, deep link and re-link all take that one path.
 
-          // Try sign in first
-          let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-          // If sign in fails, check whether user exists before trying signup
-          if (error && error.message.includes('Invalid login credentials')) {
-            // Attempt signup to distinguish "no account" from "wrong password"
-            const signUpResult = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  role: 'individual',
-                  display_name: email.split('@')[0],
-                  invite_code: inviteCode || null
-                },
-                emailRedirectTo: window.location.origin
-              }
-            });
-            
-            // Supabase returns empty identities array when email already exists
-            if (signUpResult.data?.user?.identities?.length === 0) {
-              // Existing account — wrong password
-              const modalBody = document.querySelector('.modal-overlay .modal-body');
-              if (modalBody) {
-                let errEl = modalBody.querySelector('.login-error-msg');
-                if (!errEl) {
-                  errEl = document.createElement('div');
-                  errEl.className = 'login-error-msg';
-                  errEl.style.cssText = 'color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center;';
-                  modalBody.appendChild(errEl);
-                }
-                errEl.innerHTML = 'Incorrect password. <button onclick="handleForgotPassword(\'' + escAttr(email) + '\')" style="color: var(--primary); background: none; border: none; cursor: pointer; text-decoration: underline; font-size: 13px; padding: 0;">Forgot password?</button>';
-              }
-              return false;
-            }
-            
-            if (signUpResult.error) {
-              showToast('Authentication failed. Please try again.');
-              return false;
-            }
-            
-            if (!signUpResult.data.session) {
-              showToast('Account created! Check your email to confirm.');
-              return;
-            }
-            
-            data = signUpResult.data;
-            error = null;
-
-            // Profile creation handled by Supabase auth trigger (handle_new_user)
-            // Trigger fires on INSERT to auth.users, creates profile with role='individual'
-            // Invite code stored in user_metadata, claimed in loadConnectedState
-          }
+          // Brief 4 A: sign-in only. Self-serve client sign-up is off (Sep 13
+          // ruling), so a failed sign-in no longer falls back to a sign-up
+          // call to tell "no account" from "wrong password": every failed
+          // sign-in gets the one existing failure line.
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
 
           if (error) {
             showToast('Authentication failed. Please try again.');
@@ -1991,132 +1919,6 @@ function showAboutModal() {
     }
 
     // =====================================================
-    // FORGOT PASSWORD
-    // =====================================================
-    async function handleForgotPassword(prefillEmail) {
-      // Close any existing modal
-      const existingModal = document.querySelector('.modal-overlay');
-      if (existingModal) existingModal.remove();
-
-      createModal('Reset Password', `
-        <p>Enter your email and we'll send you a link to reset your password.</p>
-        <div style="margin-top: 16px;">
-          <label for="resetEmailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
-          <input type="email" id="resetEmailInput" class="modal-input" placeholder="Email" autocomplete="email" value="${escAttr(prefillEmail || '')}" />
-        </div>
-      `, {
-        confirmLabel: 'Send Reset Link',
-        cancelLabel: 'Back to Sign In',
-        onConfirm: async () => {
-          const email = document.getElementById('resetEmailInput').value.trim();
-          if (!email) {
-            showToast('Please enter your email');
-            return false;
-          }
-
-          try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-              redirectTo: window.location.origin
-            });
-
-            if (error) {
-              console.error('Reset email error:', error.message, error);
-              if (error.message.includes('rate limit')) {
-                showToast('Too many attempts. Please wait a few minutes and try again.');
-              } else {
-                showToast('Could not send reset email. Try again.');
-              }
-              return false;
-            }
-
-            showToast('Reset link sent — check your email');
-          } catch (err) {
-            console.error('Reset password error:', err);
-            showToast('Could not send reset email. Try again.');
-            return false;
-          }
-        },
-        onCancel: () => {
-          showLoginModal();
-        }
-      });
-    }
-
-    // =====================================================
-    // SET NEW PASSWORD (after reset link clicked)
-    // =====================================================
-    function showSetNewPasswordModal() {
-      createModal('Set New Password', `
-        <p>Choose a new password for your Alowen account.</p>
-        <div style="margin-top: 16px;">
-          <label for="newPasswordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">New Password</label>
-          <div style="position: relative;">
-            <input type="password" id="newPasswordInput" class="modal-input" placeholder="Min. 6 characters" autocomplete="new-password" style="padding-right: 44px;" />
-            <button type="button" onclick="toggleNewPasswordVisibility()" id="newPasswordToggleBtn" aria-label="Show password" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-muted); display: flex; align-items: center;">
-              <svg id="newEyeShow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <svg id="newEyeHide" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            </button>
-          </div>
-          <label for="confirmPasswordInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px; margin-top: 12px;">Confirm Password</label>
-          <input type="password" id="confirmPasswordInput" class="modal-input" placeholder="Re-enter password" autocomplete="new-password" />
-        </div>
-      `, {
-        confirmLabel: 'Update Password',
-        showCancel: false,
-        onConfirm: async () => {
-          const newPw = document.getElementById('newPasswordInput').value;
-          const confirmPw = document.getElementById('confirmPasswordInput').value;
-
-          if (!newPw || newPw.length < 6) {
-            showToast('Password must be at least 6 characters');
-            return false;
-          }
-
-          if (newPw !== confirmPw) {
-            showToast('Passwords don\'t match');
-            return false;
-          }
-
-          try {
-            const { error } = await supabase.auth.updateUser({ password: newPw });
-
-            if (error) {
-              showToast('Could not update password. Try again.');
-              return false;
-            }
-
-            showToast('Password updated successfully');
-            await loadConnectedState();
-          } catch (err) {
-            console.error('Password update error:', err);
-            showToast('Could not update password. Try again.');
-            return false;
-          }
-        }
-      });
-    }
-
-    function toggleNewPasswordVisibility() {
-      var input = document.getElementById('newPasswordInput');
-      var show = document.getElementById('newEyeShow');
-      var hide = document.getElementById('newEyeHide');
-      var btn = document.getElementById('newPasswordToggleBtn');
-      if (!input) return;
-
-      if (input.type === 'password') {
-        input.type = 'text';
-        if (show) show.style.display = 'none';
-        if (hide) hide.style.display = 'block';
-        if (btn) btn.setAttribute('aria-label', 'Hide password');
-      } else {
-        input.type = 'password';
-        if (show) show.style.display = 'block';
-        if (hide) hide.style.display = 'none';
-        if (btn) btn.setAttribute('aria-label', 'Show password');
-      }
-    }
-
-    // =====================================================
     // MESSAGE MODAL
     // =====================================================
     function showMessageModal() {
@@ -2132,7 +1934,7 @@ function showAboutModal() {
 
       createModal(`Message ${therapistName}`, `
         <p class="modal-subtext">
-          ${therapistName} will see this message in their dashboard. They'll respond when they can.
+          ${therapistName} will see this message in their dashboard. They'll pick it up when they can — replies don't come through Alo.
         </p>
         <textarea id="messageTextarea" class="modal-textarea" placeholder="Type your message..."></textarea>
       `, {
@@ -2354,7 +2156,7 @@ function showAboutModal() {
 
     // A2/A5: every entry into the connected state -- page-load session,
     // SIGNED_IN (password, email confirmation, ?t= exchange), invite claim,
-    // password reset, consent completion -- is a call to this function, and
+    // consent completion -- is a call to this function, and
     // this function checks the gate before it unlocks anything. There is no
     // ungated variant to call.
     let _aloPendingInviteHandled = false;
@@ -2503,10 +2305,9 @@ function showAboutModal() {
 
         showConnectedUI(therapistName, clientName);
         
-        // Show threads button (if allowed by therapist) and memory icon
-        if (chatSettings.allow_history !== false) {
-          document.getElementById('threadsBtn').classList.remove('hidden');
-        }
+        // Conversation history as the therapist set it (Brief 4 C), and the
+        // memory icon
+        _aloApplyHistorySetting();
         document.getElementById('memoryIconBtn').classList.remove('hidden');
         var pcBtn2 = document.getElementById('privateChatBtn');
         if (pcBtn2) pcBtn2.classList.remove('hidden');
@@ -3013,7 +2814,6 @@ function showAboutModal() {
     // hardcoded slice bound, so "Load older conversations" actually pages.
     const THREAD_PAGE_SIZE = 30;
     let threadListOffset = THREAD_PAGE_SIZE;
-    let guestTurnCount = 0;
 
     // Phase 2 item 4 -- server-side paging past the 50-row batch
     // loadThreads() fetches. THREAD_FETCH_SIZE mirrors that query's own
@@ -3023,7 +2823,30 @@ function showAboutModal() {
     let threadsExhausted = false;
     let _threadsLoadingMore = false;
 
+    // Brief 4 C (D-015): the therapist's "Conversation history" setting is a
+    // control, not a shortcut. With allow_history === false the header
+    // button and the menu item are hidden and toggleThreadSidebar() does
+    // nothing, so the sidebar cannot open from anywhere -- its own close and
+    // "Memory settings" controls included. Applied on every connected-state
+    // load, in both directions.
+    function _aloHistoryOff() {
+      return chatSettings.allow_history === false;
+    }
+
+    function _aloApplyHistorySetting() {
+      const off = _aloHistoryOff();
+      document.getElementById('threadsBtn').classList.toggle('hidden', off);
+      const menuItem = document.getElementById('moreConversationsBtn');
+      if (menuItem) menuItem.style.display = off ? 'none' : '';
+      if (off) {
+        // Closed directly: toggleThreadSidebar() is inert from here on.
+        document.getElementById('threadSidebar').classList.remove('open');
+        document.getElementById('threadBackdrop').classList.remove('show');
+      }
+    }
+
     function toggleThreadSidebar() {
+      if (_aloHistoryOff()) return;
       const sidebar = document.getElementById('threadSidebar');
       const backdrop = document.getElementById('threadBackdrop');
       const isOpen = sidebar.classList.contains('open');
@@ -3067,7 +2890,7 @@ function showAboutModal() {
       var isPinned = !!thread.pinned;
       var pinFill = isPinned ? 'currentColor' : 'none';
       var pinClass = isPinned ? 'thread-pin-btn pinned' : 'thread-pin-btn';
-      var pinLabel = isPinned ? 'Unpin' : 'Save this conversation';
+      var pinLabel = isPinned ? 'Unpin' : 'Pin this conversation';
       var safeTitle = escAttr(thread.title || 'Untitled');
 
       return '<div class="thread-item" data-id="' + thread.id + '">' +
@@ -3244,7 +3067,7 @@ function showAboutModal() {
         var pinClass = isPinned ? 'transcript-pin pinned' : 'transcript-pin';
 
         var customTitle = '<div class="transcript-header-row">' +
-          '<button class="' + pinClass + '" id="transcriptPinBtn" aria-label="' + (isPinned ? 'Unpin' : 'Pin') + ' conversation" title="' + (isPinned ? 'Unpin' : 'Save this conversation') + '">' +
+          '<button class="' + pinClass + '" id="transcriptPinBtn" aria-label="' + (isPinned ? 'Unpin' : 'Pin') + ' conversation" title="' + (isPinned ? 'Unpin' : 'Pin this conversation') + '">' +
             '<svg viewBox="0 0 24 24" fill="' + pinFill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
           '</button>' +
           '<div class="transcript-title-block">' +
@@ -3275,7 +3098,7 @@ function showAboutModal() {
             var svg = pinBtn.querySelector('svg');
             if (svg) svg.setAttribute('fill', newPinned ? 'currentColor' : 'none');
             pinBtn.setAttribute('aria-label', (newPinned ? 'Unpin' : 'Pin') + ' conversation');
-            pinBtn.setAttribute('title', newPinned ? 'Unpin' : 'Save this conversation');
+            pinBtn.setAttribute('title', newPinned ? 'Unpin' : 'Pin this conversation');
           });
         }
 
@@ -3412,7 +3235,7 @@ function showAboutModal() {
         
         allThreads = allThreads.filter(function(t) { return t.id !== conversationId; });
         renderThreadList();
-        showToast('Conversation deleted');
+        showToast('Deleted from your account');
       } catch (err) {
         console.error('Error deleting:', err);
         showToast('Could not delete. Try again.');
@@ -3433,7 +3256,7 @@ async function togglePin(conversationId) {
         thread.pinned = newPinned;
         thread.pinned_at = newPinned ? new Date().toISOString() : null;
         renderThreadList();
-        showToast(newPinned ? 'Conversation saved' : 'Conversation unpinned');
+        showToast(newPinned ? 'Conversation pinned' : 'Conversation unpinned');
       } catch (err) {
         console.error('Pin toggle failed:', err);
         showToast('Could not update. Try again.');
@@ -3442,20 +3265,15 @@ async function togglePin(conversationId) {
 
     async function clearHistory() {
       var unpinned = allThreads.filter(function(t) { return !t.pinned; });
-      var pinnedCount = allThreads.filter(function(t) { return t.pinned; }).length;
 
       if (unpinned.length === 0) {
         showToast('No unpinned conversations to clear');
         return;
       }
 
-      var message = 'This will delete ' + unpinned.length + ' unpinned conversation' +
-        (unpinned.length > 1 ? 's' : '') + ' from your Alo account.';
-      if (pinnedCount > 0) {
-        message += ' Your ' + pinnedCount + ' saved conversation' +
-          (pinnedCount > 1 ? 's' : '') + ' won\'t be affected.';
-      }
-      message += ' Alo will still remember themes from recent sessions. This can\'t be undone.';
+      // Brief 4 (C-065): no counts. The DELETE below takes every unpinned
+      // conversation on the server, which can be more than were fetched.
+      var message = 'This will delete all your unpinned conversations from your Alo account. Your pinned conversations won\'t be affected. Alo will still remember themes from recent sessions. This can\'t be undone.';
 
       var confirmed = await showConfirm('Clear conversation history?', message, {
         confirmLabel: 'Clear History',
@@ -3603,12 +3421,12 @@ async function togglePin(conversationId) {
 
       // Private session banner. One text (Brief 3c G): a private session is
       // always a whole conversation now (Brief 3c D), so there is no
-      // mid-thread variant.
+      // mid-thread variant. Its linked / no-link form: Brief 4 section 3.
       var banner = document.getElementById('privateSessionBanner');
       if (banner) {
         banner.style.display = isPrivateSession ? 'flex' : 'none';
         var bannerText = document.getElementById('privateSessionBannerText');
-        if (bannerText) bannerText.textContent = ALO_PRIVATE_BANNER_TEXT;
+        if (bannerText) bannerText.textContent = _aloTherapistCopy('privateBanner');
       }
 
       // Chat container tint — peripheral-vision reminder of private state
@@ -3690,12 +3508,47 @@ async function togglePin(conversationId) {
     const ALO_PRIVATE_END_FAILURE_MESSAGE =
       "Couldn't end the private session — nothing was changed. Try again.";
     const ALO_MEMORY_OFF_PRIVATE_MESSAGE =
-      'Memory is off, but your conversations are still saved to your history.';
+      'Private sessions are available while memory is on. Right now memory is off, and your conversations are still saved to your history.';
     const ALO_PRIVATE_NO_THERAPIST_MESSAGE =
       "Messages to your therapist can't be sent during a private session.";
-    // Brief 3c G (claims-freeze, ruled Sep 20).
-    const ALO_PRIVATE_BANNER_TEXT =
-      "Private session — nothing here is saved or remembered. If you're in danger, Alo still sends your therapist a safety alert, never your words.";
+
+    // Brief 4 section 3 (class fix D, claims-freeze, ruled Sep 21): "your
+    // therapist" only to an account that has one. A signed-in account with
+    // no link can start a private session and open About and "How Alo
+    // works", so each sentence below that names a therapist has a form for
+    // an account with no link, and _aloTherapistCopy() picks one from
+    // therapistLink when the sentence is shown. The markup keeps the linked
+    // form as its default (banner, About table).
+    const ALO_THERAPIST_COPY = {
+      // Private-session banner (Brief 3c G, reworded by Brief 4 C-030)
+      privateBanner: {
+        linked: "Private session — nothing here goes into your history or memory. If you're in danger, Alo still leaves a note for your therapist that something happened — never your words.",
+        unlinked: "Private session — nothing here goes into your history or memory. If you're in danger, Alo still records that something happened — never your words."
+      },
+      // About > What gets saved: the safety row of each mode
+      savedNormalSafety: {
+        linked: 'A note for your therapist if you seem to be in danger — never your words',
+        unlinked: 'If you seem to be in danger, Alo still records that something happened — never your words'
+      },
+      savedMemoryOffSafety: {
+        linked: 'Safety notes still',
+        unlinked: 'If you seem to be in danger, Alo still records that something happened — never your words'
+      },
+      savedPrivateSafety: {
+        linked: 'If you seem to be in danger, a note for your therapist that something happened — never your words',
+        unlinked: 'If you seem to be in danger, Alo still records that something happened — never your words'
+      },
+      // "How Alo works", screen 4 (read-only): the consent recap (C-047)
+      howAloWorksRecap: {
+        linked: 'Before your first conversation, you confirmed: "I understand what Alo is and isn\'t, and how sharing works." Then you tapped "Start talking to Alo."',
+        unlinked: "When you link with a therapist, you'll confirm this before your first conversation."
+      }
+    };
+
+    function _aloTherapistCopy(key) {
+      const copy = ALO_THERAPIST_COPY[key];
+      return therapistLink ? copy.linked : copy.unlinked;
+    }
 
     function _aloCloseMemoryPopoverIfOpen() {
       // These functions are called from the popover and from the menu.
@@ -3786,6 +3639,12 @@ async function togglePin(conversationId) {
       if (label) {
         label.textContent = isPrivateSession ? 'End private session' : 'Start private session';
       }
+      // Brief 4 E: "Start new private conversation" only while private (it
+      // starts the next private conversation); otherwise it would repeat
+      // "Start private session" just above it. Hidden in the markup, since a
+      // page load is never private (Brief 3c C).
+      var newPrivate = document.getElementById('moreNewPrivateBtn');
+      if (newPrivate) newPrivate.style.display = isPrivateSession ? '' : 'none';
     }
 
     // Menu action: a new conversation that is private from its first turn.
@@ -3891,18 +3750,6 @@ async function togglePin(conversationId) {
       authBridgeSent = false;
       sendAuthBridge();
       return true;
-    }
-
-    function checkGuestMemoryPrompt() {
-      guestTurnCount++;
-      // Brief 1a-min D1: the bar's only action was a no-invite "Create
-      // Account", which is not available on this build. Never shown.
-    }
-
-    function hideMemoryPrompt() {
-      const bar = document.getElementById('memoryPromptBar');
-      if (bar) bar.classList.remove('show');
-      localStorage.setItem('alo_memory_prompt_dismissed', 'true');
     }
 
     // =====================================================
@@ -4808,11 +4655,10 @@ window.botpress.on('webchat:closed', function() {
       });
       
 
-      // Message capture: persistence for signed-in users + guest turn tracking
+      // Message capture: persistence for signed-in users (guests write nothing)
       // NOTE: Non-async handler to avoid silent swallowing. Fire-and-forget Supabase writes.
       window.botpress.on('message', function(msg) {
         if (!clientId) {
-          checkGuestMemoryPrompt();
           return;
         }
 
@@ -4941,7 +4787,7 @@ window.botpress.on('webchat:closed', function() {
             <li>Alo does not provide medical advice, diagnosis, or treatment</li>
             <li>You will seek professional help for mental health crises</li>
             <li>Your therapist does not see your conversations with Alo</li>
-            <li>You are responsible for deciding what to share with your therapist</li>
+            <li>You decide what to share with your therapist. Alo also leaves them a note if it thinks you may be in danger — never what you said.</li>
           </ul>
           <p class="modal-divider">
             If you're in crisis, call <strong>988</strong> (US Suicide & Crisis Lifeline) or go to your nearest emergency room.
@@ -4959,19 +4805,23 @@ window.botpress.on('webchat:closed', function() {
           <ul class="modal-list">
             <li>Account information (email, password hash)</li>
             <li>Connection to your therapist</li>
-            <li>Homework completion status</li>
+            <li>When you view and complete homework</li>
             <li>Messages you send to your therapist</li>
             <li>Journal entries you write or Alo saves (private by default)</li>
+            <li>When you use Alo (activity records)</li>
+            <li>Brief memory summaries when memory is on</li>
+            <li>Safety notes — that something happened, never your words</li>
+            <li>Your display name and settings</li>
           </ul>
 
           <h3 class="modal-section-title">Your Alo conversations</h3>
           <ul class="modal-list">
             <li>If you have an account, conversations are saved so Alo can provide continuity</li>
-            <li>You can delete any conversation from your Alo account at any time from the sidebar. Deletion from the chat platform Alo runs on is coming and is not yet in place</li>
+            <li>You can delete any conversation from your Alo account at any time from the sidebar. Deletion from the chat platform Alo runs on isn't in place yet.</li>
             <li>You can turn off memory in settings — Alo will treat each chat as new</li>
             <li>Guest conversations (no account) are not saved to an account</li>
             <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
-            <li>Conversations are not used for training, analytics, or advertising</li>
+            <li>Alowen doesn't use your conversations for advertising, and we don't train AI models on them. Alo runs on a chat platform that keeps its own copy of conversations, and an AI model provider that processes your messages so Alo can reply.</li>
           </ul>
 
           <h3 class="modal-section-title">Your journal</h3>
@@ -4985,14 +4835,13 @@ window.botpress.on('webchat:closed', function() {
           <ul class="modal-list">
             <li>Your therapist sees when you use Alo, when you view or complete homework, messages you send them, and any journal entries you explicitly share</li>
             <li>Your therapist <strong>never</strong> sees your Alo conversations</li>
-            <li>If Alo detects a safety concern, your therapist is alerted that something happened — never what you said.</li>
-            <li>We don't sell or share your data with third parties</li>
+            <li>If Alo detects a safety concern, it leaves a note for your therapist that something happened — they see it the next time they open their dashboard — never what you said.</li>
+            <li>We never sell your data. Nothing is shared beyond what it takes to run Alo.</li>
           </ul>
 
           <h3 class="modal-section-title">Security</h3>
           <ul class="modal-list">
-            <li>All stored data is encrypted at rest (AES-256) and in transit (TLS)</li>
-            <li>Chat data is encrypted at rest and in transit by our chat provider</li>
+            <li>Your data travels over encrypted connections (TLS), and our database encrypts stored data at rest.</li>
             <li>Database access is controlled by row-level security — your therapist can only see their own clients</li>
           </ul>
 
@@ -5007,12 +4856,7 @@ window.botpress.on('webchat:closed', function() {
 
       // Listen for auth state changes
       supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-          // Only show on the tab that received the reset link (has recovery token in URL)
-          if (window.location.hash.includes('type=recovery')) {
-            setTimeout(function() { showSetNewPasswordModal(); }, 500);
-          }
-        } else if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN') {
           loadConnectedState();
         } else if (event === 'SIGNED_OUT') {
           // Brief 3 fix C (R-C-17): the same cleanup as Log Out, then a
