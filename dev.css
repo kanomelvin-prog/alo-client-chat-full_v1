@@ -279,11 +279,29 @@ header {
   margin-top: 2px;
 }
 
+/* Brief 5 A: the name pill is the one thing in the header that gives way.
+   This group could not shrink (flex-shrink: 0), and the pill could not get
+   narrower than its text (a flex item's min-width is its content), so a
+   long name pushed the menu button past the right edge on a phone. Now the
+   group and the pill can shrink; every other item -- the menu button above
+   all -- keeps its size. */
 .header-actions {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.header-actions > *,
+.connected-actions > * {
   flex-shrink: 0;
+}
+
+.header-actions > .connected-actions,
+.connected-actions > .trust-badge {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* === THEME TOGGLE === */
@@ -344,6 +362,11 @@ header {
   white-space: nowrap;
 }
 
+/* Brief 5 G (D38): the same token as the other header icons (threads,
+   memory, info, theme), so the same contrast in every theme. It was
+   --primary-dark, overridden only under [data-theme="dark"]; with dark mode
+   from the system setting (no toggle) --primary-dark is the header's own
+   colour, and the icon was all but invisible. */
 .more-btn {
   width: 44px;
   height: 44px;
@@ -352,16 +375,13 @@ header {
   border: none;
   background: transparent;
   border-radius: 8px;
-  color: var(--primary-dark);
+  color: var(--text-muted);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   transition: background 0.15s;
-}
-
-[data-theme="dark"] .more-btn {
-  color: var(--text-secondary);
 }
 
 /* === MORE MENU PANEL === */
@@ -478,6 +498,16 @@ header {
   width: 12px;
   height: 12px;
   flex-shrink: 0;
+}
+
+/* Brief 5 A: the text box is what truncates. text-overflow on the pill
+   itself never applied: the pill is a flex container, and its text is a
+   flex item. */
+#trustBadgeText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* === PRIVACY ASSURANCE BAR === */
@@ -904,6 +934,70 @@ body.keyboard-open .private-chat-btn {
 }
 
 .error-message button { margin-top: 16px; }
+
+/* === STATE CARDS (Brief 5 B, C) ===
+   The chat area for a page with no chat: signed out, or signed in with no
+   active therapist link. Laid over the chat area like the loading overlay,
+   one step above it. The small crisis line uses --text-secondary:
+   --text-muted on --surface is 4.4:1 in the dark theme. */
+.alo-state {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  padding: 16px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  overflow-y: auto;
+  background: var(--warm-bg);
+}
+
+.alo-state-card {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 20px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px var(--modal-shadow);
+}
+
+.alo-state-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.alo-state-text {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.alo-state-action {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.alo-state-crisis {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.alo-state-crisis a {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 
 /* === FOOTER === */
 footer {
@@ -1624,7 +1718,10 @@ footer a {
   .brand { gap: 8px; }
   
   .header-actions { gap: 2px; }
-  
+
+  /* Brief 5 A: the name only on a phone -- the "with <therapist>" part goes */
+  .trust-badge-with { display: none; }
+
   /* On mobile, threads/memory/theme accessible via hamburger menu */
   .threads-btn,
   .memory-icon-btn,
@@ -2217,8 +2314,13 @@ footer a {
   margin: 4px 0;
 }
 
+/* Brief 5 E: --text-tertiary is defined nowhere, so this was the fallback,
+   white at 40%: 1.0:1 on the light theme's white panel (invisible) and
+   3.7:1 on the dark one. "Memory settings" now brings every phone user
+   here for "Clear all memories", so it takes the token its sibling
+   actions use (7.0:1 light, 7.5:1 dark). */
 .mem-pop-action-danger {
-  color: var(--text-tertiary, rgba(255,255,255,0.4));
+  color: var(--text-secondary);
 }
 
 /* === PRIVATE SESSION BANNER === */
