@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=16">
+  <link rel="stylesheet" href="dev.css?v=17">
 </head>
 
 <body>
@@ -104,7 +104,7 @@
         <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
         <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       </button>
-      <button id="shareGuestBtn" onclick="showShareModal()">Share</button>
+      <button id="shareGuestBtn" class="hidden" onclick="showShareModal()">Share</button>
       <div id="guestAuthActions" class="guest-auth-actions">
         <button id="signInBtn" class="btn-primary" onclick="showLoginModal()">Sign In</button>
       </div>
@@ -143,7 +143,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         Your privacy
       </button>
-      <button class="more-menu-item" role="menuitem" onclick="toggleMoreMenu(); showShareModal()">
+      <button class="more-menu-item" role="menuitem" id="moreShareBtn" onclick="toggleMoreMenu(); showShareModal()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Share
       </button>
@@ -155,7 +155,10 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Message Therapist
       </button>
-            <div class="more-menu-divider" role="separator"></div>
+      <!-- Brief 5 B: this group needs a chat (private sessions) or a link
+           (memory -- no memory is loaded without one), so a signed-in account
+           with no active link does not get it; _aloApplyChatControls(). -->
+      <div class="more-menu-divider" role="separator" id="moreMenuChatDivider"></div>
       <button class="more-menu-item" role="menuitem" id="morePrivateToggleBtn" onclick="toggleMoreMenu(); togglePrivateChatFromHeader()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
         <span id="morePrivateToggleLabel">Start private session</span>
@@ -163,6 +166,19 @@
       <button class="more-menu-item" role="menuitem" id="moreNewPrivateBtn" onclick="toggleMoreMenu(); startNewPrivateConversation()" style="display: none;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
         Start new private conversation
+      </button>
+      <!-- Brief 5 E (ruled): the memory popover from the menu, for every
+           linked account -- on a phone the header's eye icon is hidden and,
+           with history off, so is the sidebar's link to it. -->
+      <button class="more-menu-item" role="menuitem" id="moreMemorySettingsBtn" onclick="toggleMoreMenu(); toggleMemoryPopover()" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Memory settings
+      </button>
+      <!-- Brief 5 E (ruled): only while history is off, when the sidebar and
+           its delete controls cannot open (_aloApplyHistorySetting). -->
+      <button class="more-menu-item" role="menuitem" id="moreDeleteHistoryBtn" onclick="toggleMoreMenu(); deleteAllConversationHistory()" style="display: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        Delete my conversation history
       </button>
       <div class="more-menu-settings" id="moreMenuMemory">
         <div class="more-menu-settings-header">
@@ -174,7 +190,7 @@
           </label>
         </div>
         <div class="more-menu-settings-detail">
-          Alo keeps short summaries of recent conversations for continuity. Your therapist cannot see this. You can start a private session anytime from the eye icon.
+          Alo keeps short summaries of recent conversations for continuity. Your therapist cannot see this. You can start a private session anytime from the menu.
         </div>
       </div>
       <div class="more-menu-divider" role="separator"></div>
@@ -213,7 +229,7 @@
           <h3>Your privacy</h3>
           <p>Your conversations are private from your therapist — they never see what you say to Alo.</p>
           <p>If you're connected to a therapist through Alowen, they can see when you use Alo and when you view or complete homework they've assigned. They also see messages you send them, journal entries you choose to share, and, if Alo notices you might be in trouble, that something happened — never what you said. They aren't notified in real time — they see it the next time they open their dashboard.</p>
-          <p>Guest conversations aren't saved to an account. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
+          <p>Alo is by invitation through your therapist, so you need to be signed in to chat. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
 
@@ -228,7 +244,7 @@
           <p>When you're signed in, Alo keeps your conversation history so you can review it, and you can delete any conversation from your Alo account at any time. Deletion from the chat platform Alo runs on isn't in place yet.</p>
           <p>When memory is on, Alo also keeps brief summaries of past conversations — just enough to pick up where you left off next time. Memory is on by default and you can turn it off any time.</p>
           <p>You're always in control: turn memory off, go private for a session, or ask Alo to forget something.</p>
-          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory and history are for signed-in accounts. Guests start fresh every visit.</p>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 4px;">Memory and history are for signed-in accounts.</p>
         </section>
 
         <!-- Brief 3c H (claims-freeze, ruled Sep 20): what each mode saves.
@@ -343,7 +359,7 @@
       <h2>Conversations</h2>
       <button class="thread-sidebar-close" onclick="toggleThreadSidebar()" aria-label="Close sidebar">&times;</button>
     </div>
-    <button class="thread-new-btn" onclick="startNewConversation()">
+    <button class="thread-new-btn" id="threadNewBtn" onclick="startNewConversation()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       New conversation
     </button>
@@ -355,7 +371,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
         Clear unpinned conversations
       </button>
-      <button class="thread-sidebar-settings-link" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
+      <button class="thread-sidebar-settings-link" id="threadMemorySettingsBtn" onclick="toggleThreadSidebar(); toggleMemoryPopover()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         Memory settings
       </button>
@@ -382,6 +398,27 @@
         <div class="loading-message">
           <div class="spinner"></div>
           <p>Loading Alo...</p>
+        </div>
+      </div>
+
+      <!-- Brief 5 B, C (rulings D40/D41): on this build Alo talks only with a
+           linked client. A signed-out page, and a signed-in account with no
+           active therapist link, get a card here instead of a chat: no
+           message box, no Botpress init (_aloShowStateCard). -->
+      <div id="aloSignedOutCard" class="alo-state hidden" role="region" aria-labelledby="aloSignedOutCardTitle">
+        <div class="alo-state-card">
+          <h2 class="alo-state-title" id="aloSignedOutCardTitle">Alo is by invitation through your therapist.</h2>
+          <p class="alo-state-text">Sign in to get started.</p>
+          <button class="btn-primary alo-state-action" onclick="showLoginModal()">Sign In</button>
+          <p class="alo-state-crisis">If you need someone now, call or text <a href="tel:988">988</a>.</p>
+        </div>
+      </div>
+      <div id="aloNoLinkCard" class="alo-state hidden" role="region" aria-labelledby="aloNoLinkCardTitle">
+        <div class="alo-state-card">
+          <h2 class="alo-state-title" id="aloNoLinkCardTitle">Hi — I'm Alo.</h2>
+          <p class="alo-state-text">I can't talk with you until your therapist's invite code is connected to this account. Once it is, I'm here.</p>
+          <button class="btn-primary alo-state-action" onclick="showConnectModal()">Enter invite code</button>
+          <p class="alo-state-crisis">If you need someone now, call or text <a href="tel:988">988</a>.</p>
         </div>
       </div>
 
@@ -859,58 +896,107 @@
     // =====================================================
     // UI STATE MANAGEMENT
     // =====================================================
-    async function showLoggedInNoConnection() {
-      // A2: a signed-in account with no active therapist link has nothing to
-      // consent to, so the chat opens here (deferred Botpress init).
-      _aloInitBotpress();
+    // Brief 5 B (ruling D41): a signed-in account with no active therapist
+    // link cannot talk with Alo on this build -- the bot answers it with a
+    // by-invitation line, and no memory is ever loaded without a link. So the
+    // chat area holds the no-link card instead of a chat: no Botpress init,
+    // no memory card (memory settings are not loaded), no privacy bar, and
+    // none of the controls that need a chat or a link. The Journal tab and
+    // conversation history stay. (The one-time "Connect with your therapist"
+    // popup is gone with the chat: it said "Alo works great on its own",
+    // which is no longer true, and the card's button does its job.)
+    function showLoggedInNoConnection() {
+      _aloShowStateCard('noLink');
 
       const badge = document.getElementById('trustBadge');
 
       badge.className = 'trust-badge';
       badge.innerHTML = '<span id="trustBadgeText">Logged in</span>';
 
-      // Show header icons: threads, memory, theme
+      // Header: history stays; the theme toggle moves into the menu
       document.getElementById('threadsBtn').classList.remove('hidden');
-      document.getElementById('memoryIconBtn').classList.remove('hidden');
       document.getElementById('themeToggle').classList.add('hidden');
-      var pcBtn = document.getElementById('privateChatBtn');
-      if (pcBtn) pcBtn.classList.remove('hidden');
-      await loadMemorySettings();
-      
+      _aloApplyChatControls(false);
+
       // Show hamburger menu, hide guest auth button
       document.getElementById('guestAuthActions').classList.add('hidden');
       document.getElementById('shareGuestBtn').classList.add('hidden');
-      document.getElementById('themeToggle').classList.add('hidden');
       document.getElementById('connectedActions').classList.remove('hidden');
       document.getElementById('tabBar').classList.remove('hidden');
-      
+      document.getElementById('privacyBar').classList.add('hidden');
+      document.getElementById('memoryOnboardCard').style.display = 'none';
+
       // Show "Connect to Therapist" in menu, hide "Message Therapist"
       const connectItem = document.getElementById('moreConnectBtn');
       if (connectItem) connectItem.style.display = '';
       const msgItem = document.getElementById('moreMessageBtn');
       if (msgItem) msgItem.style.display = 'none';
-      
-      // Show one-time popup prompting connection
-      if (!sessionStorage.getItem('alo_connect_prompt_dismissed')) {
-        setTimeout(function() { showConnectPrompt(); }, 800);
-      }
     }
 
-    function showConnectPrompt() {
-      createModal('Connect with your therapist', `
-        <p>If your therapist gave you an invite code, you can link your account to see homework and send them messages between sessions.</p>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">No therapist? No problem — Alo works great on its own. You can always connect later from the menu.</p>
-      `, {
-        confirmLabel: 'Enter Code',
-        cancelLabel: 'Not Now',
-        onConfirm: () => {
-          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
-          showConnectModal();
-        },
-        onCancel: () => {
-          sessionStorage.setItem('alo_connect_prompt_dismissed', '1');
+    // ---- Brief 5 B, C: the chat area without a chat ----
+    // True once this page has started (or is starting) the Botpress webchat,
+    // which on this build happens only for a linked client past the consent
+    // gate (loadConnectedState). A signed-out page and an account with no
+    // active link never start it.
+    function _aloHasChat() {
+      return _aloBotpressInitStarted;
+    }
+
+    // Brief 5 D (ruling D41): an identity boundary is a conversation
+    // boundary. Set whenever this page shows a state card or the consent
+    // screens, so the first chat it then opens -- after a sign-in, an invite
+    // claim or consent -- starts a new conversation (see
+    // _aloRunIdentityHandshake). A page that loads straight into the chat
+    // resumes as before.
+    let _aloOpenChatAsNew = false;
+
+    // kind: 'signedOut' | 'noLink'
+    function _aloShowStateCard(kind) {
+      if (_aloHasChat()) {
+        // The webchat is laid over the chat area (positionWebchat), so a card
+        // cannot be shown under a running chat: the fresh load shows it with
+        // no chat. (A link that ended while the page was open.)
+        window.location.reload();
+        return;
+      }
+      _aloOpenChatAsNew = true;
+      var overlay = document.getElementById('loadingOverlay');
+      if (overlay) overlay.style.display = 'none';
+      document.getElementById('aloSignedOutCard').classList.toggle('hidden', kind !== 'signedOut');
+      document.getElementById('aloNoLinkCard').classList.toggle('hidden', kind !== 'noLink');
+    }
+
+    // The chat is about to load in the chat area: no card, and the loading
+    // overlay until webchat:initialized.
+    function _aloHideStateCards() {
+      var wasShowing = false;
+      ['aloSignedOutCard', 'aloNoLinkCard'].forEach(function(id) {
+        var card = document.getElementById(id);
+        if (card && !card.classList.contains('hidden')) {
+          card.classList.add('hidden');
+          wasShowing = true;
         }
       });
+      var overlay = document.getElementById('loadingOverlay');
+      if (wasShowing && overlay) overlay.style.display = '';
+    }
+
+    // Brief 5 B, E: controls that need a chat (private sessions, sharing a
+    // conversation, starting a new one) or a link (memory) are offered only on
+    // a page that has them. hasChat is true for a linked client past the gate.
+    function _aloApplyChatControls(hasChat) {
+      ['moreMenuChatDivider', 'morePrivateToggleBtn', 'moreMemorySettingsBtn', 'moreMenuMemory',
+       'moreShareBtn', 'threadNewBtn', 'threadMemorySettingsBtn'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = hasChat ? '' : 'none';
+      });
+      document.getElementById('memoryIconBtn').classList.toggle('hidden', !hasChat);
+      if (!hasChat) {
+        var newPrivate = document.getElementById('moreNewPrivateBtn');
+        if (newPrivate) newPrivate.style.display = 'none';
+        var deleteAll = document.getElementById('moreDeleteHistoryBtn');
+        if (deleteAll) deleteAll.style.display = 'none';
+      }
     }
 
     function showConnectedUI(therapistName, clientName) {
@@ -925,7 +1011,10 @@
       const safeTherapist = esc(therapistName);
       const withText = (clientName === therapistName) ? 'connected' : 'with ' + safeTherapist;
 
-      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + safeClient + '</span> \u00B7 ' + withText + '</span>';
+      // Brief 5 A: #trustBadgeText is the box that truncates (ellipsis), and
+      // phone widths drop the "with <therapist>" part so the name has the
+      // room (dev.css, .trust-badge-with).
+      badge.innerHTML = shieldSvg + '<span id="trustBadgeText">Hi <span class="editable-name" id="clientNameEditable" role="button" tabindex="0" aria-label="Change your display name">' + safeClient + '</span><span class="trust-badge-with"> \u00B7 ' + withText + '</span></span>';
       
       const nameEl = document.getElementById('clientNameEditable');
       if (nameEl) {
@@ -1082,7 +1171,9 @@ function showAboutModal() {
       signInBtn.textContent = 'Sign In';
       signInBtn.onclick = function() { showLoginModal(); };
       signInBtn.classList.remove('hidden');
-      document.getElementById('shareGuestBtn').classList.remove('hidden');
+      // Brief 5 C: "Share" shares a conversation, and a signed-out visitor
+      // has none.
+      document.getElementById('shareGuestBtn').classList.add('hidden');
       document.getElementById('themeToggle').classList.remove('hidden');
       document.getElementById('connectedActions').classList.add('hidden');
       document.getElementById('moreMenu').classList.add('hidden');
@@ -1090,8 +1181,10 @@ function showAboutModal() {
       document.getElementById('tabBar').classList.add('hidden');
       if (activeTab !== 'chat') switchTab('chat');
 
-      // A2: guest chat is still on this build, so a signed-out page opens it.
-      _aloInitBotpress();
+      // Brief 5 C (ruling D41): Alo is by invitation through the therapist,
+      // and the bot no longer talks with anyone it cannot verify as a linked
+      // client -- so a signed-out page gets the signed-out card, no chat.
+      _aloShowStateCard('signedOut');
     }
 
     // =====================================================
@@ -1289,10 +1382,12 @@ function showAboutModal() {
       if (!_aloSignOutInFlight) {
         _aloSignOutInFlight = (async function() {
           try {
+            _aloHideAccountContentNow();
             await _aloEndBotpressIdentity();
             _aloClearAccountState();
           } finally {
-            // Always reload: the page must not stay up half-cleared.
+            // Always reload: the page must not stay up half-cleared. The
+            // fresh load shows the signed-out card (Brief 5 C).
             window.location.reload();
           }
         })();
@@ -1300,12 +1395,43 @@ function showAboutModal() {
       return _aloSignOutInFlight;
     }
 
+    // Brief 5 D (ruling D41): on a shared computer the next person must not
+    // see or scroll to the previous client's conversation. So the moment a
+    // sign-out starts -- before the network-bound steps below -- the chat,
+    // any open conversation transcript, the journal and every panel leave
+    // the screen; positionWebchat() stays off while this runs.
+    function _aloHideAccountContentNow() {
+      try {
+        var webchatEl = document.querySelector('.bpWebchat');
+        if (webchatEl) webchatEl.style.cssText = 'visibility:hidden!important;pointer-events:none!important;';
+        document.getElementById('modalsContainer').innerHTML = '';
+        ['moreMenu', 'memoryPopover', 'aboutModal', 'journalContainer', 'tabBar',
+         'aloSignedOutCard', 'aloNoLinkCard'].forEach(function(id) {
+          document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById('threadSidebar').classList.remove('open');
+        document.getElementById('threadBackdrop').classList.remove('show');
+        document.getElementById('homeworkContainer').classList.remove('show');
+        document.getElementById('privateSessionBanner').style.display = 'none';
+        document.getElementById('memoryOnboardCard').style.display = 'none';
+        var chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) chatContainer.style.display = '';
+        var overlay = document.getElementById('loadingOverlay');
+        if (overlay) {
+          overlay.style.display = '';
+          overlay.innerHTML = '<div class="loading-message"><div class="spinner"></div><p>Signing out…</p></div>';
+        }
+      } catch (err) {
+        console.error('[Alo] Could not clear the screen at sign-out:', err);
+      }
+    }
+
     async function _aloEndBotpressIdentity() {
       var bp = window.botpress;
       if (bp && _aloBotpressInitStarted) {
-        // 1. Best effort, time-boxed: blank the identity this Botpress user
-        //    carries on the Botpress side, in case its key ever survived.
         if (bp.initialized === true) {
+          // 1. Best effort, time-boxed: blank the identity this Botpress user
+          //    carries on the Botpress side, in case its key ever survived.
           try {
             await _aloWithTimeout(bp.updateUser({
               data: { clientId: '', sessionNonce: '', privateSession: 'false', homeworkActive: '[]' }
@@ -1313,8 +1439,24 @@ function showAboutModal() {
           } catch (err) {
             console.error('[Alo] Could not blank Botpress user data at sign-out:', err);
           }
+          // 2. Brief 5 D: end the conversation through the SDK's documented
+          //    call (restartConversation: "ends the current conversation and
+          //    starts a new one") -- the transcript leaves the webchat, and
+          //    the conversation the webchat has stored is now a new, empty
+          //    one. The SDK has no documented call that clears what it keeps
+          //    in storage (see the S9 report); the storage step below is the
+          //    S7 one, unchanged. Only once the conversation client is up
+          //    (webchat:ready): before that the SDK's restart is a stub that
+          //    throws. Time-boxed like the blanking.
+          if (_aloBotpressConversationReady) {
+            try {
+              await _aloWithTimeout(bp.restartConversation(), 2000);
+            } catch (err) {
+              console.error('[Alo] Could not end the conversation at sign-out:', err);
+            }
+          }
         }
-        // 2. End the webchat, so its in-memory store cannot write the keys
+        // 3. End the webchat, so its in-memory store cannot write the keys
         //    back after they are removed. botpressReady goes false first or
         //    the webchat:closed listener would reopen it.
         botpressReady = false;
@@ -1322,7 +1464,7 @@ function showAboutModal() {
         try { bp.unmount('webchat'); } catch (e) {}
       }
       _aloClearBotpressStorage();
-      // 3. Forget whose user the stored one was, so the next init starts a
+      // 4. Forget whose user the stored one was, so the next init starts a
       //    fresh user even if something re-wrote the keys during unload.
       try { localStorage.removeItem(ALO_BP_OWNER_KEY); } catch (e) {}
     }
@@ -1420,10 +1562,10 @@ function showAboutModal() {
     }
 
     // A stored Botpress user is reused only by the owner it was made for:
-    // the same signed-in account, or the same guest visit (one tab
-    // session). A different account (a ?t= switch included), a new guest
-    // visit, or a page after Log Out gets a fresh user and conversation --
-    // which is also what makes "Guests start fresh every visit" true.
+    // the same signed-in account. A different account (a ?t= switch
+    // included) or a page after Log Out gets a fresh user and conversation.
+    // (Since Brief 5 C a signed-out page starts no webchat at all, so the
+    // guest-visit owner below is a fallback only.)
     function _aloGuestVisitId() {
       try {
         var id = sessionStorage.getItem('alo_guest_visit');
@@ -1451,12 +1593,10 @@ function showAboutModal() {
       }
     }
 
-    // A guest page that signs in without a reload keeps its running
-    // Botpress user, which from then on carries this account's identity.
-    function _aloClaimBotpressOwner() {
-      if (!clientId || !_aloBotpressInitStarted) return;
-      try { localStorage.setItem(ALO_BP_OWNER_KEY, 'u:' + clientId); } catch (e) {}
-    }
+    // (Brief 5 D removed _aloClaimBotpressOwner(), which handed a running
+    // webchat to the account that signed in on top of it. A signed-out page
+    // has no webchat now, and a different account signing in on a page is
+    // handled as a sign-out of the one before -- loadConnectedState().)
 
     // =====================================================
     // PHASE 2B, ITEM 8 -- FOUR-SCREEN ONBOARDING + CONSENT (spec §3.2)
@@ -2180,8 +2320,21 @@ function showAboutModal() {
               _aloSignOutCleanupAndReload();
               return;
             }
+            // Brief 5: still signed in, so the page stays as it is (it used
+            // to fall through to the guest UI, which now means the
+            // signed-out card).
+            return;
           }
           resetToGuestUI();
+          return;
+        }
+
+        // Brief 5 D: a different account signed in on top of this page's (the
+        // connect modal's "Sign in", or another tab). An identity boundary is
+        // a conversation boundary: the previous account's state goes exactly
+        // as at sign-out, and the fresh load opens this one.
+        if (clientId && user.id !== clientId) {
+          _aloSignOutCleanupAndReload();
           return;
         }
 
@@ -2191,7 +2344,6 @@ function showAboutModal() {
 
         if (!links || links.length === 0) {
           clientId = user.id;
-          _aloClaimBotpressOwner();
 
           // Ensure profile exists (fallback for pre-trigger users)
           try {
@@ -2269,13 +2421,14 @@ function showAboutModal() {
           // Two near-simultaneous entries (SIGNED_IN listener + the explicit
           // call after sign-in) must not reset a client who is mid-screens.
           if (!alreadyHolding) _aloOpenOnboardingScreens('gate');
+          // Brief 5 D: the chat that opens after consent is a new conversation.
+          _aloOpenChatAsNew = true;
           return;
         }
 
         const link = links[0];
         therapistLink = link;
         clientId = user.id;
-        _aloClaimBotpressOwner();
 
         // Brief 3c B: the composer stays disabled ("Connecting…") from its
         // first paint until this page load's first identity handshake has
@@ -2287,7 +2440,10 @@ function showAboutModal() {
         }
 
         // A2: only past the gate does the chat start loading. The promise
-        // settles at webchat:initialized (Brief 3c I).
+        // settles at webchat:initialized (Brief 3c I). Brief 5 B, C: a page
+        // that was showing a state card (it signed in, or claimed a code,
+        // without a reload) loads the chat in its place.
+        if (!_aloHasChat()) _aloHideStateCards();
         const botpressUp = _aloInitBotpress();
 
         const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
@@ -2305,10 +2461,11 @@ function showAboutModal() {
 
         showConnectedUI(therapistName, clientName);
         
-        // Conversation history as the therapist set it (Brief 4 C), and the
-        // memory icon
+        // The controls a chat and a link bring (Brief 5 B, E: the memory icon
+        // and "Memory settings" among them), then conversation history as the
+        // therapist set it (Brief 4 C; Brief 5 E's delete item)
+        _aloApplyChatControls(true);
         _aloApplyHistorySetting();
-        document.getElementById('memoryIconBtn').classList.remove('hidden');
         var pcBtn2 = document.getElementById('privateChatBtn');
         if (pcBtn2) pcBtn2.classList.remove('hidden');
         await loadMemorySettings();
@@ -2470,14 +2627,28 @@ function showAboutModal() {
     // toast. Later ones are 'refresh' and are console-only. The auth bridge
     // goes after it, never before init (Brief 3c I), whatever the outcome:
     // better a degraded session than no conversation at all.
+    //
+    // Brief 5 D (ruling D41): an identity boundary is a conversation
+    // boundary. When this page opens its chat after a sign-in -- it showed the
+    // signed-out or no-link card, or the consent screens, earlier in this
+    // load (_aloOpenChatAsNew) -- the box opens on a new conversation: once
+    // the identity send has settled, the same restart the private on/off
+    // transitions use (_aloRestartConversation), and only then is the
+    // composer released. A page that loads straight into the chat resumes its
+    // conversation as before.
+    let _aloStartupHandshakeSettled = false;
+
     function _aloRunIdentityHandshake(botpressUp, nonceWritten) {
       const startup = !_aloStartupHandshakeBegun;
       _aloStartupHandshakeBegun = true;
       const reason = startup ? 'startup' : 'refresh';
+      const freshConversation = startup && _aloOpenChatAsNew;
+      if (freshConversation) _aloOpenChatAsNew = false;
       return (async function() {
         let verified = false;
+        let up = false;
         try {
-          const up = await botpressUp;
+          up = await botpressUp;
           if (up) verified = await sendIdentityToBot(reason);
           if (verified && !nonceWritten) {
             // Botpress has the object, but this load's nonce has no row for
@@ -2488,14 +2659,41 @@ function showAboutModal() {
         } catch (err) {
           console.error('[Alo] Identity handshake error (' + reason + '):', err);
         }
+        if (freshConversation && up) {
+          // restartConversation() is the SDK's real one only once the
+          // conversation client has connected (webchat:ready); before that it
+          // is a stub that throws.
+          if (await _aloWaitForConversationReady(10000)) {
+            console.log('[Alo] Signed in: starting a new conversation');
+            if (!(await _aloRestartConversation())) return verified;   // the page is reloading
+          } else {
+            console.error('[Alo] Signed in, but the webchat did not connect: no new conversation was started');
+          }
+        }
         if (startup) {
           // Verified or not, the user is never kept from talking.
           _aloReleaseComposer();
           if (!verified) showToast(ALO_IDENTITY_NOT_VERIFIED_MESSAGE, 6000);
+          _aloStartupHandshakeSettled = true;
         }
-        sendAuthBridge();
+        // A refresh that lands while the startup handshake (and any restart
+        // in it) is still running leaves the bridge to it: one bridge, into
+        // the conversation the box opens on.
+        if (startup || _aloStartupHandshakeSettled) sendAuthBridge();
         return verified;
       })();
+    }
+
+    // Resolves true once webchat:ready has been seen, false after `ms`.
+    function _aloWaitForConversationReady(ms) {
+      return new Promise(function(resolve) {
+        const started = Date.now();
+        (function check() {
+          if (_aloBotpressConversationReady) return resolve(true);
+          if (Date.now() - started >= ms) return resolve(false);
+          setTimeout(check, 100);
+        })();
+      });
     }
 
     // ---- Brief 3c B: the composer waits for the handshake ----
@@ -2615,6 +2813,12 @@ function showAboutModal() {
     function _aloShowLoadError() {
       var overlay = document.getElementById('loadingOverlay');
       if (!overlay) return;
+      // Brief 5: never left under a state card (a sign-in or a claim from one
+      // that failed to load).
+      ['aloSignedOutCard', 'aloNoLinkCard'].forEach(function(id) {
+        var card = document.getElementById(id);
+        if (card) card.classList.add('hidden');
+      });
       overlay.style.display = '';
       overlay.innerHTML = '<div class="load-error">Alo couldn\'t load. If this keeps happening, check your connection.<br>' +
         '<button class="load-retry-btn" onclick="window.location.reload()">Try again</button></div>';
@@ -2838,6 +3042,10 @@ function showAboutModal() {
       document.getElementById('threadsBtn').classList.toggle('hidden', off);
       const menuItem = document.getElementById('moreConversationsBtn');
       if (menuItem) menuItem.style.display = off ? 'none' : '';
+      // Brief 5 E (ruled): hiding history must not take the client's delete
+      // with it -- with the sidebar closed, the menu carries it.
+      const deleteItem = document.getElementById('moreDeleteHistoryBtn');
+      if (deleteItem) deleteItem.style.display = off ? '' : 'none';
       if (off) {
         // Closed directly: toggleThreadSidebar() is inert from here on.
         document.getElementById('threadSidebar').classList.remove('open');
@@ -3306,6 +3514,61 @@ async function togglePin(conversationId) {
         showToast('Could not clear history. Try again.');
       }
     }
+
+    // Brief 5 E (ruled): "Delete my conversation history", in the menu while
+    // history is off (the sidebar, and every delete control in it, cannot
+    // open then). Every conversation of this account goes, pinned included
+    // -- pinning is out of reach without the sidebar -- behind
+    // clearHistory()'s confirm, worded for all of them. Summaries are handled
+    // as clearHistory() handles them (marked source_expired, kept), which is
+    // what "Alo will still remember themes" says.
+    const ALO_DELETE_ALL_HISTORY_MESSAGE =
+      'This will delete all your conversations from your Alo account. Alo will still remember themes from recent sessions. This can\'t be undone.';
+
+    async function deleteAllConversationHistory() {
+      var confirmed = await showConfirm('Clear conversation history?', ALO_DELETE_ALL_HISTORY_MESSAGE, {
+        confirmLabel: 'Clear History',
+        cancelLabel: 'Keep',
+        dangerous: true
+      });
+
+      if (!confirmed) return;
+
+      try {
+        var { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await api('/rest/v1/conversation_summaries?client_id=eq.' + user.id + '&source_expired=not.is.true', 'PATCH', {
+          source_expired: true,
+          last_referenced_at: new Date().toISOString()
+        });
+        await api('/rest/v1/conversations?client_id=eq.' + user.id, 'DELETE');
+
+        // "Deleted" means the server no longer has them: a DELETE that row
+        // security filters down to nothing is still a 204.
+        var left = await api('/rest/v1/conversations?client_id=eq.' + user.id + '&select=id&limit=1');
+        if (Array.isArray(left) && left.length > 0) throw new Error('conversations still present after delete');
+
+        allThreads = [];
+        renderThreadList();
+        // The conversation on screen has no row any more: its next message
+        // starts a new one instead of writing to the deleted one.
+        resetPersistenceState();
+        window._aloEnsureConvPromise = null;
+        try {
+          var stale = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf('alo_conv_') === 0) stale.push(k);
+          }
+          stale.forEach(function(k) { localStorage.removeItem(k); });
+        } catch (e) {}
+        showToast('History cleared');
+      } catch (err) {
+        console.error('Error deleting all conversations:', err);
+        showToast('Could not clear history. Try again.');
+      }
+    }
     async function handleMemoryToggle(enabled) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -3665,6 +3928,9 @@ async function togglePin(conversationId) {
         switchTab('chat');
         return;
       }
+      // Brief 5 B, C: a page with no chat (signed out, or no active link) has
+      // no conversation to start fresh.
+      if (!_aloHasChat()) return;
       startNewConversation();
     }
 
@@ -3697,13 +3963,16 @@ async function togglePin(conversationId) {
       }
     }
 
-   // Returns true once the new conversation is live, false if the user
-   // kept chatting, a private session could not be ended, or the restart
-   // failed (the page then reloads).
+   // Returns true once the new conversation is live, false if the page has
+   // no chat, the user kept chatting, a private session could not be ended,
+   // or the restart failed (the page then reloads).
    // opts.keepPrivate: used by startPrivateSession(), which has already set
    // the private flag for the conversation about to start.
    async function startNewConversation(skipConfirm, opts) {
       var keepPrivate = !!(opts && opts.keepPrivate);
+      // Brief 5 B, C: no chat on this page, so nothing to restart (the SDK's
+      // pre-init restart throws, which would reload the page).
+      if (!_aloHasChat()) return false;
       if (!skipConfirm) {
         // A private session is always a whole conversation (Brief 3c D).
         var currentKept = !isPrivateSession
@@ -4083,10 +4352,12 @@ async function togglePin(conversationId) {
         '</div>' +
         '<div class="journal-detail-secondary-actions">' +
           shareHTML +
-          '<button class="journal-bring-to-alo-btn" id="journalBringToAlo">' +
+          // Brief 5 B: it starts a conversation, so only where there is a
+          // chat (an account with no active link keeps its Journal, not this).
+          (_aloHasChat() ? '<button class="journal-bring-to-alo-btn" id="journalBringToAlo">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
             ' Bring this to Alo' +
-          '</button>' +
+          '</button>' : '') +
         '</div>'
       , {
         confirmLabel: 'Close',
@@ -4467,9 +4738,10 @@ async function togglePin(conversationId) {
       // =====================================================
       // window.botpress.init() used to run right here, for everyone, before
       // the session was even checked. It now runs only when the caller knows
-      // the consent gate's outcome: guest page (no session), signed-in with
-      // no active link, a failed ?t= exchange, or an active link whose
-      // consent_acknowledged_at is set (loadConnectedState, past the gate).
+      // the consent gate's outcome, and since Brief 5 B, C (ruling D41) only
+      // for an active link whose consent_acknowledged_at is set
+      // (loadConnectedState, past the gate): a signed-out page and a
+      // signed-in account with no active link get a state card instead.
       // An unconsented row never reaches this function. The body below is
       // the original block, unchanged, so listener registration keeps its
       // original order relative to init(). The 15 s "Still loading" timeout
@@ -4546,6 +4818,8 @@ async function togglePin(conversationId) {
 
         function positionWebchat() {
           if (activeTab !== 'chat') return;
+          // Brief 5 D: the conversation stays off screen while a sign-out runs.
+          if (_aloSignOutInFlight) return;
           var rect = chatContainer.getBoundingClientRect();
           var top = rect.top;
           var height = rect.height;
@@ -4637,10 +4911,6 @@ async function togglePin(conversationId) {
 
           window.visualViewport.addEventListener('scroll', positionWebchat);
         }
-
-        // Init theme label for more menu
-        var menuLabel = document.getElementById('moreMenuThemeLabel');
-        if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
       });
 
 window.botpress.on('webchat:closed', function() {
@@ -4767,6 +5037,12 @@ window.botpress.on('webchat:closed', function() {
       initPrivacyBar();
       initJournalListeners();
 
+      // Theme label for the more menu. Brief 5 B: set here, not at
+      // webchat:initialized -- an account with no active link has the menu
+      // but no webchat.
+      var menuLabel = document.getElementById('moreMenuThemeLabel');
+      if (menuLabel && getEffectiveTheme() === 'dark') menuLabel.textContent = 'Light Mode';
+
       // Sign In and Connect use inline onclick handlers
       // Close more menu on Escape key
       document.addEventListener('keydown', function(e) {
@@ -4819,7 +5095,7 @@ window.botpress.on('webchat:closed', function() {
             <li>If you have an account, conversations are saved so Alo can provide continuity</li>
             <li>You can delete any conversation from your Alo account at any time from the sidebar. Deletion from the chat platform Alo runs on isn't in place yet.</li>
             <li>You can turn off memory in settings — Alo will treat each chat as new</li>
-            <li>Guest conversations (no account) are not saved to an account</li>
+            <li>Alo is by invitation through your therapist, so you need to be signed in to chat</li>
             <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
             <li>Alowen doesn't use your conversations for advertising, and we don't train AI models on them. Alo runs on a chat platform that keeps its own copy of conversations, and an AI model provider that processes your messages so Alo can reply.</li>
           </ul>
@@ -4878,13 +5154,16 @@ window.botpress.on('webchat:closed', function() {
       // the session_metadata write, homework/memory loads). On failure
       // there is no session to find either way.
       if (_aloClientToken) {
+        // Brief 5 D: the exchange is a sign-in, so the chat it opens starts a
+        // new conversation even if this browser holds one for that account.
+        _aloOpenChatAsNew = true;
         await _aloExchangeClientToken(_aloClientToken);
         _aloClientToken = null;
-        // A2: a failed exchange leaves no session, so this is a guest page
-        // and the chat opens now. A successful one already handed off to the
-        // SIGNED_IN listener's loadConnectedState(), which owns the gate.
+        // A failed exchange leaves no session: the signed-out card (Brief 5
+        // C). A successful one already handed off to the SIGNED_IN listener's
+        // loadConnectedState(), which owns the gate.
         const { data: { session: tokenSession } } = await supabase.auth.getSession();
-        if (!tokenSession) _aloInitBotpress();
+        if (!tokenSession) resetToGuestUI();
         return;
       }
 
@@ -4894,8 +5173,9 @@ window.botpress.on('webchat:closed', function() {
       if (session) {
         await loadConnectedState();
       } else {
-        // A2: guest page -- the chat opens without an account on this build.
-        _aloInitBotpress();
+        // Brief 5 C (ruling D41): no chat without an account on this build --
+        // the signed-out card.
+        resetToGuestUI();
       }
     });
 
