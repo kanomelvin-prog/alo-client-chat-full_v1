@@ -30,7 +30,13 @@
   --primary-hover: #2D6B74;
   --primary-dark: #264038;
   --primary-glow: rgba(58, 124, 134, 0.12);
-  
+
+  /* Primary buttons (Brief 7 D): fill, hover fill, label. Here the fill is
+     the brand teal itself, 4.76:1 with the white label (hover 6.06:1). */
+  --btn-primary-bg: var(--primary);
+  --btn-primary-hover: var(--primary-hover);
+  --btn-primary-text: #FFFFFF;
+
   /* Warm accent — clay terracotta */
   --accent: #C7865F;
   --accent-hover: #B57550;
@@ -97,37 +103,45 @@
   --primary-hover: #6AADB8;
   --primary-dark: #1A2420;
   --primary-glow: rgba(82, 153, 165, 0.15);
-  
+
+  /* Brief 7 D: the white label on --primary (#5299A5) is 3.25:1. Primary
+     buttons keep the light theme's brand teals instead: 4.76:1, hover
+     6.06:1, and the fill stays 3.1:1 or more against every dark surface.
+     --primary itself is unchanged (text and accents). */
+  --btn-primary-bg: #3A7C86;
+  --btn-primary-hover: #2D6B74;
+  --btn-primary-text: #FFFFFF;
+
   --accent: #D19A6E;
   --accent-hover: #DBA97E;
   --accent-light: rgba(209, 154, 110, 0.10);
-  
+
   --sage: var(--primary);
   --sage-light: var(--primary-light);
   --sage-hover: var(--primary-hover);
   --sage-dark: var(--primary-dark);
   --white: var(--surface);
-  
+
   --danger: #E07066;
   --danger-bg: rgba(224, 112, 102, 0.12);
   --success: #6FB88A;
   --success-bg: rgba(111, 184, 138, 0.10);
-  
+
   --header-bg: linear-gradient(180deg, rgba(26, 36, 32, 1) 0%, rgba(17, 25, 23, 0.98) 100%);
   --header-border-top: var(--primary);
   --footer-bg: rgba(17, 25, 23, 0.98);
-  
+
   --modal-overlay: rgba(0, 0, 0, 0.55);
   --modal-shadow: rgba(0, 0, 0, 0.3);
-  
+
   --focus-ring: var(--primary);
   --focus-glow: rgba(82, 153, 165, 0.2);
-  
+
   --chat-bg: #111917;
-  
+
   --toast-bg: var(--surface-raised);
   --toast-success: var(--primary);
-  
+
   --spinner-track: rgba(82, 153, 165, 0.15);
   --spinner-head: var(--primary);
 }
@@ -151,7 +165,12 @@
     --primary-hover: #6AADB8;
     --primary-dark: #1A2420;
     --primary-glow: rgba(82, 153, 165, 0.15);
-    
+
+    /* Brief 7 D: as in [data-theme="dark"] above */
+    --btn-primary-bg: #3A7C86;
+    --btn-primary-hover: #2D6B74;
+    --btn-primary-text: #FFFFFF;
+
     --accent: #D19A6E;
     --accent-hover: #DBA97E;
     --accent-light: rgba(209, 154, 110, 0.10);
@@ -596,9 +615,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: white;
-  border-color: var(--primary);
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
   font-weight: 600;
 }
 
@@ -1590,8 +1609,8 @@ footer a {
   }
 
   .btn-primary:hover {
-    background: var(--primary-hover);
-    color: white;
+    background: var(--btn-primary-hover);
+    color: var(--btn-primary-text);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px var(--primary-glow);
   }
@@ -1627,8 +1646,8 @@ footer a {
   .thread-sidebar-close:hover { color: var(--text-primary); }
 
   .thread-new-btn:hover {
-    background: var(--primary-hover);
-    color: white;
+    background: var(--btn-primary-hover);
+    color: var(--btn-primary-text);
   }
 
   .mem-pop-action:hover {
@@ -1917,8 +1936,8 @@ footer a {
 .thread-new-btn {
   margin: 12px 16px;
   padding: 10px 16px;
-  background: var(--primary);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 8px;
   font-size: 14px;
@@ -3512,25 +3531,27 @@ footer a {
   transition: border-color 0.15s ease, color 0.15s ease;
 }
 
+/* Brief 7 D: a filled primary button in this state, so the primary-button
+   tokens (white on --primary was 3.25:1 in the dark theme). */
 .journal-share-btn.shared {
-  color: #fff;
-  border-color: var(--primary);
-  background: var(--primary);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+  background: var(--btn-primary-bg);
   font-weight: 600;
 }
 
 .journal-share-btn.shared svg {
-  stroke: #fff;
+  stroke: var(--btn-primary-text);
 }
 
 @media (hover: hover) {
   .journal-share-btn.shared:hover {
-    background: var(--primary-hover);
-    border-color: var(--primary-hover);
-    color: #fff;
+    background: var(--btn-primary-hover);
+    border-color: var(--btn-primary-hover);
+    color: var(--btn-primary-text);
   }
   .journal-share-btn.shared:hover svg {
-    stroke: #fff;
+    stroke: var(--btn-primary-text);
   }
 }
 
@@ -3561,12 +3582,13 @@ footer a {
 }
 
 @media (hover: hover) {
+  /* Brief 7 D: filled on hover, so the primary-button tokens */
   .journal-bring-to-alo-btn:hover {
-    background: var(--primary);
-    color: #fff;
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
   }
   .journal-bring-to-alo-btn:hover svg {
-    stroke: #fff;
+    stroke: var(--btn-primary-text);
   }
 }
 
@@ -3919,8 +3941,8 @@ body.journal-focus-mode .tab-bar {
   color: var(--text-primary);
 }
 .install-banner-btn {
-  background: var(--primary);
-  color: #fff;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
   border: none;
   border-radius: 8px;
   padding: 8px 14px;
@@ -3929,7 +3951,7 @@ body.journal-focus-mode .tab-bar {
   min-height: 44px;
   cursor: pointer;
 }
-.install-banner-btn:hover { background: var(--primary-hover); }
+.install-banner-btn:hover { background: var(--btn-primary-hover); }
 .install-banner-close {
   background: none;
   border: none;

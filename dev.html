@@ -60,7 +60,7 @@
   <meta name="description" content="Alowen is a personal emotional support companion. Process thoughts between therapy sessions with Socratic questioning.">
   
   <title>Alowen — Someone to think out loud with</title>
-  <link rel="stylesheet" href="dev.css?v=17">
+  <link rel="stylesheet" href="dev.css?v=18">
 </head>
 
 <body>
@@ -229,7 +229,7 @@
           <h3>Your privacy</h3>
           <p>Your conversations are private from your therapist — they never see what you say to Alo.</p>
           <p>If you're connected to a therapist through Alowen, they can see when you use Alo and when you view or complete homework they've assigned. They also see messages you send them, journal entries you choose to share, and, if Alo notices you might be in trouble, that something happened — never what you said. They aren't notified in real time — they see it the next time they open their dashboard.</p>
-          <p>Alo is by invitation through your therapist, so you need to be signed in to chat. If you're signed in, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
+          <p>Alo is by invitation through your therapist, so you need to be signed in to chat. If you're connected with a therapist, you stay in control: turn memory off, start a private session (nothing from it goes into your history or memory), or ask Alo to forget a specific topic.</p>
           <p>Journal entries are private by default — your therapist can't see them unless you choose to share a specific entry.</p>
         </section>
 
@@ -541,6 +541,10 @@
     // true arrival order, even if network latency causes two writes to
     // complete out of order.
     let persistenceWriteQueue = Promise.resolve();
+    // Brief 7 C -- see _aloOnScreenConversationRow() and _aloStartOverAfterDelete().
+    const ALO_ONSCREEN_CONV_KEY = 'alo_onscreen_conv';   // the Botpress conversation on screen, across reloads
+    let _aloOnScreenBotpressConv = null;                 // the same, as this page load has seen it
+    const _aloDeletedBotpressConvs = new Set();          // on screen when their history row was deleted: never written again
 
     // Memory & private session state
     let memoryGlobalEnabled = true;   // A-10 (Brief 1a-min B1): display default ON; loadMemorySettings() reads the row
@@ -695,6 +699,7 @@
       tip.className = 'alo-contextual-tip';
       tip.textContent = text;
       tip.setAttribute('role', 'status');
+      tip.setAttribute('data-alo-tip', key);   // Brief 7 A: the homework tip names the therapist
       document.body.appendChild(tip);
 
       function dismiss() {
@@ -999,6 +1004,58 @@
       }
     }
 
+    // ---- Brief 7 A (ledger D41): the therapist's name ----
+    // public.my_therapist_name() returns the display name of the therapist on
+    // the caller's single active link, or null (no active link, or more than
+    // one); signed-in logins only. It replaces the page's read of the
+    // therapist's profiles row, which the client role cannot read, so the
+    // pill always said "with Your therapist". One call per page load, on the
+    // linked path once the link is established, made beside the identity
+    // handshake and never awaited by it: the fallback shows until the name
+    // arrives, and stays for a null answer or an error.
+    const ALO_THERAPIST_NAME_FALLBACK = 'Your therapist';
+    let _aloTherapistName = null;            // what the function returned, once it has
+    let _aloTherapistNameRequested = false;  // this page load's one call has been made
+
+    function _aloRequestTherapistName() {
+      if (_aloTherapistNameRequested) return;
+      _aloTherapistNameRequested = true;
+      supabase.rpc('my_therapist_name').then(function(res) {
+        if (res && res.error) {
+          // Console-only: the fallback is already on screen.
+          console.error('[Alo] Therapist name unavailable:', res.error.code || res.error.message || res.status);
+          return;
+        }
+        var name = res && typeof res.data === 'string' ? res.data.trim() : '';
+        if (name && therapistLink) _aloShowTherapistName(name);
+      }, function(err) {
+        console.error('[Alo] Therapist name unavailable:', err && err.message);
+      });
+    }
+
+    // Wherever the page names the therapist: the pill's "with ..." part, the
+    // homework cards' "From ..." and the homework tip if it is on screen now.
+    // What is built later (the message modal, the journal's share lines)
+    // reads connectedTherapistName.
+    function _aloShowTherapistName(name) {
+      _aloTherapistName = name;
+      connectedTherapistName = name;
+      var withEl = document.querySelector('#trustBadge.connected .trust-badge-with');
+      if (withEl) {
+        var clientEl = document.getElementById('clientNameEditable');
+        withEl.textContent = ' \u00B7 ' + _aloTrustBadgeWithText(clientEl ? clientEl.textContent : '', name);
+      }
+      document.querySelectorAll('#homeworkContainer .homework-from').forEach(function(el) {
+        el.textContent = 'From ' + name;
+      });
+      var tip = document.querySelector('.alo-contextual-tip[data-alo-tip="homework"]');
+      if (tip) tip.textContent = _aloHomeworkTipText();
+    }
+
+    function _aloTrustBadgeWithText(clientName, therapistName) {
+      return clientName === therapistName ? 'connected' : 'with ' + therapistName;
+    }
+
     function showConnectedUI(therapistName, clientName) {
       connectedTherapistName = therapistName;
       const badge = document.getElementById('trustBadge');
@@ -1008,8 +1065,7 @@
       const shieldSvg = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:12px;height:12px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>';
 
       const safeClient = esc(clientName);
-      const safeTherapist = esc(therapistName);
-      const withText = (clientName === therapistName) ? 'connected' : 'with ' + safeTherapist;
+      const withText = esc(_aloTrustBadgeWithText(clientName, therapistName));
 
       // Brief 5 A: #trustBadgeText is the box that truncates (ellipsis), and
       // phone widths drop the "with <therapist>" part so the name has the
@@ -1236,7 +1292,7 @@ function showAboutModal() {
         container.classList.add('show');
 
         // Brief 3 fix J (R-C-13): viewed_at is written below as soon as the card shows.
-        _aloShowTip('homework', (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see when you\'ve viewed it and when you mark it done, not what you wrote.');
+        _aloShowTip('homework', _aloHomeworkTipText());
 
         // Write viewed_at for any homework not yet viewed
         for (var i = 0; i < homework.length; i++) {
@@ -1292,6 +1348,12 @@ function showAboutModal() {
           hwErrContainer.classList.add('show');
         }
       }
+    }
+
+    // Brief 7 A: built when shown, and again if the therapist's name arrives
+    // while it is on screen (_aloShowTherapistName).
+    function _aloHomeworkTipText() {
+      return (connectedTherapistName || 'Your therapist') + ' assigned this. Mark it done when you\'re ready — they\'ll see when you\'ve viewed it and when you mark it done, not what you wrote.';
     }
 
     function handleHomeworkDone(hwId) {
@@ -1477,6 +1539,7 @@ function showAboutModal() {
       sessionNonce = null;
       chatSettings = {};
       connectedTherapistName = null;
+      _aloTherapistName = null;
       activeHomework = [];
       currentHomeworkId = null;
       memoryGlobalEnabled = null;
@@ -1487,10 +1550,13 @@ function showAboutModal() {
       _aloClaimedKey = null;
       resetPersistenceState();
       window._aloEnsureConvPromise = null;
+      _aloOnScreenBotpressConv = null;   // Brief 7 C
+      _aloDeletedBotpressConvs.clear();
       try {
         // R-C-22 ride-along (message content in local queues), the legacy
-        // pending invite (fix H), and the Botpress-to-history mappings.
-        var doomed = ['alo_unsent_messages', 'alo_dropped_messages', 'alo_pending_invite', ALO_PRIVATE_ACTIVE_KEY];
+        // pending invite (fix H), the Botpress-to-history mappings, and which
+        // conversation was on screen (Brief 7 C).
+        var doomed = ['alo_unsent_messages', 'alo_dropped_messages', 'alo_pending_invite', ALO_PRIVATE_ACTIVE_KEY, ALO_ONSCREEN_CONV_KEY];
         for (var i = 0; i < localStorage.length; i++) {
           var k = localStorage.key(i);
           if (k && k.indexOf('alo_conv_') === 0) doomed.push(k);
@@ -1559,6 +1625,9 @@ function showAboutModal() {
           console.error('[Alo] Could not clear Botpress storage:', e);
         }
       });
+      // Brief 7 C: the webchat's stored conversation is gone, so the page's
+      // note of which conversation was on screen goes with it.
+      _aloForgetOnScreenConversation();
     }
 
     // A stored Botpress user is reused only by the owner it was made for:
@@ -2000,7 +2069,7 @@ function showAboutModal() {
     function showLoginModal(inviteCode = null) {
       // 2026-09-26 (Brief 4 B): no password-reset link here -- client password reset returns with the Auth-side fix (token_hash / verifyOtp), Gate B.
       createModal('Sign In', `
-        <p>Sign in to save your conversations and let Alo remember what you've discussed. New accounts are set up by invitation.</p>
+        <p>Sign in to talk with Alo and let it remember what you've discussed. New accounts are set up by invitation.</p>
         <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Your conversations stay private. If you're connected to a therapist, they can see when you use Alo, when you view or complete homework they assign, what you choose to share with them, and a safety note if Alo thinks you may be in danger — never what you say.</p>
         <form id="loginForm" action="#" method="post" onsubmit="return false;" style="margin-top: 16px;">
           <label for="emailInput" style="font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px;">Email</label>
@@ -2445,11 +2514,11 @@ function showAboutModal() {
         // without a reload) loads the chat in its place.
         if (!_aloHasChat()) _aloHideStateCards();
         const botpressUp = _aloInitBotpress();
+        // Brief 7 A: the therapist's name, fired alongside, never awaited here.
+        _aloRequestTherapistName();
 
-        const therapist = await api(`/rest/v1/profiles?id=eq.${therapistLink.therapist_id}&select=display_name`);
         const client = await api(`/rest/v1/profiles?id=eq.${user.id}&select=display_name`);
 
-        const therapistName = therapist?.[0]?.display_name || 'Your therapist';
         // Fallback chain: client's own profile name → therapist's label → 'there'
         const clientProfileName = client?.[0]?.display_name;
         const therapistLabel = therapistLink.display_name;
@@ -2459,7 +2528,11 @@ function showAboutModal() {
         const settings = await api(`/rest/v1/therapist_clients?id=eq.${therapistLink.id}&select=allow_homework,allow_messages,allow_summary,allow_history,allow_journal_sharing`);
         chatSettings = settings?.[0] || {};
 
-        showConnectedUI(therapistName, clientName);
+        // Brief 7 A: the name if my_therapist_name() has answered by now --
+        // read here, with no await before the call, so an answer that lands
+        // during the reads above is not overwritten -- otherwise the
+        // fallback, replaced when it does answer (_aloShowTherapistName).
+        showConnectedUI(_aloTherapistName || ALO_THERAPIST_NAME_FALLBACK, clientName);
         
         // The controls a chat and a link bring (Brief 5 B, E: the memory icon
         // and "Memory settings" among them), then conversation history as the
@@ -2546,6 +2619,10 @@ function showAboutModal() {
     // verified send. Sends run one at a time, each built from the page's
     // state when it actually runs, so an identity refresh cannot overtake a
     // private start or end and put the old value back.
+    //
+    // opts.reverify (Brief 7 C): send and read back even when the bot was
+    // last confirmed holding this exact object -- a conversation restart
+    // that no identity change goes with re-checks what the bot holds.
     const ALO_IDENTITY_NOT_VERIFIED_MESSAGE =
       "Alo may not recognize you on the first message. If it doesn't, reload the page.";
 
@@ -2592,7 +2669,7 @@ function showAboutModal() {
         // Built from the page's current state on every attempt.
         const data = _aloBuildIdentityData(wantPrivate);
         const asSent = JSON.stringify(data);
-        if (asSent === _aloLastVerifiedIdentity) {
+        if (asSent === _aloLastVerifiedIdentity && !opts.reverify) {
           // The bot already holds exactly this (the bridge after a restart).
           console.log('[Alo] Identity already verified with Botpress (' + reason + ')');
           return true;
@@ -2940,6 +3017,151 @@ function showAboutModal() {
       currentSupabaseConvId = null;
       seenMessageIds.clear();
       persistenceTurnCounter = 0;
+    }
+
+    // =====================================================
+    // DELETING THE CONVERSATION ON SCREEN (Brief 7 C)
+    // =====================================================
+    // Deleting the conversation on screen used to leave the page writing to
+    // the deleted row, so the conversation's later messages silently failed
+    // to save. Now every delete forgets the mappings to the rows it took,
+    // and if the conversation on screen was one of them, a new conversation
+    // starts (_aloStartOverAfterDelete).
+    //
+    // Which Botpress conversation is on screen, as far as the SDK's events
+    // tell the page: the conversation of the last message it saw, or the
+    // last new conversation the webchat started ('conversation' names new
+    // conversations only, not a resumed one). Kept in localStorage as well,
+    // so a page that resumes a conversation knows which one before its
+    // first message.
+    function _aloNoteOnScreenConversation(bpConvId) {
+      if (!bpConvId || bpConvId === _aloOnScreenBotpressConv || _aloDeletedBotpressConvs.has(bpConvId)) return;
+      _aloOnScreenBotpressConv = bpConvId;
+      try { localStorage.setItem(ALO_ONSCREEN_CONV_KEY, bpConvId); } catch (e) {}
+    }
+
+    function _aloForgetOnScreenConversation() {
+      _aloOnScreenBotpressConv = null;
+      try { localStorage.removeItem(ALO_ONSCREEN_CONV_KEY); } catch (e) {}
+    }
+
+    function _aloOnScreenBotpressConvId() {
+      if (_aloOnScreenBotpressConv) return _aloOnScreenBotpressConv;
+      try { return localStorage.getItem(ALO_ONSCREEN_CONV_KEY); } catch (e) { return null; }
+    }
+
+    // The history row the conversation on screen is written to, or will be
+    // on its next message: the row the page is writing to, else the row
+    // this browser mapped the on-screen conversation to (ensureConversation).
+    function _aloOnScreenConversationRow() {
+      if (!_aloHasChat()) return null;
+      if (currentSupabaseConvId) return currentSupabaseConvId;
+      var bpConvId = _aloOnScreenBotpressConvId();
+      if (!bpConvId) return null;
+      try { return localStorage.getItem('alo_conv_' + bpConvId); } catch (e) { return null; }
+    }
+
+    // true / false: the server has / has not got the row; null: no answer.
+    async function _aloConversationRowExists(id) {
+      try {
+        var rows = await api('/rest/v1/conversations?id=eq.' + id + '&select=id');
+        return Array.isArray(rows) ? rows.length > 0 : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Drops every Botpress-to-history mapping that points at a removed row
+    // ('all': every mapping), so nothing resumes into a deleted row.
+    function _aloForgetConversationRows(removed) {
+      try {
+        var stale = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf('alo_conv_') === 0 &&
+              (removed === 'all' || removed.indexOf(localStorage.getItem(k)) !== -1)) stale.push(k);
+        }
+        stale.forEach(function(k) { localStorage.removeItem(k); });
+      } catch (e) {
+        console.error('[Alo] Could not forget deleted conversations:', e);
+      }
+    }
+
+    // Called once a delete has succeeded. removed: the rows it took ('all'
+    // for every row of the account). verifyOnScreen: the server decided which
+    // rows went (Clear unpinned), so whether the on-screen row went is read
+    // back rather than assumed. Never throws.
+    async function _aloAfterConversationsDeleted(removed, verifyOnScreen) {
+      try {
+        var onScreenRow = _aloOnScreenConversationRow();
+        var gone = false;
+        if (onScreenRow) {
+          gone = removed === 'all' || removed.indexOf(onScreenRow) !== -1;
+          if (verifyOnScreen) {
+            var stillThere = await _aloConversationRowExists(onScreenRow);
+            // No answer: unless the page knows it as pinned, it is treated as
+            // gone (a needless new conversation loses nothing; a missed one
+            // loses what is said next).
+            gone = stillThere === null
+              ? !allThreads.some(function(t) { return t.id === onScreenRow && t.pinned; })
+              : !stillThere;
+            if (gone && removed !== 'all' && removed.indexOf(onScreenRow) === -1) removed = removed.concat([onScreenRow]);
+          }
+        }
+        _aloForgetConversationRows(removed);
+        if (gone) await _aloStartOverAfterDelete();
+      } catch (err) {
+        console.error('[Alo] Could not finish after a delete:', err);
+      }
+    }
+
+    // The conversation on screen has just lost its history row. The routine
+    // a sign-in and the private on/off transitions use: the composer is held,
+    // the identity is sent and read back again, the conversation restarts
+    // once the webchat is connected, and the box reopens on the new
+    // conversation. Nothing from the deleted one is written again, a late
+    // reply included (the message handler checks _aloDeletedBotpressConvs).
+    async function _aloStartOverAfterDelete() {
+      var leaving = _aloOnScreenBotpressConvId();
+      if (leaving) _aloDeletedBotpressConvs.add(leaving);
+      resetPersistenceState();
+      window._aloEnsureConvPromise = null;
+      // A composer that is already held (a startup handshake still running)
+      // is left to whoever holds it.
+      var heldHere = !_aloComposerHeld;
+      if (heldHere) _aloHoldComposer();
+      var verified = await sendIdentityToBot('conversation-deleted', { reverify: true });
+      if (await _aloWaitForConversationReady(10000)) {
+        console.log('[Alo] The conversation on screen was deleted: starting a new conversation');
+        if (!(await _aloRestartConversation())) return;   // the page is reloading
+        // The box reopens once the new conversation is connected: a message
+        // sent before its stream is open reaches Botpress but never comes
+        // back to the page, so it would not be saved. The SDK's
+        // 'conversation' event names the new conversation once it is
+        // connected; at most 3 s, then the box reopens anyway.
+        await _aloWaitForNewConversation(3000);
+      } else {
+        // No new conversation: this one stays on screen, and its next
+        // messages start a new row (its mapping is gone).
+        console.error('[Alo] The conversation on screen was deleted, but the webchat is not connected: no new conversation was started');
+        if (leaving) _aloDeletedBotpressConvs.delete(leaving);
+      }
+      if (heldHere) _aloReleaseComposer();
+      if (!verified) showToast(ALO_IDENTITY_NOT_VERIFIED_MESSAGE, 6000);
+    }
+
+    // Resolves true once a conversation is noted as on screen (after a
+    // restart that is the new one: _aloRestartConversation() cleared the
+    // note), false after `ms`.
+    function _aloWaitForNewConversation(ms) {
+      return new Promise(function(resolve) {
+        const started = Date.now();
+        (function check() {
+          if (_aloOnScreenBotpressConv) return resolve(true);
+          if (Date.now() - started >= ms) return resolve(false);
+          setTimeout(check, 50);
+        })();
+      });
     }
 
     // Brief 3c I: the bridge goes out only once the webchat can take it.
@@ -3444,6 +3666,8 @@ function showAboutModal() {
         allThreads = allThreads.filter(function(t) { return t.id !== conversationId; });
         renderThreadList();
         showToast('Deleted from your account');
+        // Brief 7 C: if it was the conversation on screen, a new one starts.
+        await _aloAfterConversationsDeleted([conversationId]);
       } catch (err) {
         console.error('Error deleting:', err);
         showToast('Could not delete. Try again.');
@@ -3509,6 +3733,9 @@ async function togglePin(conversationId) {
         allThreads = allThreads.filter(function(t) { return t.pinned; });
         renderThreadList();
         showToast('History cleared');
+        // Brief 7 C: the server's own filter decided which rows went, so
+        // whether the conversation on screen was one of them is read back.
+        await _aloAfterConversationsDeleted(unpinned.map(function(t) { return t.id; }), true);
       } catch (err) {
         console.error('Error clearing history:', err);
         showToast('Could not clear history. Try again.');
@@ -3522,8 +3749,10 @@ async function togglePin(conversationId) {
     // clearHistory()'s confirm, worded for all of them. Summaries are handled
     // as clearHistory() handles them (marked source_expired, kept), which is
     // what "Alo will still remember themes" says.
+    // Brief 7 E (ledger D41): it deletes conversations, not memory, and says
+    // where memory is cleared.
     const ALO_DELETE_ALL_HISTORY_MESSAGE =
-      'This will delete all your conversations from your Alo account. Alo will still remember themes from recent sessions. This can\'t be undone.';
+      'This will delete all your conversations from your Alo account. Alo will still remember themes from recent sessions. Memory summaries are cleared separately, under Memory settings. This can\'t be undone.';
 
     async function deleteAllConversationHistory() {
       var confirmed = await showConfirm('Clear conversation history?', ALO_DELETE_ALL_HISTORY_MESSAGE, {
@@ -3551,19 +3780,11 @@ async function togglePin(conversationId) {
 
         allThreads = [];
         renderThreadList();
-        // The conversation on screen has no row any more: its next message
-        // starts a new one instead of writing to the deleted one.
-        resetPersistenceState();
-        window._aloEnsureConvPromise = null;
-        try {
-          var stale = [];
-          for (var i = 0; i < localStorage.length; i++) {
-            var k = localStorage.key(i);
-            if (k && k.indexOf('alo_conv_') === 0) stale.push(k);
-          }
-          stale.forEach(function(k) { localStorage.removeItem(k); });
-        } catch (e) {}
         showToast('History cleared');
+        // Every mapping goes, and the conversation on screen, if it had a
+        // row, gives way to a new conversation (Brief 7 C) instead of going
+        // on into a new row.
+        await _aloAfterConversationsDeleted('all');
       } catch (err) {
         console.error('Error deleting all conversations:', err);
         showToast('Could not clear history. Try again.');
@@ -3995,6 +4216,9 @@ async function togglePin(conversationId) {
    // The restart itself. Does not touch the private state.
    async function _aloRestartConversation() {
       resetPersistenceState();
+      // Brief 7 C: the conversation on screen is about to be a new one, which
+      // has no history row until its first message ('conversation' names it).
+      _aloForgetOnScreenConversation();
 
       // Only toggle sidebar if it's open
       var sidebar = document.getElementById('threadSidebar');
@@ -4923,6 +5147,12 @@ window.botpress.on('webchat:closed', function() {
       window.botpress.on('webchat:ready', function() {
         _aloBotpressConversationReady = true;
       });
+
+      // Brief 7 C: the webchat started a new conversation (the SDK emits this
+      // for a new conversation only, not a resumed one): it is on screen now.
+      window.botpress.on('conversation', function(conversationId) {
+        _aloNoteOnScreenConversation(typeof conversationId === 'string' ? conversationId : null);
+      });
       
 
       // Message capture: persistence for signed-in users (guests write nothing)
@@ -4931,6 +5161,17 @@ window.botpress.on('webchat:closed', function() {
         if (!clientId) {
           return;
         }
+
+        var bpConvId = null;
+        try { bpConvId = msg.conversationId; } catch(e) {}
+        // Brief 7 C: a conversation whose history row was deleted while it
+        // was on screen is never written again, not even as a local backup;
+        // any other message tells the page which conversation is on screen.
+        if (bpConvId && _aloDeletedBotpressConvs.has(bpConvId)) {
+          console.log('[Persistence] Not saved: its conversation was deleted from history');
+          return;
+        }
+        _aloNoteOnScreenConversation(bpConvId);
 
         // Extract text — try all known paths
         var content = '';
@@ -4966,8 +5207,6 @@ window.botpress.on('webchat:closed', function() {
         var role = isUser ? 'user' : 'assistant';
         var msgId = null;
         try { msgId = msg.id; } catch(e) {}
-        var bpConvId = null;
-        try { bpConvId = msg.conversationId; } catch(e) {}
 
         console.log('[Persistence] Captured ' + role + ': ' + content.substring(0, 40) + ' id:' + msgId);
 
@@ -5093,7 +5332,7 @@ window.botpress.on('webchat:closed', function() {
           <h3 class="modal-section-title">Your Alo conversations</h3>
           <ul class="modal-list">
             <li>If you have an account, conversations are saved so Alo can provide continuity</li>
-            <li>You can delete any conversation from your Alo account at any time from the sidebar. Deletion from the chat platform Alo runs on isn't in place yet.</li>
+            <li>You can delete any conversation from your Alo account at any time from the sidebar — or, when history is turned off, from the menu. Deletion from the chat platform Alo runs on isn't in place yet.</li>
             <li>You can turn off memory in settings — Alo will treat each chat as new</li>
             <li>Alo is by invitation through your therapist, so you need to be signed in to chat</li>
             <li>Your therapist <strong>cannot access</strong> your Alo conversations</li>
